@@ -117,9 +117,10 @@ public class LevelManager :
 
 
         gridManager.Initialize(
-            currentLevel.Columns,
-            currentLevel.Rows
-        );
+    currentLevel.Columns,
+    currentLevel.Rows,
+    currentLevel.BlockedCells
+);
 
 
         hintManager.Initialize(
