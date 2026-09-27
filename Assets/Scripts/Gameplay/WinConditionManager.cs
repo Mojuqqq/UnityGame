@@ -1,8 +1,10 @@
 using UnityEngine;
 
-public class WinConditionManager : MonoBehaviour
+public class WinConditionManager :
+    MonoBehaviour
 {
-    [Header("References")]
+    [Header("Gameplay")]
+
     [SerializeField]
     private GridManager gridManager;
 
@@ -10,9 +12,21 @@ public class WinConditionManager : MonoBehaviour
     private HintManager hintManager;
 
     [SerializeField]
-    private GameObject levelCompleteOverlay;
+    private LevelManager levelManager;
 
-    private bool levelCompleted = false;
+
+    [Header("Complete UI")]
+
+    [SerializeField]
+    private GameObject
+        levelCompleteOverlay;
+
+    [SerializeField]
+    private GameObject
+        nextLevelButton;
+
+
+    private bool levelCompleted;
 
 
     private void OnEnable()
@@ -37,9 +51,14 @@ public class WinConditionManager : MonoBehaviour
 
     private void Start()
     {
-        levelCompleted = false;
+        levelCompleted =
+            false;
 
-        if (levelCompleteOverlay != null)
+
+        if (
+            levelCompleteOverlay !=
+            null
+        )
         {
             levelCompleteOverlay
                 .SetActive(false);
@@ -54,6 +73,7 @@ public class WinConditionManager : MonoBehaviour
             return;
         }
 
+
         if (hintManager == null)
         {
             Debug.LogError(
@@ -63,10 +83,12 @@ public class WinConditionManager : MonoBehaviour
             return;
         }
 
+
         if (!hintManager.IsSolved())
         {
             return;
         }
+
 
         CompleteLevel();
     }
@@ -74,16 +96,42 @@ public class WinConditionManager : MonoBehaviour
 
     private void CompleteLevel()
     {
-        levelCompleted = true;
+        levelCompleted =
+            true;
 
-        Debug.Log(
-            "Level completed!"
-        );
 
-        if (levelCompleteOverlay != null)
+        if (levelManager != null)
+        {
+            levelManager
+                .CompleteCurrentLevel();
+        }
+
+
+        if (nextLevelButton != null)
+        {
+            bool hasNextLevel =
+                levelManager != null &&
+                levelManager.HasNextLevel();
+
+
+            nextLevelButton.SetActive(
+                hasNextLevel
+            );
+        }
+
+
+        if (
+            levelCompleteOverlay !=
+            null
+        )
         {
             levelCompleteOverlay
                 .SetActive(true);
         }
+
+
+        Debug.Log(
+            "Level completed!"
+        );
     }
 }

@@ -2,7 +2,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class LevelButtonView : MonoBehaviour
+public class LevelButtonView :
+    MonoBehaviour
 {
     [Header("References")]
 
@@ -18,10 +19,14 @@ public class LevelButtonView : MonoBehaviour
     private LevelSelectManager
         levelSelectManager;
 
+    private bool isUnlocked;
+
 
     public void Initialize(
         LevelData newLevelData,
-        LevelSelectManager manager
+        LevelSelectManager manager,
+        bool unlocked,
+        bool completed
     )
     {
         levelData =
@@ -30,10 +35,11 @@ public class LevelButtonView : MonoBehaviour
         levelSelectManager =
             manager;
 
+        isUnlocked =
+            unlocked;
 
-        if (
-            levelData == null
-        )
+
+        if (levelData == null)
         {
             Debug.LogError(
                 "LevelButtonView: LevelData is null."
@@ -43,30 +49,60 @@ public class LevelButtonView : MonoBehaviour
         }
 
 
-        if (
-            levelNumberText != null
-        )
+        if (button != null)
         {
-            levelNumberText.text =
-                levelData
-                    .LevelNumber
-                    .ToString();
+            button.interactable =
+                unlocked;
+
+            button.onClick
+                .RemoveAllListeners();
+
+            button.onClick
+                .AddListener(
+                    OnButtonClicked
+                );
         }
 
 
-        if (button != null)
+        if (levelNumberText != null)
         {
-            button.onClick.RemoveAllListeners();
+            if (!unlocked)
+            {
+                levelNumberText.text =
+                    $"{levelData.LevelNumber}\nЗАКРЫТ";
 
-            button.onClick.AddListener(
-                OnButtonClicked
-            );
+                levelNumberText.fontSize =
+                    24f;
+            }
+            else if (completed)
+            {
+                levelNumberText.text =
+                    $"{levelData.LevelNumber}\nПРОЙДЕН";
+
+                levelNumberText.fontSize =
+                    24f;
+            }
+            else
+            {
+                levelNumberText.text =
+                    levelData
+                        .LevelNumber
+                        .ToString();
+
+                levelNumberText.fontSize =
+                    42f;
+            }
         }
     }
 
 
     private void OnButtonClicked()
     {
+        if (!isUnlocked)
+        {
+            return;
+        }
+
         if (
             levelSelectManager == null ||
             levelData == null
@@ -75,10 +111,8 @@ public class LevelButtonView : MonoBehaviour
             return;
         }
 
-
-        levelSelectManager
-            .SelectLevel(
-                levelData
-            );
+        levelSelectManager.SelectLevel(
+            levelData
+        );
     }
 }

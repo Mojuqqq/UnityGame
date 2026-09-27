@@ -7,8 +7,7 @@ public class LevelSelectManager :
     [Header("Levels")]
 
     [SerializeField]
-    private LevelDatabase
-        levelDatabase;
+    private LevelDatabase levelDatabase;
 
 
     [Header("UI")]
@@ -31,7 +30,30 @@ public class LevelSelectManager :
 
     private void Start()
     {
+        UnlockFirstLevel();
+
         BuildLevelButtons();
+    }
+
+
+    private void UnlockFirstLevel()
+    {
+        if (levelDatabase == null)
+        {
+            return;
+        }
+
+        LevelData firstLevel =
+            levelDatabase.GetFirstLevel();
+
+        if (firstLevel == null)
+        {
+            return;
+        }
+
+        ProgressManager.UnlockLevel(
+            firstLevel.LevelNumber
+        );
     }
 
 
@@ -81,12 +103,25 @@ public class LevelSelectManager :
             }
 
 
-            LevelButtonView
-                button =
-                    Instantiate(
-                        levelButtonPrefab,
-                        buttonsContainer
+            bool unlocked =
+                ProgressManager
+                    .IsLevelUnlocked(
+                        level.LevelNumber
                     );
+
+
+            bool completed =
+                ProgressManager
+                    .IsLevelCompleted(
+                        level.LevelNumber
+                    );
+
+
+            LevelButtonView button =
+                Instantiate(
+                    levelButtonPrefab,
+                    buttonsContainer
+                );
 
 
             button.name =
@@ -95,7 +130,9 @@ public class LevelSelectManager :
 
             button.Initialize(
                 level,
-                this
+                this,
+                unlocked,
+                completed
             );
         }
     }
@@ -111,10 +148,20 @@ public class LevelSelectManager :
         }
 
 
-        LevelSelectionState
-            .SelectLevel(
-                level
-            );
+        if (
+            !ProgressManager
+                .IsLevelUnlocked(
+                    level.LevelNumber
+                )
+        )
+        {
+            return;
+        }
+
+
+        LevelSelectionState.SelectLevel(
+            level
+        );
 
 
         SceneManager.LoadScene(
@@ -133,8 +180,7 @@ public class LevelSelectManager :
 
         for (
             int i =
-                buttonsContainer
-                    .childCount - 1;
+                buttonsContainer.childCount - 1;
             i >= 0;
             i--
         )
@@ -144,13 +190,28 @@ public class LevelSelectManager :
                     .GetChild(i)
                     .gameObject;
 
-            child.SetActive(
-                false
-            );
+            child.SetActive(false);
 
-            Destroy(
-                child
-            );
+            Destroy(child);
         }
+    }
+
+
+    [ContextMenu(
+        "Reset Progress For Testing"
+    )]
+    private void ResetProgressForTesting()
+    {
+        ProgressManager.ResetProgress(
+            levelDatabase
+        );
+
+        UnlockFirstLevel();
+
+        BuildLevelButtons();
+
+        Debug.Log(
+            "Level progress reset."
+        );
     }
 }

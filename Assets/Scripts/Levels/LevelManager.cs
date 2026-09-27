@@ -1,15 +1,20 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-public class LevelManager : MonoBehaviour
+public class LevelManager :
+    MonoBehaviour
 {
     [Header("Fallback Level")]
 
-    [Tooltip(
-        "Используется, если игровая сцена запущена напрямую из Editor."
-    )]
     [SerializeField]
     private LevelData fallbackLevel;
+
+
+    [Header("Level Database")]
+
+    [SerializeField]
+    private LevelDatabase levelDatabase;
 
 
     [Header("Gameplay")]
@@ -46,7 +51,9 @@ public class LevelManager : MonoBehaviour
     public void LoadCurrentLevel()
     {
         currentLevel =
-            LevelSelectionState.SelectedLevel;
+            LevelSelectionState
+                .SelectedLevel;
+
 
         if (currentLevel == null)
         {
@@ -137,5 +144,93 @@ public class LevelManager : MonoBehaviour
             $"{currentLevel.LevelNumber}: " +
             $"{currentLevel.DisplayName}"
         );
+    }
+
+
+    public void CompleteCurrentLevel()
+    {
+        if (currentLevel == null)
+        {
+            return;
+        }
+
+
+        ProgressManager.CompleteLevel(
+            currentLevel.LevelNumber
+        );
+
+
+        LevelData nextLevel =
+            GetNextLevel();
+
+
+        if (nextLevel != null)
+        {
+            ProgressManager.UnlockLevel(
+                nextLevel.LevelNumber
+            );
+        }
+
+
+        Debug.Log(
+            $"Completed level {currentLevel.LevelNumber}"
+        );
+    }
+
+
+    public bool HasNextLevel()
+    {
+        return
+            GetNextLevel() != null;
+    }
+
+
+    public void LoadNextLevel()
+    {
+        LevelData nextLevel =
+            GetNextLevel();
+
+
+        if (nextLevel == null)
+        {
+            return;
+        }
+
+
+        ProgressManager.UnlockLevel(
+            nextLevel.LevelNumber
+        );
+
+
+        LevelSelectionState.SelectLevel(
+            nextLevel
+        );
+
+
+        Scene currentScene =
+            SceneManager.GetActiveScene();
+
+
+        SceneManager.LoadScene(
+            currentScene.name
+        );
+    }
+
+
+    private LevelData GetNextLevel()
+    {
+        if (
+            levelDatabase == null ||
+            currentLevel == null
+        )
+        {
+            return null;
+        }
+
+
+        return
+            levelDatabase.GetNextLevel(
+                currentLevel
+            );
     }
 }

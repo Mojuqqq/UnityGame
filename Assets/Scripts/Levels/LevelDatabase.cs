@@ -4,13 +4,16 @@ using UnityEngine;
     fileName = "LevelDatabase",
     menuName = "Puzzle/Level Database"
 )]
-public class LevelDatabase : ScriptableObject
+public class LevelDatabase :
+    ScriptableObject
 {
     [SerializeField]
     private LevelData[] levels;
 
+
     public LevelData[] Levels =>
         levels;
+
 
     public int Count
     {
@@ -43,6 +46,28 @@ public class LevelDatabase : ScriptableObject
     }
 
 
+    public LevelData GetFirstLevel()
+    {
+        if (levels == null)
+        {
+            return null;
+        }
+
+        foreach (
+            LevelData level
+            in levels
+        )
+        {
+            if (level != null)
+            {
+                return level;
+            }
+        }
+
+        return null;
+    }
+
+
     public LevelData GetLevelByNumber(
         int levelNumber
     )
@@ -53,7 +78,8 @@ public class LevelDatabase : ScriptableObject
         }
 
         foreach (
-            LevelData level in levels
+            LevelData level
+            in levels
         )
         {
             if (
@@ -64,6 +90,55 @@ public class LevelDatabase : ScriptableObject
             {
                 return level;
             }
+        }
+
+        return null;
+    }
+
+
+    public LevelData GetNextLevel(
+        LevelData currentLevel
+    )
+    {
+        if (
+            levels == null ||
+            currentLevel == null
+        )
+        {
+            return null;
+        }
+
+        for (
+            int i = 0;
+            i < levels.Length;
+            i++
+        )
+        {
+            if (
+                levels[i] !=
+                currentLevel
+            )
+            {
+                continue;
+            }
+
+            for (
+                int nextIndex = i + 1;
+                nextIndex < levels.Length;
+                nextIndex++
+            )
+            {
+                if (
+                    levels[nextIndex] !=
+                    null
+                )
+                {
+                    return
+                        levels[nextIndex];
+                }
+            }
+
+            return null;
         }
 
         return null;
