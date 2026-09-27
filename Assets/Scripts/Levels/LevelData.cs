@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 [CreateAssetMenu(
     fileName = "Level_001",
@@ -47,6 +48,15 @@ public class LevelData : ScriptableObject
     [SerializeField]
     private int[] columnTargets;
 
+    [Header("Blocked Cells")]
+
+[Tooltip(
+    "Клетки поля, в которые нельзя устанавливать фигуры. " +
+    "X идёт слева направо, Y сверху вниз."
+)]
+[SerializeField]
+private Vector2Int[] blockedCells;
+
 
     public int LevelNumber =>
         levelNumber;
@@ -68,6 +78,9 @@ public class LevelData : ScriptableObject
 
     public int[] ColumnTargets =>
         columnTargets;
+
+    public Vector2Int[] BlockedCells =>
+    blockedCells;
 
 
     public bool IsValid(
@@ -241,6 +254,115 @@ if (rowSum != totalPieceCells)
 }
 
         errorMessage = "";
+
+int[] blockedPerRow =
+    new int[rows];
+
+int[] blockedPerColumn =
+    new int[columns];
+
+
+HashSet<Vector2Int> uniqueBlockedCells =
+    new HashSet<Vector2Int>();
+
+
+if (blockedCells != null)
+{
+    foreach (
+        Vector2Int blockedCell
+        in blockedCells
+    )
+    {
+        if (
+            blockedCell.x < 0 ||
+            blockedCell.x >= columns ||
+            blockedCell.y < 0 ||
+            blockedCell.y >= rows
+        )
+        {
+            errorMessage =
+                $"Blocked cell ({blockedCell.x}, {blockedCell.y}) " +
+                "is outside the grid.";
+
+            return false;
+        }
+
+
+        if (
+            !uniqueBlockedCells.Add(
+                blockedCell
+            )
+        )
+        {
+            errorMessage =
+                $"Blocked cell ({blockedCell.x}, {blockedCell.y}) " +
+                "is duplicated.";
+
+            return false;
+        }
+
+
+        blockedPerRow[
+            blockedCell.y
+        ]++;
+
+
+        blockedPerColumn[
+            blockedCell.x
+        ]++;
+    }
+}
+
+for (
+    int y = 0;
+    y < rows;
+    y++
+)
+{
+    int availableCells =
+        columns -
+        blockedPerRow[y];
+
+
+    if (
+        rowTargets[y] >
+        availableCells
+    )
+    {
+        errorMessage =
+            $"Row {y} requires {rowTargets[y]} occupied cells, " +
+            $"but only {availableCells} cells are available " +
+            "because of blocked cells.";
+
+        return false;
+    }
+}
+
+
+for (
+    int x = 0;
+    x < columns;
+    x++
+)
+{
+    int availableCells =
+        rows -
+        blockedPerColumn[x];
+
+
+    if (
+        columnTargets[x] >
+        availableCells
+    )
+    {
+        errorMessage =
+            $"Column {x} requires {columnTargets[x]} occupied cells, " +
+            $"but only {availableCells} cells are available " +
+            "because of blocked cells.";
+
+        return false;
+    }
+}
 
         return true;
     }

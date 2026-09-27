@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -6,6 +7,8 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CanvasGroup))]
 public class PieceDragHandler :
     MonoBehaviour,
+    IPointerDownHandler,
+    IPointerUpHandler,
     IBeginDragHandler,
     IDragHandler,
     IEndDragHandler
@@ -22,91 +25,144 @@ public class PieceDragHandler :
     private RectTransform piecePanel;
 
 
+    [Header("Drag Visuals")]
+
+    [SerializeField]
+    [Range(0.1f, 1f)]
+    private float dragAlpha = 0.68f;
+    [SerializeField]
+[Min(0.01f)]
+private float pickupFadeDuration = 0.08f;
+
+
+    [Header("Drop Animation")]
+
+    [SerializeField]
+    [Min(0.01f)]
+    private float snapDuration = 0.12f;
+
+    [SerializeField]
+    private AnimationCurve snapCurve =
+        AnimationCurve.EaseInOut(
+            0f,
+            0f,
+            1f,
+            1f
+        );
+
+
     private PieceView pieceView;
-
     private RectTransform rectTransform;
-
     private CanvasGroup canvasGroup;
+    private RectTransform gridRect;
+    private Coroutine alphaFadeRoutine;
 
 
-    // Где фигура живёт,
-    // когда находится в панели.
+    // =====================================================
+    // HOME
+    // =====================================================
 
     private Transform homeParent;
-
     private int homeSiblingIndex;
 
-    private Vector2
-        homeAnchoredPosition;
+    private Vector2 homeAnchoredPosition;
 
-    private float
-        homeCellSize;
+    private Vector2 homeAnchorMin;
+    private Vector2 homeAnchorMax;
+    private Vector2 homePivot;
 
-    private float
-        homeSpacing;
+    private float homeCellSize;
+    private float homeSpacing;
+    private float homeAlpha;
 
-    private bool
-        homeCaptured;
+    private Vector3 homeTopLeftWorld;
+
+    private bool homeCaptured;
 
 
-    // Состояние на поле.
+    // =====================================================
+    // PLACED STATE
+    // =====================================================
 
-    private bool
-        isPlaced;
+    private bool isPlaced;
 
-    private Vector2Int
-        placedOrigin;
+    private Vector2Int placedOrigin;
 
     private List<Vector2Int>
         placedCoordinates =
             new List<Vector2Int>();
 
 
-    // Запоминаем состояние перед
-    // перемещением установленной фигуры.
+    // =====================================================
+    // PREVIOUS PLACEMENT
+    // =====================================================
 
-    private bool
-        wasPlacedAtDragStart;
+    private bool wasPlacedAtDragStart;
 
-    private Vector2Int
-        previousOrigin;
+    private Vector2Int previousOrigin;
 
-    private int
-        previousRotationSteps;
+    private int previousRotationSteps;
 
 
-    // Текущее перетаскивание.
+    // =====================================================
+    // DRAG
+    // =====================================================
 
-    private bool
-        isDragging;
+    private bool isDragging;
+    private bool isSettling;
 
-    private bool
-        hasValidPlacement;
+    private bool hasValidPlacement;
 
-    private Vector2Int
-        currentOrigin;
+    private Vector2Int currentOrigin;
 
-    private Vector2
-        lastPointerPosition;
+    private Vector2 lastPointerPosition;
 
-    private Camera
-        lastEventCamera;
+    private Camera lastEventCamera;
+
+
+    // =====================================================
+    // GRABBED CELL
+    // =====================================================
+
+    private int grabbedCellIndex;
+
+
+    private Vector2 grabPointInsideCell =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    // =====================================================
+    // CONFIGURE
+    // =====================================================
 
     public void Configure(
-    GridManager newGridManager,
-    RectTransform newDragLayer,
-    RectTransform newPiecePanel
-)
-{
-    gridManager =
-        newGridManager;
+        GridManager newGridManager,
+        RectTransform newDragLayer,
+        RectTransform newPiecePanel
+    )
+    {
+        gridManager =
+            newGridManager;
 
-    dragLayer =
-        newDragLayer;
+        dragLayer =
+            newDragLayer;
 
-    piecePanel =
-        newPiecePanel;
-}
+        piecePanel =
+            newPiecePanel;
+
+
+        if (gridManager != null)
+        {
+            gridRect =
+                gridManager.GetComponent<
+                    RectTransform
+                >();
+        }
+    }
+
 
     private void Awake()
     {
@@ -124,21 +180,35 @@ public class PieceDragHandler :
     private void Start()
     {
         CaptureHomePosition();
+
+
+        if (
+            gridRect == null &&
+            gridManager != null
+        )
+        {
+            gridRect =
+                gridManager.GetComponent<
+                    RectTransform
+                >();
+        }
     }
 
 
     private void Update()
     {
-        if (!isDragging)
+        if (
+            !isDragging ||
+            isSettling
+        )
         {
             return;
         }
 
+
         if (
             Keyboard.current != null &&
-            Keyboard
-                .current
-                .rKey
+            Keyboard.current.rKey
                 .wasPressedThisFrame
         )
         {
@@ -147,6 +217,10 @@ public class PieceDragHandler :
     }
 
 
+    // =====================================================
+    // HOME
+    // =====================================================
+
     private void CaptureHomePosition()
     {
         if (homeCaptured)
@@ -154,15 +228,27 @@ public class PieceDragHandler :
             return;
         }
 
+
         homeParent =
             transform.parent;
 
         homeSiblingIndex =
             transform.GetSiblingIndex();
 
+
         homeAnchoredPosition =
-            rectTransform
-                .anchoredPosition;
+            rectTransform.anchoredPosition;
+
+
+        homeAnchorMin =
+            rectTransform.anchorMin;
+
+        homeAnchorMax =
+            rectTransform.anchorMax;
+
+        homePivot =
+            rectTransform.pivot;
+
 
         homeCellSize =
             pieceView.CellSize;
@@ -170,10 +256,14 @@ public class PieceDragHandler :
         homeSpacing =
             pieceView.Spacing;
 
-        // Если PiecePanel забыли
-        // назначить вручную,
-        // попробуем найти его через
-        // PiecesContainer.
+
+        homeAlpha =
+            canvasGroup.alpha;
+
+
+        homeTopLeftWorld =
+            GetCurrentTopLeftWorld();
+
 
         if (
             piecePanel == null &&
@@ -188,15 +278,64 @@ public class PieceDragHandler :
                     >();
         }
 
+
         homeCaptured =
             true;
     }
 
 
+    // =====================================================
+    // BEGIN DRAG
+    // =====================================================
+
+    public void OnPointerDown(
+    PointerEventData eventData
+)
+{
+    if (isSettling)
+    {
+        return;
+    }
+
+
+    CaptureHomePosition();
+
+
+    StartAlphaFade(
+        dragAlpha,
+        pickupFadeDuration
+    );
+}
+
+    public void OnPointerUp(
+    PointerEventData eventData
+)
+{
+   
+    if (isSettling)
+    {
+        return;
+    }
+
+    if (!isDragging)
+    {
+        StartAlphaFade(
+            homeAlpha,
+            pickupFadeDuration
+        );
+    }
+}
+
     public void OnBeginDrag(
         PointerEventData eventData
     )
     {
+        if (isSettling)
+        {
+            return;
+        }
+
+
         if (
             pieceView == null ||
             pieceView.Definition == null ||
@@ -211,7 +350,15 @@ public class PieceDragHandler :
             return;
         }
 
+
         CaptureHomePosition();
+
+
+        CaptureGrabbedCell(
+            eventData.position,
+            eventData.pressEventCamera
+        );
+
 
         isDragging =
             true;
@@ -239,9 +386,11 @@ public class PieceDragHandler :
             previousRotationSteps =
                 pieceView.RotationSteps;
 
+
             gridManager.ClearCells(
                 placedCoordinates
             );
+
 
             placedCoordinates.Clear();
 
@@ -252,24 +401,45 @@ public class PieceDragHandler :
 
         transform.SetParent(
             dragLayer,
-            true
+            false
         );
 
+
         transform.SetAsLastSibling();
+
+
+        rectTransform.anchorMin =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+
+        rectTransform.anchorMax =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+
+        rectTransform.pivot =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
 
 
         canvasGroup.blocksRaycasts =
             false;
 
 
-        pieceView.SetLayout(
-            gridManager.CellSize,
-            gridManager.Spacing
+        UpdateDragVisualSize(
+            eventData.position,
+            eventData.pressEventCamera
         );
 
 
-        MoveToPointer(
-            eventData
+        MoveGrabbedCellToPointer(
+            eventData.position,
+            eventData.pressEventCamera
         );
 
 
@@ -277,11 +447,18 @@ public class PieceDragHandler :
     }
 
 
+    // =====================================================
+    // DRAG
+    // =====================================================
+
     public void OnDrag(
         PointerEventData eventData
     )
     {
-        if (!isDragging)
+        if (
+            !isDragging ||
+            isSettling
+        )
         {
             return;
         }
@@ -294,8 +471,15 @@ public class PieceDragHandler :
             eventData.pressEventCamera;
 
 
-        MoveToPointer(
-            eventData
+        UpdateDragVisualSize(
+            eventData.position,
+            eventData.pressEventCamera
+        );
+
+
+        MoveGrabbedCellToPointer(
+            eventData.position,
+            eventData.pressEventCamera
         );
 
 
@@ -303,12 +487,49 @@ public class PieceDragHandler :
     }
 
 
+    // =====================================================
+    // END DRAG
+    // =====================================================
+
     public void OnEndDrag(
         PointerEventData eventData
     )
     {
-        if (!isDragging)
+        if (
+            !isDragging ||
+            isSettling
+        )
         {
+            return;
+        }
+
+
+        isDragging =
+            false;
+
+        isSettling =
+            true;
+
+
+        canvasGroup.interactable =
+            false;
+
+        canvasGroup.blocksRaycasts =
+            false;
+
+
+        // -----------------------------------------------
+        // 1. Успешный drop на Grid
+        // -----------------------------------------------
+
+        if (hasValidPlacement)
+        {
+            StartCoroutine(
+                AnimateToGridAndPlace(
+                    currentOrigin
+                )
+            );
+
             return;
         }
 
@@ -317,47 +538,9 @@ public class PieceDragHandler :
             .ClearPlacementPreview();
 
 
-        // 1. Если позиция на Grid допустима,
-        // устанавливаем фигуру.
-
-        if (hasValidPlacement)
-        {
-            bool placed =
-                gridManager.PlacePiece(
-                    pieceView.CurrentCells,
-                    pieceView.Definition.Color,
-                    currentOrigin,
-                    out List<Vector2Int>
-                        newCoordinates
-                );
-
-
-            if (placed)
-            {
-                placedOrigin =
-                    currentOrigin;
-
-                placedCoordinates =
-                    newCoordinates;
-
-                isPlaced =
-                    true;
-
-
-                SnapVisualToGrid(
-                    placedOrigin
-                );
-
-
-                FinishDrag();
-
-                return;
-            }
-        }
-
-
-        // 2. Если отпустили над PiecePanel,
-        // возвращаем фигуру в панель.
+        // -----------------------------------------------
+        // 2. Вернули в PiecePanel
+        // -----------------------------------------------
 
         if (
             IsPointerOverPiecePanel(
@@ -365,82 +548,853 @@ public class PieceDragHandler :
             )
         )
         {
-            ReturnToPiecePanel();
-
-            FinishDrag();
+            StartCoroutine(
+                AnimateBackHome()
+            );
 
             return;
         }
 
 
-        // 3. Если фигура раньше уже
-        // стояла на поле, а новое
-        // размещение не удалось,
-        // возвращаем старую позицию.
+        // -----------------------------------------------
+        // 3. Раньше стояла на Grid
+        // -----------------------------------------------
 
         if (wasPlacedAtDragStart)
         {
-            RestorePreviousPlacement();
+            pieceView.SetRotationSteps(
+                previousRotationSteps
+            );
 
-            FinishDrag();
+
+            StartCoroutine(
+                AnimateBackToPreviousGrid()
+            );
 
             return;
         }
 
 
-        // 4. Если фигура была взята
-        // из PiecePanel и отпущена
-        // где-то мимо — просто домой.
+        // -----------------------------------------------
+        // 4. Взяли из панели и бросили мимо
+        // -----------------------------------------------
 
-        ReturnToPiecePanel();
-
-        FinishDrag();
+        StartCoroutine(
+            AnimateBackHome()
+        );
     }
 
 
-    private void RotatePiece()
+    // =====================================================
+    // DROP ANIMATIONS
+    // =====================================================
+
+    private IEnumerator AnimateToGridAndPlace(
+        Vector2Int targetOrigin
+    )
     {
         if (
-            !isDragging ||
-            pieceView == null
+            !gridManager
+                .TryGetCellTopLeftWorld(
+                    targetOrigin.x,
+                    targetOrigin.y,
+                    out Vector3 targetTopLeft
+                )
         )
         {
-            return;
+            gridManager
+                .ClearPlacementPreview();
+
+            yield return
+                AnimateBackHome();
+
+            yield break;
         }
 
-        pieceView
-            .RotateClockwise();
 
-        UpdatePlacementPreview();
+        yield return
+            AnimateVisual(
+                targetTopLeft,
+                gridManager.CellSize,
+                gridManager.Spacing,
+                homeAlpha
+            );
+
+
+        bool placed =
+            gridManager.PlacePiece(
+                pieceView.CurrentCells,
+                pieceView.Definition.Color,
+                targetOrigin,
+                out List<Vector2Int>
+                    newCoordinates
+            );
+
+
+        if (!placed)
+        {
+            if (wasPlacedAtDragStart)
+            {
+                pieceView.SetRotationSteps(
+                    previousRotationSteps
+                );
+
+                yield return
+                    AnimateBackToPreviousGrid();
+            }
+            else
+            {
+                yield return
+                    AnimateBackHome();
+            }
+
+            yield break;
+        }
+
+
+        placedOrigin =
+            targetOrigin;
+
+        placedCoordinates =
+            newCoordinates;
+
+        isPlaced =
+            true;
+
+
+        FinishSettling();
     }
 
 
-    private void MoveToPointer(
-        PointerEventData eventData
+    private IEnumerator AnimateBackToPreviousGrid()
+    {
+        if (
+            !gridManager
+                .TryGetCellTopLeftWorld(
+                    previousOrigin.x,
+                    previousOrigin.y,
+                    out Vector3 targetTopLeft
+                )
+        )
+        {
+            yield return
+                AnimateBackHome();
+
+            yield break;
+        }
+
+
+        yield return
+            AnimateVisual(
+                targetTopLeft,
+                gridManager.CellSize,
+                gridManager.Spacing,
+                homeAlpha
+            );
+
+
+        bool restored =
+            gridManager.PlacePiece(
+                pieceView.CurrentCells,
+                pieceView.Definition.Color,
+                previousOrigin,
+                out List<Vector2Int>
+                    restoredCoordinates
+            );
+
+
+        if (!restored)
+        {
+            Debug.LogError(
+                "PieceDragHandler: " +
+                "could not restore previous placement."
+            );
+
+
+            yield return
+                AnimateBackHome();
+
+            yield break;
+        }
+
+
+        placedOrigin =
+            previousOrigin;
+
+        placedCoordinates =
+            restoredCoordinates;
+
+        isPlaced =
+            true;
+
+
+        FinishSettling();
+    }
+
+
+    private IEnumerator AnimateBackHome()
+    {
+        gridManager
+            .ClearPlacementPreview();
+
+
+        yield return
+            AnimateVisual(
+                homeTopLeftWorld,
+                homeCellSize,
+                homeSpacing,
+                homeAlpha
+            );
+
+
+        RestoreHomeTransform();
+
+
+        placedCoordinates.Clear();
+
+        isPlaced =
+            false;
+
+
+        FinishSettling();
+    }
+
+
+    private IEnumerator AnimateVisual(
+        Vector3 targetTopLeftWorld,
+        float targetCellSize,
+        float targetSpacing,
+        float targetAlpha
+    )
+    {
+        Vector3 startTopLeftWorld =
+            GetCurrentTopLeftWorld();
+
+
+        float startCellSize =
+            pieceView.CellSize;
+
+        float startSpacing =
+            pieceView.Spacing;
+
+        float startAlpha =
+            canvasGroup.alpha;
+
+
+        float elapsed =
+            0f;
+
+
+        while (
+            elapsed <
+            snapDuration
+        )
+        {
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+
+            float rawT =
+                Mathf.Clamp01(
+                    elapsed /
+                    snapDuration
+                );
+
+
+            float t =
+                snapCurve.Evaluate(
+                    rawT
+                );
+
+
+            float currentCellSize =
+                Mathf.Lerp(
+                    startCellSize,
+                    targetCellSize,
+                    t
+                );
+
+
+            float currentSpacing =
+                Mathf.Lerp(
+                    startSpacing,
+                    targetSpacing,
+                    t
+                );
+
+
+            pieceView.SetLayout(
+                currentCellSize,
+                currentSpacing
+            );
+
+
+            Vector3 wantedTopLeft =
+                Vector3.Lerp(
+                    startTopLeftWorld,
+                    targetTopLeftWorld,
+                    t
+                );
+
+
+            SetTopLeftWorld(
+                wantedTopLeft
+            );
+
+
+            canvasGroup.alpha =
+                Mathf.Lerp(
+                    startAlpha,
+                    targetAlpha,
+                    t
+                );
+
+
+            yield return null;
+        }
+
+
+        pieceView.SetLayout(
+            targetCellSize,
+            targetSpacing
+        );
+
+
+        SetTopLeftWorld(
+            targetTopLeftWorld
+        );
+
+
+        canvasGroup.alpha =
+            targetAlpha;
+    }
+
+
+    // =====================================================
+    // WORLD POSITION HELPERS
+    // =====================================================
+
+    private Vector3 GetCurrentTopLeftWorld()
+    {
+        rectTransform
+            .ForceUpdateRectTransforms();
+
+
+        Vector3 localTopLeft =
+            new Vector3(
+                rectTransform.rect.xMin,
+                rectTransform.rect.yMax,
+                0f
+            );
+
+
+        return
+            rectTransform.TransformPoint(
+                localTopLeft
+            );
+    }
+
+
+    private void SetTopLeftWorld(
+        Vector3 targetTopLeft
+    )
+    {
+        rectTransform
+            .ForceUpdateRectTransforms();
+
+
+        Vector3 currentTopLeft =
+            GetCurrentTopLeftWorld();
+
+
+        rectTransform.position +=
+            targetTopLeft -
+            currentTopLeft;
+    }
+
+
+    // =====================================================
+    // DRAG SIZE
+    // =====================================================
+
+    private void UpdateDragVisualSize(
+        Vector2 screenPosition,
+        Camera eventCamera
+    )
+    {
+        float progress =
+            CalculateGridProgress(
+                screenPosition,
+                eventCamera
+            );
+
+
+        float targetCellSize =
+            Mathf.Lerp(
+                homeCellSize,
+                gridManager.CellSize,
+                progress
+            );
+
+
+        float targetSpacing =
+            Mathf.Lerp(
+                homeSpacing,
+                gridManager.Spacing,
+                progress
+            );
+
+
+        pieceView.SetLayout(
+            targetCellSize,
+            targetSpacing
+        );
+    }
+
+
+    private float CalculateGridProgress(
+        Vector2 screenPosition,
+        Camera eventCamera
+    )
+    {
+        if (
+            piecePanel != null &&
+            RectTransformUtility
+                .RectangleContainsScreenPoint(
+                    piecePanel,
+                    screenPosition,
+                    eventCamera
+                )
+        )
+        {
+            return 0f;
+        }
+
+
+        if (
+            gridRect != null &&
+            RectTransformUtility
+                .RectangleContainsScreenPoint(
+                    gridRect,
+                    screenPosition,
+                    eventCamera
+                )
+        )
+        {
+            return 1f;
+        }
+
+
+        if (
+            piecePanel == null ||
+            gridRect == null
+        )
+        {
+            return 1f;
+        }
+
+
+        float distanceToPanel =
+            DistanceToRect(
+                piecePanel,
+                screenPosition,
+                eventCamera
+            );
+
+
+        float distanceToGrid =
+            DistanceToRect(
+                gridRect,
+                screenPosition,
+                eventCamera
+            );
+
+
+        float total =
+            distanceToPanel +
+            distanceToGrid;
+
+
+        if (total <= 0.01f)
+        {
+            return 0.5f;
+        }
+
+
+        float progress =
+            distanceToPanel /
+            total;
+
+
+        return Mathf.SmoothStep(
+            0f,
+            1f,
+            progress
+        );
+    }
+
+
+    private float DistanceToRect(
+        RectTransform target,
+        Vector2 screenPosition,
+        Camera eventCamera
     )
     {
         bool success =
             RectTransformUtility
                 .ScreenPointToLocalPointInRectangle(
-                    dragLayer,
-                    eventData.position,
-                    eventData.pressEventCamera,
+                    target,
+                    screenPosition,
+                    eventCamera,
                     out Vector2 localPoint
                 );
 
-        if (success)
+
+        if (!success)
         {
-            rectTransform
-                .anchoredPosition =
-                    localPoint;
+            return float.MaxValue;
         }
+
+
+        Rect rect =
+            target.rect;
+
+
+        Vector2 closestLocal =
+            new Vector2(
+                Mathf.Clamp(
+                    localPoint.x,
+                    rect.xMin,
+                    rect.xMax
+                ),
+
+                Mathf.Clamp(
+                    localPoint.y,
+                    rect.yMin,
+                    rect.yMax
+                )
+            );
+
+
+        Vector3 closestWorld =
+            target.TransformPoint(
+                closestLocal
+            );
+
+
+        Vector2 closestScreen =
+            RectTransformUtility
+                .WorldToScreenPoint(
+                    eventCamera,
+                    closestWorld
+                );
+
+
+        return Vector2.Distance(
+            screenPosition,
+            closestScreen
+        );
     }
 
+
+    // =====================================================
+    // GRABBED CELL
+    // =====================================================
+
+    private void CaptureGrabbedCell(
+        Vector2 screenPosition,
+        Camera eventCamera
+    )
+    {
+        grabbedCellIndex =
+            0;
+
+
+        grabPointInsideCell =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+
+
+        if (
+            pieceView.CurrentCells == null ||
+            pieceView.CurrentCells.Length == 0
+        )
+        {
+            return;
+        }
+
+
+        bool success =
+            RectTransformUtility
+                .ScreenPointToLocalPointInRectangle(
+                    rectTransform,
+                    screenPosition,
+                    eventCamera,
+                    out Vector2 localPoint
+                );
+
+
+        if (!success)
+        {
+            return;
+        }
+
+
+        Rect pieceRect =
+            rectTransform.rect;
+
+
+        float cellSize =
+            pieceView.CellSize;
+
+        float step =
+            pieceView.CellSize +
+            pieceView.Spacing;
+
+
+        int nearestIndex =
+            0;
+
+        float nearestDistance =
+            float.MaxValue;
+
+
+        for (
+            int i = 0;
+            i < pieceView.CurrentCells.Length;
+            i++
+        )
+        {
+            Vector2Int cell =
+                pieceView.CurrentCells[i];
+
+
+            float left =
+                pieceRect.xMin +
+                cell.x * step;
+
+
+            float top =
+                pieceRect.yMax -
+                cell.y * step;
+
+
+            float right =
+                left +
+                cellSize;
+
+
+            float bottom =
+                top -
+                cellSize;
+
+
+            bool inside =
+                localPoint.x >= left &&
+                localPoint.x <= right &&
+                localPoint.y <= top &&
+                localPoint.y >= bottom;
+
+
+            if (inside)
+            {
+                grabbedCellIndex =
+                    i;
+
+
+                grabPointInsideCell =
+                    new Vector2(
+                        Mathf.InverseLerp(
+                            left,
+                            right,
+                            localPoint.x
+                        ),
+
+                        Mathf.InverseLerp(
+                            top,
+                            bottom,
+                            localPoint.y
+                        )
+                    );
+
+
+                return;
+            }
+
+
+            Vector2 center =
+                new Vector2(
+                    left +
+                    cellSize * 0.5f,
+
+                    top -
+                    cellSize * 0.5f
+                );
+
+
+            float distance =
+                Vector2.SqrMagnitude(
+                    localPoint -
+                    center
+                );
+
+
+            if (
+                distance <
+                nearestDistance
+            )
+            {
+                nearestDistance =
+                    distance;
+
+                nearestIndex =
+                    i;
+            }
+        }
+
+
+        // Если клик пришёл именно
+        // в промежуток между квадратами,
+        // берём ближайшую клетку.
+
+        grabbedCellIndex =
+            nearestIndex;
+
+
+        grabPointInsideCell =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+    }
+
+
+    // =====================================================
+    // MOVE
+    // =====================================================
+
+    private void MoveGrabbedCellToPointer(
+        Vector2 screenPosition,
+        Camera eventCamera
+    )
+    {
+        if (
+            pieceView.CurrentCells == null ||
+            pieceView.CurrentCells.Length == 0
+        )
+        {
+            return;
+        }
+
+
+        bool success =
+            RectTransformUtility
+                .ScreenPointToLocalPointInRectangle(
+                    dragLayer,
+                    screenPosition,
+                    eventCamera,
+                    out Vector2 pointerLocal
+                );
+
+
+        if (!success)
+        {
+            return;
+        }
+
+
+        grabbedCellIndex =
+            Mathf.Clamp(
+                grabbedCellIndex,
+                0,
+                pieceView.CurrentCells.Length - 1
+            );
+
+
+        Vector2Int grabbedCell =
+            pieceView.CurrentCells[
+                grabbedCellIndex
+            ];
+
+
+        Rect pieceRect =
+            rectTransform.rect;
+
+
+        float cellSize =
+            pieceView.CellSize;
+
+        float step =
+            pieceView.CellSize +
+            pieceView.Spacing;
+
+
+        float cellLeft =
+            pieceRect.xMin +
+            grabbedCell.x *
+            step;
+
+
+        float cellTop =
+            pieceRect.yMax -
+            grabbedCell.y *
+            step;
+
+
+        Vector2 grabbedLocalPoint =
+            new Vector2(
+                cellLeft +
+                grabPointInsideCell.x *
+                cellSize,
+
+                cellTop -
+                grabPointInsideCell.y *
+                cellSize
+            );
+
+
+        rectTransform.anchoredPosition =
+            pointerLocal -
+            grabbedLocalPoint;
+    }
+
+
+    // =====================================================
+    // ROTATE
+    // =====================================================
+
+    private void RotatePiece()
+    {
+        pieceView.RotateClockwise();
+
+
+        UpdateDragVisualSize(
+            lastPointerPosition,
+            lastEventCamera
+        );
+
+
+        MoveGrabbedCellToPointer(
+            lastPointerPosition,
+            lastEventCamera
+        );
+
+
+        UpdatePlacementPreview();
+    }
+
+
+    // =====================================================
+    // PREVIEW
+    // =====================================================
 
     private void UpdatePlacementPreview()
     {
         gridManager
             .ClearPlacementPreview();
+
 
         hasValidPlacement =
             false;
@@ -461,10 +1415,27 @@ public class PieceDragHandler :
         }
 
 
+        grabbedCellIndex =
+            Mathf.Clamp(
+                grabbedCellIndex,
+                0,
+                pieceView.CurrentCells.Length - 1
+            );
+
+
+        Vector2Int grabbedCell =
+            pieceView.CurrentCells[
+                grabbedCellIndex
+            ];
+
+
         currentOrigin =
             new Vector2Int(
-                hoveredCell.X,
-                hoveredCell.Y
+                hoveredCell.X -
+                grabbedCell.x,
+
+                hoveredCell.Y -
+                grabbedCell.y
             );
 
 
@@ -472,68 +1443,15 @@ public class PieceDragHandler :
             gridManager
                 .ShowPlacementPreview(
                     pieceView.CurrentCells,
-                    currentOrigin
+                    currentOrigin,
+                    pieceView.Definition.Color
                 );
     }
 
 
-    private void SnapVisualToGrid(
-        Vector2Int origin
-    )
-    {
-        transform.SetParent(
-            dragLayer,
-            true
-        );
-
-        transform.SetAsLastSibling();
-
-
-        pieceView.SetLayout(
-            gridManager.CellSize,
-            gridManager.Spacing
-        );
-
-
-        bool found =
-            gridManager
-                .TryGetCellTopLeftWorld(
-                    origin.x,
-                    origin.y,
-                    out Vector3
-                        targetTopLeft
-                );
-
-
-        if (!found)
-        {
-            return;
-        }
-
-
-        rectTransform
-            .ForceUpdateRectTransforms();
-
-
-        Vector3 currentTopLeft =
-            rectTransform.TransformPoint(
-                new Vector3(
-                    rectTransform.rect.xMin,
-                    rectTransform.rect.yMax,
-                    0f
-                )
-            );
-
-
-        Vector3 offset =
-            targetTopLeft -
-            currentTopLeft;
-
-
-        rectTransform.position +=
-            offset;
-    }
-
+    // =====================================================
+    // PANEL
+    // =====================================================
 
     private bool IsPointerOverPiecePanel(
         PointerEventData eventData
@@ -555,7 +1473,7 @@ public class PieceDragHandler :
     }
 
 
-    private void ReturnToPiecePanel()
+    private void RestoreHomeTransform()
     {
         transform.SetParent(
             homeParent,
@@ -568,89 +1486,154 @@ public class PieceDragHandler :
         );
 
 
+        rectTransform.anchorMin =
+            homeAnchorMin;
+
+        rectTransform.anchorMax =
+            homeAnchorMax;
+
+        rectTransform.pivot =
+            homePivot;
+
+
         pieceView.SetLayout(
             homeCellSize,
             homeSpacing
         );
 
 
-        rectTransform
-            .anchoredPosition =
-                homeAnchoredPosition;
-
-
-        placedCoordinates.Clear();
-
-        isPlaced =
-            false;
+        rectTransform.anchoredPosition =
+            homeAnchoredPosition;
     }
 
 
-    private void RestorePreviousPlacement()
+    // =====================================================
+    // FINISH
+    // =====================================================
+
+    private void FinishSettling()
     {
-        pieceView.SetRotationSteps(
-            previousRotationSteps
-        );
+        if (alphaFadeRoutine != null)
+{
+    StopCoroutine(
+        alphaFadeRoutine
+    );
 
+    alphaFadeRoutine =
+        null;
+}
 
-        bool restored =
-            gridManager.PlacePiece(
-                pieceView.CurrentCells,
-                pieceView.Definition.Color,
-                previousOrigin,
-                out List<Vector2Int>
-                    restoredCoordinates
-            );
-
-
-        if (!restored)
-        {
-            Debug.LogError(
-                "PieceDragHandler: could not restore previous placement."
-            );
-
-            ReturnToPiecePanel();
-
-            return;
-        }
-
-
-        placedOrigin =
-            previousOrigin;
-
-        placedCoordinates =
-            restoredCoordinates;
-
-        isPlaced =
-            true;
-
-
-        SnapVisualToGrid(
-            placedOrigin
-        );
-    }
-
-
-    private void FinishDrag()
-    {
         gridManager
             .ClearPlacementPreview();
 
 
-        canvasGroup.blocksRaycasts =
-            true;
+        canvasGroup.alpha =
+            homeAlpha;
 
         canvasGroup.interactable =
+            true;
+
+        canvasGroup.blocksRaycasts =
             true;
 
 
         hasValidPlacement =
             false;
 
-        isDragging =
-            false;
-
         wasPlacedAtDragStart =
             false;
+
+        isSettling =
+            false;
     }
+
+    private void StartAlphaFade(
+    float targetAlpha,
+    float duration
+)
+{
+    if (alphaFadeRoutine != null)
+    {
+        StopCoroutine(
+            alphaFadeRoutine
+        );
+    }
+
+
+    alphaFadeRoutine =
+        StartCoroutine(
+            FadeAlpha(
+                targetAlpha,
+                duration
+            )
+        );
+}
+
+
+private IEnumerator FadeAlpha(
+    float targetAlpha,
+    float duration
+)
+{
+    float startAlpha =
+        canvasGroup.alpha;
+
+
+    if (duration <= 0f)
+    {
+        canvasGroup.alpha =
+            targetAlpha;
+
+        alphaFadeRoutine =
+            null;
+
+        yield break;
+    }
+
+
+    float elapsed =
+        0f;
+
+
+    while (elapsed < duration)
+    {
+        elapsed +=
+            Time.unscaledDeltaTime;
+
+
+        float t =
+            Mathf.Clamp01(
+                elapsed /
+                duration
+            );
+
+
+        // Мягче линейного перехода.
+        t =
+            Mathf.SmoothStep(
+                0f,
+                1f,
+                t
+            );
+
+
+        canvasGroup.alpha =
+            Mathf.Lerp(
+                startAlpha,
+                targetAlpha,
+                t
+            );
+
+
+        yield return null;
+    }
+
+
+    canvasGroup.alpha =
+        targetAlpha;
+
+
+    alphaFadeRoutine =
+        null;
+}
 }

@@ -19,6 +19,7 @@ public class PieceView : MonoBehaviour
     [SerializeField]
     private float spacing = 6f;
 
+
     private RectTransform rectTransform;
 
     private readonly List<Image> spawnedCells =
@@ -26,16 +27,26 @@ public class PieceView : MonoBehaviour
 
     private Vector2Int[] currentCells;
 
-    private int rotationSteps = 0;
+    private int rotationSteps;
 
-    public PieceDefinition Definition => definition;
+    private bool initialized;
 
-    public float CellSize => cellSize;
-    public float Spacing => spacing;
 
-    public Vector2Int[] CurrentCells => currentCells;
+    public PieceDefinition Definition =>
+        definition;
 
-    public int RotationSteps => rotationSteps;
+    public float CellSize =>
+        cellSize;
+
+    public float Spacing =>
+        spacing;
+
+    public Vector2Int[] CurrentCells =>
+        currentCells;
+
+    public int RotationSteps =>
+        rotationSteps;
+
 
     private void Awake()
     {
@@ -43,67 +54,81 @@ public class PieceView : MonoBehaviour
             GetComponent<RectTransform>();
     }
 
+
     private void Start()
     {
-        if (definition != null)
+        if (
+            !initialized &&
+            definition != null
+        )
         {
             ResetRotation();
         }
     }
 
+
     public void Initialize(
         PieceDefinition newDefinition
     )
     {
-        definition = newDefinition;
+        definition =
+            newDefinition;
+
+        initialized =
+            true;
 
         ResetRotation();
     }
 
+
     public void ResetRotation()
     {
-        rotationSteps = 0;
+        rotationSteps =
+            0;
 
         RecalculateCurrentCells();
 
         BuildPiece();
     }
 
+
     public void RotateClockwise()
-{
-    if (
-        definition == null ||
-        definition.Cells == null ||
-        definition.Cells.Length == 0
+    {
+        if (
+            definition == null ||
+            definition.Cells == null ||
+            definition.Cells.Length == 0
+        )
+        {
+            return;
+        }
+
+        rotationSteps++;
+
+        if (rotationSteps >= 4)
+        {
+            rotationSteps =
+                0;
+        }
+
+        RecalculateCurrentCells();
+
+        BuildPiece();
+    }
+
+
+    public void SetRotationSteps(
+        int newRotationSteps
     )
     {
-        return;
+        rotationSteps =
+            ((newRotationSteps % 4) + 4) % 4;
+
+        RecalculateCurrentCells();
+
+        BuildPiece();
     }
 
-    rotationSteps++;
-
-    if (rotationSteps >= 4)
-    {
-        rotationSteps = 0;
-    }
-
-    RecalculateCurrentCells();
-
-    BuildPiece();
-}
-
-
-public void SetRotationSteps(
-    int newRotationSteps
-)
-{
-    rotationSteps =
-        ((newRotationSteps % 4) + 4) % 4;
-
-    RecalculateCurrentCells();
-
-    BuildPiece();
-}
 
     private void RecalculateCurrentCells()
     {
@@ -118,10 +143,12 @@ public void SetRotationSteps(
             return;
         }
 
+
         currentCells =
             new Vector2Int[
                 definition.Cells.Length
             ];
+
 
         for (
             int i = 0;
@@ -135,6 +162,7 @@ public void SetRotationSteps(
             Vector2Int rotated =
                 cell;
 
+
             for (
                 int step = 0;
                 step < rotationSteps;
@@ -142,15 +170,20 @@ public void SetRotationSteps(
             )
             {
                 rotated =
-                    RotateCellClockwise(rotated);
+                    RotateCellClockwise(
+                        rotated
+                    );
             }
+
 
             currentCells[i] =
                 rotated;
         }
 
+
         NormalizeCells();
     }
+
 
     private Vector2Int RotateCellClockwise(
         Vector2Int cell
@@ -162,6 +195,7 @@ public void SetRotationSteps(
         );
     }
 
+
     private void NormalizeCells()
     {
         if (
@@ -172,26 +206,32 @@ public void SetRotationSteps(
             return;
         }
 
+
         int minX =
             currentCells[0].x;
 
         int minY =
             currentCells[0].y;
 
+
         foreach (
-            Vector2Int cell in currentCells
+            Vector2Int cell
+            in currentCells
         )
         {
             if (cell.x < minX)
             {
-                minX = cell.x;
+                minX =
+                    cell.x;
             }
 
             if (cell.y < minY)
             {
-                minY = cell.y;
+                minY =
+                    cell.y;
             }
         }
+
 
         for (
             int i = 0;
@@ -207,6 +247,7 @@ public void SetRotationSteps(
         }
     }
 
+
     public void BuildPiece()
     {
         if (definition == null)
@@ -219,6 +260,7 @@ public void SetRotationSteps(
             return;
         }
 
+
         if (cellPrefab == null)
         {
             Debug.LogError(
@@ -229,6 +271,7 @@ public void SetRotationSteps(
             return;
         }
 
+
         if (
             currentCells == null ||
             currentCells.Length == 0
@@ -237,7 +280,9 @@ public void SetRotationSteps(
             RecalculateCurrentCells();
         }
 
+
         ClearPiece();
+
 
         if (
             currentCells == null ||
@@ -247,51 +292,10 @@ public void SetRotationSteps(
             return;
         }
 
-        int maxX = 0;
-        int maxY = 0;
 
         foreach (
-            Vector2Int cell in currentCells
-        )
-        {
-            if (cell.x > maxX)
-            {
-                maxX = cell.x;
-            }
-
-            if (cell.y > maxY)
-            {
-                maxY = cell.y;
-            }
-        }
-
-        int widthInCells =
-            maxX + 1;
-
-        int heightInCells =
-            maxY + 1;
-
-        float step =
-            cellSize + spacing;
-
-        float pieceWidth =
-            widthInCells * cellSize
-            +
-            (widthInCells - 1) * spacing;
-
-        float pieceHeight =
-            heightInCells * cellSize
-            +
-            (heightInCells - 1) * spacing;
-
-        rectTransform.sizeDelta =
-            new Vector2(
-                pieceWidth,
-                pieceHeight
-            );
-
-        foreach (
-            Vector2Int cell in currentCells
+            Vector2Int cell
+            in currentCells
         )
         {
             Image newCell =
@@ -300,23 +304,127 @@ public void SetRotationSteps(
                     transform
                 );
 
+
             spawnedCells.Add(
                 newCell
             );
 
+
+            newCell.color =
+                definition.Color;
+        }
+
+
+        ApplyLayout();
+    }
+
+
+    private void ApplyLayout()
+    {
+        if (
+            currentCells == null ||
+            currentCells.Length == 0 ||
+            spawnedCells.Count !=
+            currentCells.Length
+        )
+        {
+            return;
+        }
+
+
+        int maxX =
+            0;
+
+        int maxY =
+            0;
+
+
+        foreach (
+            Vector2Int cell
+            in currentCells
+        )
+        {
+            if (cell.x > maxX)
+            {
+                maxX =
+                    cell.x;
+            }
+
+            if (cell.y > maxY)
+            {
+                maxY =
+                    cell.y;
+            }
+        }
+
+
+        int widthInCells =
+            maxX + 1;
+
+        int heightInCells =
+            maxY + 1;
+
+
+        float step =
+            cellSize +
+            spacing;
+
+
+        float pieceWidth =
+            widthInCells * cellSize +
+            (widthInCells - 1) * spacing;
+
+
+        float pieceHeight =
+            heightInCells * cellSize +
+            (heightInCells - 1) * spacing;
+
+
+        rectTransform.sizeDelta =
+            new Vector2(
+                pieceWidth,
+                pieceHeight
+            );
+
+
+        for (
+            int i = 0;
+            i < currentCells.Length;
+            i++
+        )
+        {
+            Vector2Int cell =
+                currentCells[i];
+
+
+            Image image =
+                spawnedCells[i];
+
+
             RectTransform cellRect =
-                newCell.GetComponent<
+                image.GetComponent<
                     RectTransform
                 >();
 
+
             cellRect.anchorMin =
-                new Vector2(0f, 1f);
+                new Vector2(
+                    0f,
+                    1f
+                );
 
             cellRect.anchorMax =
-                new Vector2(0f, 1f);
+                new Vector2(
+                    0f,
+                    1f
+                );
 
             cellRect.pivot =
-                new Vector2(0f, 1f);
+                new Vector2(
+                    0f,
+                    1f
+                );
+
 
             cellRect.sizeDelta =
                 new Vector2(
@@ -324,24 +432,29 @@ public void SetRotationSteps(
                     cellSize
                 );
 
+
             cellRect.anchoredPosition =
                 new Vector2(
                     cell.x * step,
                     -cell.y * step
                 );
 
-            newCell.color =
+
+            image.color =
                 definition.Color;
 
-            newCell.name =
+
+            image.name =
                 $"PieceCell_{cell.x}_{cell.y}";
         }
     }
 
+
     private void ClearPiece()
     {
         foreach (
-            Image cell in spawnedCells
+            Image cell
+            in spawnedCells
         )
         {
             if (cell != null)
@@ -355,18 +468,21 @@ public void SetRotationSteps(
             }
         }
 
+
         spawnedCells.Clear();
     }
+
 
     public void SetCellSize(
         float newCellSize
     )
     {
-        cellSize =
-            newCellSize;
-
-        BuildPiece();
+        SetLayout(
+            newCellSize,
+            spacing
+        );
     }
+
 
     public void SetLayout(
         float newCellSize,
@@ -374,11 +490,18 @@ public void SetRotationSteps(
     )
     {
         cellSize =
-            newCellSize;
+            Mathf.Max(
+                1f,
+                newCellSize
+            );
 
         spacing =
-            newSpacing;
+            Mathf.Max(
+                0f,
+                newSpacing
+            );
 
-        BuildPiece();
+
+        ApplyLayout();
     }
 }

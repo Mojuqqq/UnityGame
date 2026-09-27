@@ -47,6 +47,16 @@ public class GridManager : MonoBehaviour
             0.75f
         );
 
+    [Header("Ghost Preview")]
+
+[SerializeField]
+[Range(0f, 1f)]
+private float validGhostAlpha = 0.42f;
+
+[SerializeField]
+[Range(0f, 1f)]
+private float invalidGhostAlpha = 0.55f;
+
 
     private GridCell[,] cells;
 
@@ -90,6 +100,46 @@ public class GridManager : MonoBehaviour
     int newRows
 )
 {
+    Initialize(
+        newColumns,
+        newRows,
+        null
+    );
+}
+
+
+public void Initialize(
+    int newColumns,
+    int newRows,
+    Vector2Int[] blockedCells
+)
+{
+    columns =
+        Mathf.Max(
+            1,
+            newColumns
+        );
+
+    rows =
+        Mathf.Max(
+            1,
+            newRows
+        );
+
+
+    initializedFromLevelData =
+        true;
+
+
+    CreateGrid();
+
+
+    ApplyBlockedCells(
+        blockedCells
+    );
+}
+
+{
     columns =
         Mathf.Max(
             1,
@@ -106,6 +156,47 @@ public class GridManager : MonoBehaviour
         true;
 
     CreateGrid();
+}
+
+private void ApplyBlockedCells(
+    Vector2Int[] blockedCells
+)
+{
+    if (
+        blockedCells == null ||
+        blockedCells.Length == 0
+    )
+    {
+        return;
+    }
+
+
+    foreach (
+        Vector2Int coordinate
+        in blockedCells
+    )
+    {
+        GridCell cell =
+            GetCell(
+                coordinate.x,
+                coordinate.y
+            );
+
+
+        if (cell == null)
+        {
+            Debug.LogWarning(
+                $"GridManager: Blocked cell " +
+                $"({coordinate.x}, {coordinate.y}) " +
+                "does not exist."
+            );
+
+            continue;
+        }
+
+
+        cell.SetBlocked();
+    }
 }
 
     public void CreateGrid()
@@ -467,6 +558,70 @@ public class GridManager : MonoBehaviour
 
         return valid;
     }
+
+    public bool ShowPlacementPreview(
+    Vector2Int[] pieceCells,
+    Vector2Int origin,
+    Color pieceColor
+)
+{
+    ClearPlacementPreview();
+
+
+    bool valid =
+        GetPlacementCells(
+            pieceCells,
+            origin,
+            out List<GridCell>
+                targetCells
+        );
+
+
+    Color previewColor;
+
+
+    if (valid)
+    {
+        previewColor =
+            pieceColor;
+
+        previewColor.a =
+            validGhostAlpha;
+    }
+    else
+    {
+        previewColor =
+            invalidPreviewColor;
+
+        previewColor.a =
+            invalidGhostAlpha;
+    }
+
+
+    foreach (
+        GridCell cell
+        in targetCells
+    )
+    {
+        if (cell == null)
+        {
+            continue;
+        }
+
+
+        cell.ShowPreview(
+            previewColor
+        );
+
+
+        previewCells.Add(
+            cell
+        );
+    }
+
+
+    return valid;
+}
 
 
     public void ClearPlacementPreview()

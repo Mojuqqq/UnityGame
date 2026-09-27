@@ -11,10 +11,24 @@ public enum GridCellState
 [RequireComponent(typeof(Image))]
 public class GridCell : MonoBehaviour
 {
-    public int X { get; private set; }
-    public int Y { get; private set; }
+    public int X
+    {
+        get;
+        private set;
+    }
 
-    public GridCellState State { get; private set; }
+    public int Y
+    {
+        get;
+        private set;
+    }
+
+    public GridCellState State
+    {
+        get;
+        private set;
+    }
+
 
     private Image cellImage;
 
@@ -49,10 +63,16 @@ public class GridCell : MonoBehaviour
         );
 
 
+    private Color currentOccupiedColor;
+
+
     private void Awake()
     {
         cellImage =
             GetComponent<Image>();
+
+        currentOccupiedColor =
+            occupiedColor;
     }
 
 
@@ -61,11 +81,16 @@ public class GridCell : MonoBehaviour
         int y
     )
     {
-        X = x;
-        Y = y;
+        X =
+            x;
+
+        Y =
+            y;
+
 
         gameObject.name =
             $"Cell_{x}_{y}";
+
 
         SetState(
             GridCellState.Empty
@@ -91,14 +116,12 @@ public class GridCell : MonoBehaviour
         State =
             GridCellState.Occupied;
 
-        if (cellImage == null)
-        {
-            cellImage =
-                GetComponent<Image>();
-        }
 
-        cellImage.color =
+        currentOccupiedColor =
             pieceColor;
+
+
+        ApplyStateColor();
     }
 
 
@@ -124,11 +147,7 @@ public class GridCell : MonoBehaviour
         Color previewColor
     )
     {
-        if (cellImage == null)
-        {
-            cellImage =
-                GetComponent<Image>();
-        }
+        EnsureImage();
 
         cellImage.color =
             previewColor;
@@ -143,11 +162,8 @@ public class GridCell : MonoBehaviour
 
     private void ApplyStateColor()
     {
-        if (cellImage == null)
-        {
-            cellImage =
-                GetComponent<Image>();
-        }
+        EnsureImage();
+
 
         switch (State)
         {
@@ -162,7 +178,7 @@ public class GridCell : MonoBehaviour
             case GridCellState.Occupied:
 
                 cellImage.color =
-                    occupiedColor;
+                    currentOccupiedColor;
 
                 break;
 
@@ -173,6 +189,16 @@ public class GridCell : MonoBehaviour
                     blockedColor;
 
                 break;
+        }
+    }
+
+
+    private void EnsureImage()
+    {
+        if (cellImage == null)
+        {
+            cellImage =
+                GetComponent<Image>();
         }
     }
 
