@@ -14,10 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   levelNumber: 1
   displayName: "\u0423\u0420\u041E\u0412\u0415\u041D\u042C 1"
-  columns: 5
-  rows: 5
+  columns: 3
+  rows: 2
   pieces:
-  - {fileID: 11400000, guid: 2085f7f4b4d5ac54abff9b5498957e41, type: 2}
-  - {fileID: 11400000, guid: ba4c3c151b49a3343997e4ba1d028767, type: 2}
-  rowTargets: 0400000002000000020000000000000000000000
-  columnTargets: 0300000001000000010000000200000001000000
+  - {fileID: 11400000, guid: 50a2206d921cd5d42a01cd149867f7cc, type: 2}
+  rowTargets: 0200000002000000
+  columnTargets: 010000000200000001000000

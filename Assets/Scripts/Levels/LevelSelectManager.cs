@@ -29,11 +29,35 @@ public class LevelSelectManager :
 
 
     private void Start()
+{
+    if (levelDatabase == null)
     {
-        UnlockFirstLevel();
+        Debug.LogError(
+            "LevelSelectManager: LevelDatabase is not assigned."
+        );
 
-        BuildLevelButtons();
+        return;
     }
+
+
+    if (
+        !levelDatabase.IsValid(
+            out string errorMessage
+        )
+    )
+    {
+        Debug.LogError(
+            $"Invalid LevelDatabase: {errorMessage}"
+        );
+
+        return;
+    }
+
+
+    UnlockFirstLevel();
+
+    BuildLevelButtons();
+}
 
 
     private void UnlockFirstLevel()

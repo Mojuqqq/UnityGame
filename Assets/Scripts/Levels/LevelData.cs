@@ -210,6 +210,35 @@ public class LevelData : ScriptableObject
             }
         }
 
+    int totalPieceCells = 0;
+
+foreach (
+    PieceDefinition piece
+    in pieces
+)
+{
+    if (
+        piece == null ||
+        piece.Cells == null
+    )
+    {
+        continue;
+    }
+
+    totalPieceCells +=
+        piece.Cells.Length;
+}
+
+
+if (rowSum != totalPieceCells)
+{
+    errorMessage =
+        $"Hint total does not match piece cells. " +
+        $"Hints = {rowSum}, " +
+        $"Piece cells = {totalPieceCells}.";
+
+    return false;
+}
 
         errorMessage = "";
 

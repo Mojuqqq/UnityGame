@@ -143,4 +143,79 @@ public class LevelDatabase :
 
         return null;
     }
+
+    public bool IsValid(
+    out string errorMessage
+)
+{
+    if (
+        levels == null ||
+        levels.Length == 0
+    )
+    {
+        errorMessage =
+            "Level Database is empty.";
+
+        return false;
+    }
+
+
+    for (
+        int i = 0;
+        i < levels.Length;
+        i++
+    )
+    {
+        LevelData level =
+            levels[i];
+
+
+        if (level == null)
+        {
+            errorMessage =
+                $"Level element {i} is empty.";
+
+            return false;
+        }
+
+
+        if (
+            !level.IsValid(
+                out string levelError
+            )
+        )
+        {
+            errorMessage =
+                $"{level.name}: {levelError}";
+
+            return false;
+        }
+
+
+        for (
+            int j = i + 1;
+            j < levels.Length;
+            j++
+        )
+        {
+            if (
+                levels[j] != null &&
+                levels[j].LevelNumber ==
+                level.LevelNumber
+            )
+            {
+                errorMessage =
+                    $"Duplicate Level Number: " +
+                    $"{level.LevelNumber}.";
+
+                return false;
+            }
+        }
+    }
+
+
+    errorMessage = "";
+
+    return true;
+}
 }
