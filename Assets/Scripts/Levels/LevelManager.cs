@@ -1,0 +1,141 @@
+using TMPro;
+using UnityEngine;
+
+public class LevelManager : MonoBehaviour
+{
+    [Header("Fallback Level")]
+
+    [Tooltip(
+        "Используется, если игровая сцена запущена напрямую из Editor."
+    )]
+    [SerializeField]
+    private LevelData fallbackLevel;
+
+
+    [Header("Gameplay")]
+
+    [SerializeField]
+    private GridManager gridManager;
+
+    [SerializeField]
+    private HintManager hintManager;
+
+    [SerializeField]
+    private PieceSpawner pieceSpawner;
+
+
+    [Header("UI")]
+
+    [SerializeField]
+    private TMP_Text levelTitle;
+
+
+    private LevelData currentLevel;
+
+
+    public LevelData CurrentLevel =>
+        currentLevel;
+
+
+    private void Start()
+    {
+        LoadCurrentLevel();
+    }
+
+
+    public void LoadCurrentLevel()
+    {
+        currentLevel =
+            LevelSelectionState.SelectedLevel;
+
+        if (currentLevel == null)
+        {
+            currentLevel =
+                fallbackLevel;
+        }
+
+
+        if (currentLevel == null)
+        {
+            Debug.LogError(
+                "LevelManager: No level selected and no fallback level assigned."
+            );
+
+            return;
+        }
+
+
+        if (
+            !currentLevel.IsValid(
+                out string errorMessage
+            )
+        )
+        {
+            Debug.LogError(
+                $"LevelManager: Invalid LevelData. {errorMessage}"
+            );
+
+            return;
+        }
+
+
+        if (gridManager == null)
+        {
+            Debug.LogError(
+                "LevelManager: GridManager is not assigned."
+            );
+
+            return;
+        }
+
+
+        if (hintManager == null)
+        {
+            Debug.LogError(
+                "LevelManager: HintManager is not assigned."
+            );
+
+            return;
+        }
+
+
+        if (pieceSpawner == null)
+        {
+            Debug.LogError(
+                "LevelManager: PieceSpawner is not assigned."
+            );
+
+            return;
+        }
+
+
+        gridManager.Initialize(
+            currentLevel.Columns,
+            currentLevel.Rows
+        );
+
+
+        hintManager.Initialize(
+            currentLevel
+        );
+
+
+        pieceSpawner.BuildPieces(
+            currentLevel.Pieces
+        );
+
+
+        if (levelTitle != null)
+        {
+            levelTitle.text =
+                currentLevel.DisplayName;
+        }
+
+
+        Debug.Log(
+            $"Loaded level " +
+            $"{currentLevel.LevelNumber}: " +
+            $"{currentLevel.DisplayName}"
+        );
+    }
+}

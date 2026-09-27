@@ -1,0 +1,727 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+[RequireComponent(typeof(GridLayoutGroup))]
+public class GridManager : MonoBehaviour
+{
+    [Header("Grid Size")]
+
+    [SerializeField]
+    private int columns = 5;
+
+    [SerializeField]
+    private int rows = 5;
+
+
+    [Header("Cell")]
+
+    [SerializeField]
+    private GridCell cellPrefab;
+
+
+    [Header("Layout")]
+
+    [SerializeField]
+    private float spacing = 8f;
+
+
+    [Header("Preview Colors")]
+
+    [SerializeField]
+    private Color validPreviewColor =
+        new Color(
+            0.2f,
+            0.9f,
+            0.3f,
+            0.75f
+        );
+
+    [SerializeField]
+    private Color invalidPreviewColor =
+        new Color(
+            0.95f,
+            0.2f,
+            0.2f,
+            0.75f
+        );
+
+
+    private GridCell[,] cells;
+
+    private GridLayoutGroup gridLayout;
+
+    private RectTransform gridRect;
+
+
+    private readonly List<GridCell>
+        previewCells =
+            new List<GridCell>();
+
+
+    public int Columns => columns;
+
+    public int Rows => rows;
+
+    public float CellSize
+    {
+        get;
+        private set;
+    }
+
+    public float Spacing => spacing;
+
+
+    public event Action GridChanged;
+
+    private bool initializedFromLevelData;
+
+    private void Start()
+{
+    if (!initializedFromLevelData)
+    {
+        CreateGrid();
+    }
+}
+
+    public void Initialize(
+    int newColumns,
+    int newRows
+)
+{
+    columns =
+        Mathf.Max(
+            1,
+            newColumns
+        );
+
+    rows =
+        Mathf.Max(
+            1,
+            newRows
+        );
+
+    initializedFromLevelData =
+        true;
+
+    CreateGrid();
+}
+
+    public void CreateGrid()
+    {
+        if (cellPrefab == null)
+        {
+            Debug.LogError(
+                "GridManager: Cell Prefab is not assigned."
+            );
+
+            return;
+        }
+
+        gridLayout =
+            GetComponent<GridLayoutGroup>();
+
+        gridRect =
+            GetComponent<RectTransform>();
+
+        ClearGrid();
+
+        ConfigureLayout();
+
+        cells =
+            new GridCell[
+                columns,
+                rows
+            ];
+
+
+        for (
+            int y = 0;
+            y < rows;
+            y++
+        )
+        {
+            for (
+                int x = 0;
+                x < columns;
+                x++
+            )
+            {
+                GridCell newCell =
+                    Instantiate(
+                        cellPrefab,
+                        transform
+                    );
+
+                newCell.Initialize(
+                    x,
+                    y
+                );
+
+                cells[x, y] =
+                    newCell;
+            }
+        }
+
+        Canvas.ForceUpdateCanvases();
+    }
+
+
+    private void ConfigureLayout()
+    {
+        if (
+            gridLayout == null ||
+            gridRect == null
+        )
+        {
+            return;
+        }
+
+        float containerWidth =
+            gridRect.rect.width;
+
+        float containerHeight =
+            gridRect.rect.height;
+
+        float totalHorizontalSpacing =
+            spacing *
+            (columns - 1);
+
+        float totalVerticalSpacing =
+            spacing *
+            (rows - 1);
+
+        float availableWidth =
+            containerWidth -
+            totalHorizontalSpacing;
+
+        float availableHeight =
+            containerHeight -
+            totalVerticalSpacing;
+
+        float cellWidth =
+            availableWidth /
+            columns;
+
+        float cellHeight =
+            availableHeight /
+            rows;
+
+        CellSize =
+            Mathf.Min(
+                cellWidth,
+                cellHeight
+            );
+
+        gridLayout.constraint =
+            GridLayoutGroup
+                .Constraint
+                .FixedColumnCount;
+
+        gridLayout.constraintCount =
+            columns;
+
+        gridLayout.cellSize =
+            new Vector2(
+                CellSize,
+                CellSize
+            );
+
+        gridLayout.spacing =
+            new Vector2(
+                spacing,
+                spacing
+            );
+
+        gridLayout.childAlignment =
+            TextAnchor.MiddleCenter;
+
+        gridLayout.startCorner =
+            GridLayoutGroup
+                .Corner
+                .UpperLeft;
+
+        gridLayout.startAxis =
+            GridLayoutGroup
+                .Axis
+                .Horizontal;
+    }
+
+
+    private void ClearGrid()
+    {
+        ClearPlacementPreview();
+
+        cells = null;
+
+        for (
+            int i =
+                transform.childCount - 1;
+            i >= 0;
+            i--
+        )
+        {
+            GameObject child =
+                transform
+                    .GetChild(i)
+                    .gameObject;
+
+            child.SetActive(false);
+
+            Destroy(child);
+        }
+    }
+
+
+    public GridCell GetCell(
+        int x,
+        int y
+    )
+    {
+        if (cells == null)
+        {
+            return null;
+        }
+
+        if (
+            x < 0 ||
+            x >= columns ||
+            y < 0 ||
+            y >= rows
+        )
+        {
+            return null;
+        }
+
+        return cells[x, y];
+    }
+
+
+    public bool IsInsideGrid(
+        int x,
+        int y
+    )
+    {
+        return
+            x >= 0 &&
+            x < columns &&
+            y >= 0 &&
+            y < rows;
+    }
+
+
+    public bool IsCellEmpty(
+        int x,
+        int y
+    )
+    {
+        GridCell cell =
+            GetCell(
+                x,
+                y
+            );
+
+        if (cell == null)
+        {
+            return false;
+        }
+
+        return cell.IsEmpty();
+    }
+
+
+    public bool TryGetCellUnderPointer(
+        Vector2 screenPosition,
+        Camera eventCamera,
+        out GridCell closestCell
+    )
+    {
+        closestCell = null;
+
+        if (
+            gridRect == null ||
+            cells == null
+        )
+        {
+            return false;
+        }
+
+        bool pointerInside =
+            RectTransformUtility
+                .RectangleContainsScreenPoint(
+                    gridRect,
+                    screenPosition,
+                    eventCamera
+                );
+
+        if (!pointerInside)
+        {
+            return false;
+        }
+
+        float closestDistance =
+            float.MaxValue;
+
+
+        for (
+            int y = 0;
+            y < rows;
+            y++
+        )
+        {
+            for (
+                int x = 0;
+                x < columns;
+                x++
+            )
+            {
+                GridCell cell =
+                    cells[x, y];
+
+                if (cell == null)
+                {
+                    continue;
+                }
+
+                RectTransform cellRect =
+                    cell.GetComponent<
+                        RectTransform
+                    >();
+
+                Vector3 worldCenter =
+                    cellRect.TransformPoint(
+                        cellRect.rect.center
+                    );
+
+                Vector2 screenCenter =
+                    RectTransformUtility
+                        .WorldToScreenPoint(
+                            eventCamera,
+                            worldCenter
+                        );
+
+                float distance =
+                    Vector2.SqrMagnitude(
+                        screenPosition -
+                        screenCenter
+                    );
+
+                if (
+                    distance <
+                    closestDistance
+                )
+                {
+                    closestDistance =
+                        distance;
+
+                    closestCell =
+                        cell;
+                }
+            }
+        }
+
+        return
+            closestCell != null;
+    }
+
+
+    public bool ShowPlacementPreview(
+        Vector2Int[] pieceCells,
+        Vector2Int origin
+    )
+    {
+        ClearPlacementPreview();
+
+        bool valid =
+            GetPlacementCells(
+                pieceCells,
+                origin,
+                out List<GridCell>
+                    targetCells
+            );
+
+        Color previewColor =
+            valid
+                ? validPreviewColor
+                : invalidPreviewColor;
+
+        foreach (
+            GridCell cell
+            in targetCells
+        )
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            cell.ShowPreview(
+                previewColor
+            );
+
+            previewCells.Add(
+                cell
+            );
+        }
+
+        return valid;
+    }
+
+
+    public void ClearPlacementPreview()
+    {
+        foreach (
+            GridCell cell
+            in previewCells
+        )
+        {
+            if (cell != null)
+            {
+                cell.ClearPreview();
+            }
+        }
+
+        previewCells.Clear();
+    }
+
+
+    public bool CanPlacePiece(
+        Vector2Int[] pieceCells,
+        Vector2Int origin
+    )
+    {
+        return
+            GetPlacementCells(
+                pieceCells,
+                origin,
+                out _
+            );
+    }
+
+
+    public bool PlacePiece(
+        Vector2Int[] pieceCells,
+        Color pieceColor,
+        Vector2Int origin,
+        out List<Vector2Int>
+            placedCoordinates
+    )
+    {
+        placedCoordinates =
+            new List<Vector2Int>();
+
+        bool valid =
+            GetPlacementCells(
+                pieceCells,
+                origin,
+                out List<GridCell>
+                    targetCells
+            );
+
+        if (!valid)
+        {
+            return false;
+        }
+
+        foreach (
+            GridCell cell
+            in targetCells
+        )
+        {
+            cell.SetOccupied(
+                pieceColor
+            );
+
+            placedCoordinates.Add(
+                new Vector2Int(
+                    cell.X,
+                    cell.Y
+                )
+            );
+        }
+
+        ClearPlacementPreview();
+
+        GridChanged?.Invoke();
+
+        return true;
+    }
+
+
+    public bool PlacePiece(
+        Vector2Int[] pieceCells,
+        Color pieceColor,
+        Vector2Int origin
+    )
+    {
+        return
+            PlacePiece(
+                pieceCells,
+                pieceColor,
+                origin,
+                out _
+            );
+    }
+
+
+    public void ClearCells(
+        List<Vector2Int> coordinates
+    )
+    {
+        if (
+            coordinates == null ||
+            coordinates.Count == 0
+        )
+        {
+            return;
+        }
+
+        foreach (
+            Vector2Int coordinate
+            in coordinates
+        )
+        {
+            GridCell cell =
+                GetCell(
+                    coordinate.x,
+                    coordinate.y
+                );
+
+            if (cell == null)
+            {
+                continue;
+            }
+
+            cell.SetEmpty();
+        }
+
+        ClearPlacementPreview();
+
+        GridChanged?.Invoke();
+    }
+
+
+    public bool TryGetCellTopLeftWorld(
+        int x,
+        int y,
+        out Vector3 worldPosition
+    )
+    {
+        worldPosition =
+            Vector3.zero;
+
+        GridCell cell =
+            GetCell(
+                x,
+                y
+            );
+
+        if (cell == null)
+        {
+            return false;
+        }
+
+        RectTransform cellRect =
+            cell.GetComponent<
+                RectTransform
+            >();
+
+        if (cellRect == null)
+        {
+            return false;
+        }
+
+        Vector3 localTopLeft =
+            new Vector3(
+                cellRect.rect.xMin,
+                cellRect.rect.yMax,
+                0f
+            );
+
+        worldPosition =
+            cellRect.TransformPoint(
+                localTopLeft
+            );
+
+        return true;
+    }
+
+
+    private bool GetPlacementCells(
+        Vector2Int[] pieceCells,
+        Vector2Int origin,
+        out List<GridCell>
+            targetCells
+    )
+    {
+        targetCells =
+            new List<GridCell>();
+
+        if (
+            pieceCells == null ||
+            pieceCells.Length == 0
+        )
+        {
+            return false;
+        }
+
+        bool valid =
+            true;
+
+        foreach (
+            Vector2Int pieceCell
+            in pieceCells
+        )
+        {
+            int x =
+                origin.x +
+                pieceCell.x;
+
+            int y =
+                origin.y +
+                pieceCell.y;
+
+            if (
+                !IsInsideGrid(
+                    x,
+                    y
+                )
+            )
+            {
+                valid =
+                    false;
+
+                continue;
+            }
+
+            GridCell gridCell =
+                GetCell(
+                    x,
+                    y
+                );
+
+            if (gridCell == null)
+            {
+                valid =
+                    false;
+
+                continue;
+            }
+
+            targetCells.Add(
+                gridCell
+            );
+
+            if (
+                !gridCell.IsEmpty()
+            )
+            {
+                valid =
+                    false;
+            }
+        }
+
+        return valid;
+    }
+}
