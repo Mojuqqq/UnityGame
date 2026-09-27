@@ -1844,10 +1844,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   columns: 5
   rows: 5
-  cellPrefab: {fileID: 6926444433635013753, guid: ce11d4fbd9639ce478246bd90b01497c, type: 3}
+  cellPrefab: {fileID: 7293251455053345124, guid: ce11d4fbd9639ce478246bd90b01497c, type: 3}
   spacing: 8
   validPreviewColor: {r: 0.2, g: 0.9, b: 0.3, a: 0.75}
   invalidPreviewColor: {r: 0.95, g: 0.2, b: 0.2, a: 0.75}
+  validGhostAlpha: 0.42
+  invalidGhostAlpha: 0.55
 --- !u!114 &1715468751
 MonoBehaviour:
   m_ObjectHideFlags: 0
