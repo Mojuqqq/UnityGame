@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "Level_001",
@@ -36,26 +36,26 @@ public class LevelData : ScriptableObject
     [Header("Hints")]
 
     [Tooltip(
-        "Количество занятых клеток в каждой строке сверху вниз"
+        "Количество занятых клеток в каждой строке сверху вниз."
     )]
     [SerializeField]
     private int[] rowTargets;
 
-
     [Tooltip(
-        "Количество занятых клеток в каждой колонке слева направо"
+        "Количество занятых клеток в каждой колонке слева направо."
     )]
     [SerializeField]
     private int[] columnTargets;
 
+
     [Header("Blocked Cells")]
 
-[Tooltip(
-    "Клетки поля, в которые нельзя устанавливать фигуры. " +
-    "X идёт слева направо, Y сверху вниз."
-)]
-[SerializeField]
-private Vector2Int[] blockedCells;
+    [Tooltip(
+        "Клетки, в которые нельзя ставить фигуры. " +
+        "X — слева направо, Y — сверху вниз."
+    )]
+    [SerializeField]
+    private Vector2Int[] blockedCells;
 
 
     public int LevelNumber =>
@@ -80,13 +80,17 @@ private Vector2Int[] blockedCells;
         columnTargets;
 
     public Vector2Int[] BlockedCells =>
-    blockedCells;
+        blockedCells;
 
 
     public bool IsValid(
         out string errorMessage
     )
     {
+        // -----------------------------------------
+        // GRID SIZE
+        // -----------------------------------------
+
         if (columns <= 0)
         {
             errorMessage =
@@ -104,6 +108,10 @@ private Vector2Int[] blockedCells;
             return false;
         }
 
+
+        // -----------------------------------------
+        // HINT ARRAYS
+        // -----------------------------------------
 
         if (
             rowTargets == null ||
@@ -128,6 +136,10 @@ private Vector2Int[] blockedCells;
             return false;
         }
 
+
+        // -----------------------------------------
+        // HINT VALUES
+        // -----------------------------------------
 
         for (
             int y = 0;
@@ -167,10 +179,15 @@ private Vector2Int[] blockedCells;
         }
 
 
+        // -----------------------------------------
+        // HINT SUM
+        // -----------------------------------------
+
         int rowSum = 0;
 
         foreach (
-            int value in rowTargets
+            int value
+            in rowTargets
         )
         {
             rowSum += value;
@@ -180,7 +197,8 @@ private Vector2Int[] blockedCells;
         int columnSum = 0;
 
         foreach (
-            int value in columnTargets
+            int value
+            in columnTargets
         )
         {
             columnSum += value;
@@ -197,6 +215,10 @@ private Vector2Int[] blockedCells;
         }
 
 
+        // -----------------------------------------
+        // PIECES
+        // -----------------------------------------
+
         if (
             pieces == null ||
             pieces.Length == 0
@@ -207,6 +229,9 @@ private Vector2Int[] blockedCells;
 
             return false;
         }
+
+
+        int totalPieceCells = 0;
 
 
         foreach (
@@ -221,148 +246,161 @@ private Vector2Int[] blockedCells;
 
                 return false;
             }
+
+
+            if (
+                piece.Cells == null ||
+                piece.Cells.Length == 0
+            )
+            {
+                errorMessage =
+                    $"Piece '{piece.name}' has no cells.";
+
+                return false;
+            }
+
+
+            totalPieceCells +=
+                piece.Cells.Length;
         }
 
-    int totalPieceCells = 0;
 
-foreach (
-    PieceDefinition piece
-    in pieces
-)
-{
-    if (
-        piece == null ||
-        piece.Cells == null
-    )
-    {
-        continue;
-    }
+        if (rowSum != totalPieceCells)
+        {
+            errorMessage =
+                $"Hint total does not match piece cells. " +
+                $"Hints = {rowSum}, " +
+                $"Piece cells = {totalPieceCells}.";
 
-    totalPieceCells +=
-        piece.Cells.Length;
-}
+            return false;
+        }
 
 
-if (rowSum != totalPieceCells)
-{
-    errorMessage =
-        $"Hint total does not match piece cells. " +
-        $"Hints = {rowSum}, " +
-        $"Piece cells = {totalPieceCells}.";
+        // -----------------------------------------
+        // BLOCKED CELLS
+        // -----------------------------------------
 
-    return false;
-}
+        int[] blockedPerRow =
+            new int[rows];
+
+        int[] blockedPerColumn =
+            new int[columns];
+
+
+        HashSet<Vector2Int>
+            uniqueBlockedCells =
+                new HashSet<Vector2Int>();
+
+
+        if (blockedCells != null)
+        {
+            foreach (
+                Vector2Int blockedCell
+                in blockedCells
+            )
+            {
+                if (
+                    blockedCell.x < 0 ||
+                    blockedCell.x >= columns ||
+                    blockedCell.y < 0 ||
+                    blockedCell.y >= rows
+                )
+                {
+                    errorMessage =
+                        $"Blocked cell " +
+                        $"({blockedCell.x}, {blockedCell.y}) " +
+                        "is outside the grid.";
+
+                    return false;
+                }
+
+
+                if (
+                    !uniqueBlockedCells.Add(
+                        blockedCell
+                    )
+                )
+                {
+                    errorMessage =
+                        $"Blocked cell " +
+                        $"({blockedCell.x}, {blockedCell.y}) " +
+                        "is duplicated.";
+
+                    return false;
+                }
+
+
+                blockedPerRow[
+                    blockedCell.y
+                ]++;
+
+
+                blockedPerColumn[
+                    blockedCell.x
+                ]++;
+            }
+        }
+
+
+        // -----------------------------------------
+        // CHECK AVAILABLE CELLS
+        // -----------------------------------------
+
+        for (
+            int y = 0;
+            y < rows;
+            y++
+        )
+        {
+            int availableCells =
+                columns -
+                blockedPerRow[y];
+
+
+            if (
+                rowTargets[y] >
+                availableCells
+            )
+            {
+                errorMessage =
+                    $"Row {y} requires " +
+                    $"{rowTargets[y]} occupied cells, " +
+                    $"but only {availableCells} are available " +
+                    "because of blocked cells.";
+
+                return false;
+            }
+        }
+
+
+        for (
+            int x = 0;
+            x < columns;
+            x++
+        )
+        {
+            int availableCells =
+                rows -
+                blockedPerColumn[x];
+
+
+            if (
+                columnTargets[x] >
+                availableCells
+            )
+            {
+                errorMessage =
+                    $"Column {x} requires " +
+                    $"{columnTargets[x]} occupied cells, " +
+                    $"but only {availableCells} are available " +
+                    "because of blocked cells.";
+
+                return false;
+            }
+        }
+
 
         errorMessage = "";
-
-int[] blockedPerRow =
-    new int[rows];
-
-int[] blockedPerColumn =
-    new int[columns];
-
-
-HashSet<Vector2Int> uniqueBlockedCells =
-    new HashSet<Vector2Int>();
-
-
-if (blockedCells != null)
-{
-    foreach (
-        Vector2Int blockedCell
-        in blockedCells
-    )
-    {
-        if (
-            blockedCell.x < 0 ||
-            blockedCell.x >= columns ||
-            blockedCell.y < 0 ||
-            blockedCell.y >= rows
-        )
-        {
-            errorMessage =
-                $"Blocked cell ({blockedCell.x}, {blockedCell.y}) " +
-                "is outside the grid.";
-
-            return false;
-        }
-
-
-        if (
-            !uniqueBlockedCells.Add(
-                blockedCell
-            )
-        )
-        {
-            errorMessage =
-                $"Blocked cell ({blockedCell.x}, {blockedCell.y}) " +
-                "is duplicated.";
-
-            return false;
-        }
-
-
-        blockedPerRow[
-            blockedCell.y
-        ]++;
-
-
-        blockedPerColumn[
-            blockedCell.x
-        ]++;
-    }
-}
-
-for (
-    int y = 0;
-    y < rows;
-    y++
-)
-{
-    int availableCells =
-        columns -
-        blockedPerRow[y];
-
-
-    if (
-        rowTargets[y] >
-        availableCells
-    )
-    {
-        errorMessage =
-            $"Row {y} requires {rowTargets[y]} occupied cells, " +
-            $"but only {availableCells} cells are available " +
-            "because of blocked cells.";
-
-        return false;
-    }
-}
-
-
-for (
-    int x = 0;
-    x < columns;
-    x++
-)
-{
-    int availableCells =
-        rows -
-        blockedPerColumn[x];
-
-
-    if (
-        columnTargets[x] >
-        availableCells
-    )
-    {
-        errorMessage =
-            $"Column {x} requires {columnTargets[x]} occupied cells, " +
-            $"but only {availableCells} cells are available " +
-            "because of blocked cells.";
-
-        return false;
-    }
-}
 
         return true;
     }

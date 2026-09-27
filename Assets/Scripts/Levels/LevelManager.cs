@@ -65,7 +65,8 @@ public class LevelManager :
         if (currentLevel == null)
         {
             Debug.LogError(
-                "LevelManager: No level selected and no fallback level assigned."
+                "LevelManager: No level selected " +
+                "and no fallback level assigned."
             );
 
             return;
@@ -79,7 +80,8 @@ public class LevelManager :
         )
         {
             Debug.LogError(
-                $"LevelManager: Invalid LevelData. {errorMessage}"
+                $"LevelManager: Invalid LevelData. " +
+                $"{errorMessage}"
             );
 
             return;
@@ -117,10 +119,10 @@ public class LevelManager :
 
 
         gridManager.Initialize(
-    currentLevel.Columns,
-    currentLevel.Rows,
-    currentLevel.BlockedCells
-);
+            currentLevel.Columns,
+            currentLevel.Rows,
+            currentLevel.BlockedCells
+        );
 
 
         hintManager.Initialize(
@@ -174,7 +176,8 @@ public class LevelManager :
 
 
         Debug.Log(
-            $"Completed level {currentLevel.LevelNumber}"
+            $"Completed level " +
+            $"{currentLevel.LevelNumber}"
         );
     }
 

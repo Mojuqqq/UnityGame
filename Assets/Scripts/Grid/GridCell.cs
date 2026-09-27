@@ -8,6 +8,7 @@ public enum GridCellState
     Blocked
 }
 
+
 [RequireComponent(typeof(Image))]
 public class GridCell : MonoBehaviour
 {
@@ -17,11 +18,13 @@ public class GridCell : MonoBehaviour
         private set;
     }
 
+
     public int Y
     {
         get;
         private set;
     }
+
 
     public GridCellState State
     {
@@ -30,7 +33,10 @@ public class GridCell : MonoBehaviour
     }
 
 
-    private Image cellImage;
+    [Header("References")]
+
+    [SerializeField]
+    private GameObject blockedVisual;
 
 
     [Header("Cell Colors")]
@@ -44,6 +50,7 @@ public class GridCell : MonoBehaviour
             1f
         );
 
+
     [SerializeField]
     private Color occupiedColor =
         new Color(
@@ -52,6 +59,7 @@ public class GridCell : MonoBehaviour
             0.35f,
             1f
         );
+
 
     [SerializeField]
     private Color blockedColor =
@@ -63,6 +71,8 @@ public class GridCell : MonoBehaviour
         );
 
 
+    private Image cellImage;
+
     private Color currentOccupiedColor;
 
 
@@ -71,8 +81,12 @@ public class GridCell : MonoBehaviour
         cellImage =
             GetComponent<Image>();
 
+
         currentOccupiedColor =
             occupiedColor;
+
+
+        UpdateBlockedVisual();
     }
 
 
@@ -98,6 +112,10 @@ public class GridCell : MonoBehaviour
     }
 
 
+    // =====================================================
+    // STATE
+    // =====================================================
+
     public void SetState(
         GridCellState newState
     )
@@ -105,7 +123,8 @@ public class GridCell : MonoBehaviour
         State =
             newState;
 
-        ApplyStateColor();
+
+        ApplyStateVisuals();
     }
 
 
@@ -121,7 +140,7 @@ public class GridCell : MonoBehaviour
             pieceColor;
 
 
-        ApplyStateColor();
+        ApplyStateVisuals();
     }
 
 
@@ -130,7 +149,8 @@ public class GridCell : MonoBehaviour
         State =
             GridCellState.Empty;
 
-        ApplyStateColor();
+
+        ApplyStateVisuals();
     }
 
 
@@ -139,15 +159,21 @@ public class GridCell : MonoBehaviour
         State =
             GridCellState.Blocked;
 
-        ApplyStateColor();
+
+        ApplyStateVisuals();
     }
 
+
+    // =====================================================
+    // PREVIEW
+    // =====================================================
 
     public void ShowPreview(
         Color previewColor
     )
     {
         EnsureImage();
+
 
         cellImage.color =
             previewColor;
@@ -156,11 +182,15 @@ public class GridCell : MonoBehaviour
 
     public void ClearPreview()
     {
-        ApplyStateColor();
+        ApplyStateVisuals();
     }
 
 
-    private void ApplyStateColor()
+    // =====================================================
+    // VISUALS
+    // =====================================================
+
+    private void ApplyStateVisuals()
     {
         EnsureImage();
 
@@ -190,6 +220,24 @@ public class GridCell : MonoBehaviour
 
                 break;
         }
+
+
+        UpdateBlockedVisual();
+    }
+
+
+    private void UpdateBlockedVisual()
+    {
+        if (blockedVisual == null)
+        {
+            return;
+        }
+
+
+        blockedVisual.SetActive(
+            State ==
+            GridCellState.Blocked
+        );
     }
 
 
@@ -202,6 +250,10 @@ public class GridCell : MonoBehaviour
         }
     }
 
+
+    // =====================================================
+    // STATE CHECKS
+    // =====================================================
 
     public bool IsEmpty()
     {
@@ -216,5 +268,13 @@ public class GridCell : MonoBehaviour
         return
             State ==
             GridCellState.Occupied;
+    }
+
+
+    public bool IsBlocked()
+    {
+        return
+            State ==
+            GridCellState.Blocked;
     }
 }

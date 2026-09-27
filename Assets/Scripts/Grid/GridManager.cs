@@ -38,6 +38,7 @@ public class GridManager : MonoBehaviour
             0.75f
         );
 
+
     [SerializeField]
     private Color invalidPreviewColor =
         new Color(
@@ -47,15 +48,19 @@ public class GridManager : MonoBehaviour
             0.75f
         );
 
+
     [Header("Ghost Preview")]
 
-[SerializeField]
-[Range(0f, 1f)]
-private float validGhostAlpha = 0.42f;
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float validGhostAlpha =
+        0.42f;
 
-[SerializeField]
-[Range(0f, 1f)]
-private float invalidGhostAlpha = 0.55f;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float invalidGhostAlpha =
+        0.55f;
 
 
     private GridCell[,] cells;
@@ -70,9 +75,14 @@ private float invalidGhostAlpha = 0.55f;
             new List<GridCell>();
 
 
-    public int Columns => columns;
+    private bool initializedFromLevelData;
 
-    public int Rows => rows;
+
+    public int Columns =>
+        columns;
+
+    public int Rows =>
+        rows;
 
     public float CellSize
     {
@@ -80,124 +90,117 @@ private float invalidGhostAlpha = 0.55f;
         private set;
     }
 
-    public float Spacing => spacing;
+    public float Spacing =>
+        spacing;
 
 
     public event Action GridChanged;
 
-    private bool initializedFromLevelData;
 
     private void Start()
-{
-    if (!initializedFromLevelData)
     {
-        CreateGrid();
+        if (!initializedFromLevelData)
+        {
+            CreateGrid();
+        }
     }
-}
+
+
+    // =====================================================
+    // INITIALIZE
+    // =====================================================
 
     public void Initialize(
-    int newColumns,
-    int newRows
-)
-{
-    Initialize(
-        newColumns,
-        newRows,
-        null
-    );
-}
-
-
-public void Initialize(
-    int newColumns,
-    int newRows,
-    Vector2Int[] blockedCells
-)
-{
-    columns =
-        Mathf.Max(
-            1,
-            newColumns
-        );
-
-    rows =
-        Mathf.Max(
-            1,
-            newRows
-        );
-
-
-    initializedFromLevelData =
-        true;
-
-
-    CreateGrid();
-
-
-    ApplyBlockedCells(
-        blockedCells
-    );
-}
-
-{
-    columns =
-        Mathf.Max(
-            1,
-            newColumns
-        );
-
-    rows =
-        Mathf.Max(
-            1,
-            newRows
-        );
-
-    initializedFromLevelData =
-        true;
-
-    CreateGrid();
-}
-
-private void ApplyBlockedCells(
-    Vector2Int[] blockedCells
-)
-{
-    if (
-        blockedCells == null ||
-        blockedCells.Length == 0
+        int newColumns,
+        int newRows
     )
     {
-        return;
+        Initialize(
+            newColumns,
+            newRows,
+            null
+        );
     }
 
 
-    foreach (
-        Vector2Int coordinate
-        in blockedCells
+    public void Initialize(
+        int newColumns,
+        int newRows,
+        Vector2Int[] blockedCells
     )
     {
-        GridCell cell =
-            GetCell(
-                coordinate.x,
-                coordinate.y
+        columns =
+            Mathf.Max(
+                1,
+                newColumns
             );
 
 
-        if (cell == null)
+        rows =
+            Mathf.Max(
+                1,
+                newRows
+            );
+
+
+        initializedFromLevelData =
+            true;
+
+
+        CreateGrid();
+
+
+        ApplyBlockedCells(
+            blockedCells
+        );
+    }
+
+
+    private void ApplyBlockedCells(
+        Vector2Int[] blockedCells
+    )
+    {
+        if (
+            blockedCells == null ||
+            blockedCells.Length == 0
+        )
         {
-            Debug.LogWarning(
-                $"GridManager: Blocked cell " +
-                $"({coordinate.x}, {coordinate.y}) " +
-                "does not exist."
-            );
-
-            continue;
+            return;
         }
 
 
-        cell.SetBlocked();
+        foreach (
+            Vector2Int coordinate
+            in blockedCells
+        )
+        {
+            GridCell cell =
+                GetCell(
+                    coordinate.x,
+                    coordinate.y
+                );
+
+
+            if (cell == null)
+            {
+                Debug.LogWarning(
+                    $"GridManager: Blocked cell " +
+                    $"({coordinate.x}, {coordinate.y}) " +
+                    "does not exist."
+                );
+
+                continue;
+            }
+
+
+            cell.SetBlocked();
+        }
     }
-}
+
+
+    // =====================================================
+    // CREATE GRID
+    // =====================================================
 
     public void CreateGrid()
     {
@@ -210,15 +213,20 @@ private void ApplyBlockedCells(
             return;
         }
 
+
         gridLayout =
             GetComponent<GridLayoutGroup>();
+
 
         gridRect =
             GetComponent<RectTransform>();
 
+
         ClearGrid();
 
+
         ConfigureLayout();
+
 
         cells =
             new GridCell[
@@ -245,15 +253,18 @@ private void ApplyBlockedCells(
                         transform
                     );
 
+
                 newCell.Initialize(
                     x,
                     y
                 );
 
+
                 cells[x, y] =
                     newCell;
             }
         }
+
 
         Canvas.ForceUpdateCanvases();
     }
@@ -269,35 +280,44 @@ private void ApplyBlockedCells(
             return;
         }
 
+
         float containerWidth =
             gridRect.rect.width;
 
+
         float containerHeight =
             gridRect.rect.height;
+
 
         float totalHorizontalSpacing =
             spacing *
             (columns - 1);
 
+
         float totalVerticalSpacing =
             spacing *
             (rows - 1);
+
 
         float availableWidth =
             containerWidth -
             totalHorizontalSpacing;
 
+
         float availableHeight =
             containerHeight -
             totalVerticalSpacing;
+
 
         float cellWidth =
             availableWidth /
             columns;
 
+
         float cellHeight =
             availableHeight /
             rows;
+
 
         CellSize =
             Mathf.Min(
@@ -305,13 +325,16 @@ private void ApplyBlockedCells(
                 cellHeight
             );
 
+
         gridLayout.constraint =
             GridLayoutGroup
                 .Constraint
                 .FixedColumnCount;
 
+
         gridLayout.constraintCount =
             columns;
+
 
         gridLayout.cellSize =
             new Vector2(
@@ -319,19 +342,23 @@ private void ApplyBlockedCells(
                 CellSize
             );
 
+
         gridLayout.spacing =
             new Vector2(
                 spacing,
                 spacing
             );
 
+
         gridLayout.childAlignment =
             TextAnchor.MiddleCenter;
+
 
         gridLayout.startCorner =
             GridLayoutGroup
                 .Corner
                 .UpperLeft;
+
 
         gridLayout.startAxis =
             GridLayoutGroup
@@ -344,7 +371,10 @@ private void ApplyBlockedCells(
     {
         ClearPlacementPreview();
 
-        cells = null;
+
+        cells =
+            null;
+
 
         for (
             int i =
@@ -358,12 +388,22 @@ private void ApplyBlockedCells(
                     .GetChild(i)
                     .gameObject;
 
-            child.SetActive(false);
 
-            Destroy(child);
+            child.SetActive(
+                false
+            );
+
+
+            Destroy(
+                child
+            );
         }
     }
 
+
+    // =====================================================
+    // CELL ACCESS
+    // =====================================================
 
     public GridCell GetCell(
         int x,
@@ -375,6 +415,7 @@ private void ApplyBlockedCells(
             return null;
         }
 
+
         if (
             x < 0 ||
             x >= columns ||
@@ -385,7 +426,9 @@ private void ApplyBlockedCells(
             return null;
         }
 
-        return cells[x, y];
+
+        return
+            cells[x, y];
     }
 
 
@@ -413,14 +456,21 @@ private void ApplyBlockedCells(
                 y
             );
 
+
         if (cell == null)
         {
             return false;
         }
 
-        return cell.IsEmpty();
+
+        return
+            cell.IsEmpty();
     }
 
+
+    // =====================================================
+    // POINTER
+    // =====================================================
 
     public bool TryGetCellUnderPointer(
         Vector2 screenPosition,
@@ -428,7 +478,9 @@ private void ApplyBlockedCells(
         out GridCell closestCell
     )
     {
-        closestCell = null;
+        closestCell =
+            null;
+
 
         if (
             gridRect == null ||
@@ -438,6 +490,7 @@ private void ApplyBlockedCells(
             return false;
         }
 
+
         bool pointerInside =
             RectTransformUtility
                 .RectangleContainsScreenPoint(
@@ -446,10 +499,12 @@ private void ApplyBlockedCells(
                     eventCamera
                 );
 
+
         if (!pointerInside)
         {
             return false;
         }
+
 
         float closestDistance =
             float.MaxValue;
@@ -470,20 +525,24 @@ private void ApplyBlockedCells(
                 GridCell cell =
                     cells[x, y];
 
+
                 if (cell == null)
                 {
                     continue;
                 }
+
 
                 RectTransform cellRect =
                     cell.GetComponent<
                         RectTransform
                     >();
 
+
                 Vector3 worldCenter =
                     cellRect.TransformPoint(
                         cellRect.rect.center
                     );
+
 
                 Vector2 screenCenter =
                     RectTransformUtility
@@ -492,11 +551,13 @@ private void ApplyBlockedCells(
                             worldCenter
                         );
 
+
                 float distance =
                     Vector2.SqrMagnitude(
                         screenPosition -
                         screenCenter
                     );
+
 
                 if (
                     distance <
@@ -506,16 +567,22 @@ private void ApplyBlockedCells(
                     closestDistance =
                         distance;
 
+
                     closestCell =
                         cell;
                 }
             }
         }
 
+
         return
             closestCell != null;
     }
 
+
+    // =====================================================
+    // PREVIEW
+    // =====================================================
 
     public bool ShowPlacementPreview(
         Vector2Int[] pieceCells,
@@ -523,6 +590,7 @@ private void ApplyBlockedCells(
     )
     {
         ClearPlacementPreview();
+
 
         bool valid =
             GetPlacementCells(
@@ -532,10 +600,12 @@ private void ApplyBlockedCells(
                     targetCells
             );
 
+
         Color previewColor =
             valid
                 ? validPreviewColor
                 : invalidPreviewColor;
+
 
         foreach (
             GridCell cell
@@ -547,81 +617,89 @@ private void ApplyBlockedCells(
                 continue;
             }
 
+
             cell.ShowPreview(
                 previewColor
             );
+
 
             previewCells.Add(
                 cell
             );
         }
 
-        return valid;
+
+        return
+            valid;
     }
+
 
     public bool ShowPlacementPreview(
-    Vector2Int[] pieceCells,
-    Vector2Int origin,
-    Color pieceColor
-)
-{
-    ClearPlacementPreview();
-
-
-    bool valid =
-        GetPlacementCells(
-            pieceCells,
-            origin,
-            out List<GridCell>
-                targetCells
-        );
-
-
-    Color previewColor;
-
-
-    if (valid)
-    {
-        previewColor =
-            pieceColor;
-
-        previewColor.a =
-            validGhostAlpha;
-    }
-    else
-    {
-        previewColor =
-            invalidPreviewColor;
-
-        previewColor.a =
-            invalidGhostAlpha;
-    }
-
-
-    foreach (
-        GridCell cell
-        in targetCells
+        Vector2Int[] pieceCells,
+        Vector2Int origin,
+        Color pieceColor
     )
     {
-        if (cell == null)
+        ClearPlacementPreview();
+
+
+        bool valid =
+            GetPlacementCells(
+                pieceCells,
+                origin,
+                out List<GridCell>
+                    targetCells
+            );
+
+
+        Color previewColor;
+
+
+        if (valid)
         {
-            continue;
+            previewColor =
+                pieceColor;
+
+
+            previewColor.a =
+                validGhostAlpha;
+        }
+        else
+        {
+            previewColor =
+                invalidPreviewColor;
+
+
+            previewColor.a =
+                invalidGhostAlpha;
         }
 
 
-        cell.ShowPreview(
-            previewColor
-        );
+        foreach (
+            GridCell cell
+            in targetCells
+        )
+        {
+            if (cell == null)
+            {
+                continue;
+            }
 
 
-        previewCells.Add(
-            cell
-        );
+            cell.ShowPreview(
+                previewColor
+            );
+
+
+            previewCells.Add(
+                cell
+            );
+        }
+
+
+        return
+            valid;
     }
-
-
-    return valid;
-}
 
 
     public void ClearPlacementPreview()
@@ -637,9 +715,14 @@ private void ApplyBlockedCells(
             }
         }
 
+
         previewCells.Clear();
     }
 
+
+    // =====================================================
+    // PLACEMENT
+    // =====================================================
 
     public bool CanPlacePiece(
         Vector2Int[] pieceCells,
@@ -666,6 +749,7 @@ private void ApplyBlockedCells(
         placedCoordinates =
             new List<Vector2Int>();
 
+
         bool valid =
             GetPlacementCells(
                 pieceCells,
@@ -674,10 +758,12 @@ private void ApplyBlockedCells(
                     targetCells
             );
 
+
         if (!valid)
         {
             return false;
         }
+
 
         foreach (
             GridCell cell
@@ -688,6 +774,7 @@ private void ApplyBlockedCells(
                 pieceColor
             );
 
+
             placedCoordinates.Add(
                 new Vector2Int(
                     cell.X,
@@ -696,9 +783,12 @@ private void ApplyBlockedCells(
             );
         }
 
+
         ClearPlacementPreview();
 
+
         GridChanged?.Invoke();
+
 
         return true;
     }
@@ -732,6 +822,7 @@ private void ApplyBlockedCells(
             return;
         }
 
+
         foreach (
             Vector2Int coordinate
             in coordinates
@@ -743,19 +834,34 @@ private void ApplyBlockedCells(
                     coordinate.y
                 );
 
+
             if (cell == null)
             {
                 continue;
             }
 
+
+            // На всякий случай не стираем препятствия.
+            if (cell.IsBlocked())
+            {
+                continue;
+            }
+
+
             cell.SetEmpty();
         }
 
+
         ClearPlacementPreview();
+
 
         GridChanged?.Invoke();
     }
 
+
+    // =====================================================
+    // VISUAL POSITION
+    // =====================================================
 
     public bool TryGetCellTopLeftWorld(
         int x,
@@ -766,26 +872,31 @@ private void ApplyBlockedCells(
         worldPosition =
             Vector3.zero;
 
+
         GridCell cell =
             GetCell(
                 x,
                 y
             );
 
+
         if (cell == null)
         {
             return false;
         }
+
 
         RectTransform cellRect =
             cell.GetComponent<
                 RectTransform
             >();
 
+
         if (cellRect == null)
         {
             return false;
         }
+
 
         Vector3 localTopLeft =
             new Vector3(
@@ -794,14 +905,20 @@ private void ApplyBlockedCells(
                 0f
             );
 
+
         worldPosition =
             cellRect.TransformPoint(
                 localTopLeft
             );
 
+
         return true;
     }
 
+
+    // =====================================================
+    // INTERNAL PLACEMENT CHECK
+    // =====================================================
 
     private bool GetPlacementCells(
         Vector2Int[] pieceCells,
@@ -813,6 +930,7 @@ private void ApplyBlockedCells(
         targetCells =
             new List<GridCell>();
 
+
         if (
             pieceCells == null ||
             pieceCells.Length == 0
@@ -821,8 +939,10 @@ private void ApplyBlockedCells(
             return false;
         }
 
+
         bool valid =
             true;
+
 
         foreach (
             Vector2Int pieceCell
@@ -833,9 +953,11 @@ private void ApplyBlockedCells(
                 origin.x +
                 pieceCell.x;
 
+
             int y =
                 origin.y +
                 pieceCell.y;
+
 
             if (
                 !IsInsideGrid(
@@ -850,11 +972,13 @@ private void ApplyBlockedCells(
                 continue;
             }
 
+
             GridCell gridCell =
                 GetCell(
                     x,
                     y
                 );
+
 
             if (gridCell == null)
             {
@@ -864,9 +988,11 @@ private void ApplyBlockedCells(
                 continue;
             }
 
+
             targetCells.Add(
                 gridCell
             );
+
 
             if (
                 !gridCell.IsEmpty()
@@ -877,6 +1003,8 @@ private void ApplyBlockedCells(
             }
         }
 
-        return valid;
+
+        return
+            valid;
     }
 }
