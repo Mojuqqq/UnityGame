@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,56 +11,37 @@ public class HintManager : MonoBehaviour
 
     [SerializeField]
     private RectTransform
-        columnHintsContainer;
+        topHintsContainer;
 
     [SerializeField]
     private RectTransform
         rowHintsContainer;
 
     [SerializeField]
-    private TMP_Text hintPrefab;
+    private HintGroupView
+        hintGroupPrefab;
 
 
-    [Header("Colors")]
-
-    [SerializeField]
-    private Color incompleteColor =
-        Color.white;
+    [Header("Layout")]
 
     [SerializeField]
-    private Color completeColor =
-        new Color(
-            0.3f,
-            0.9f,
-            0.4f,
-            1f
-        );
+    private float topHintHeight =
+        84f;
 
     [SerializeField]
-    private Color overflowColor =
-        new Color(
-            1f,
-            0.25f,
-            0.25f,
-            1f
-        );
+    private float rowHintWidth =
+        124f;
 
 
-    private int[] rowTargets;
+    private LevelData currentLevel;
 
-    private int[] columnTargets;
+    private readonly List<HintGroupView>
+        columnHintGroups =
+            new List<HintGroupView>();
 
-
-    private readonly List<TMP_Text>
-        rowHintTexts =
-            new List<TMP_Text>();
-
-    private readonly List<TMP_Text>
-        columnHintTexts =
-            new List<TMP_Text>();
-
-
-    private bool initialized;
+    private readonly List<HintGroupView>
+        rowHintGroups =
+            new List<HintGroupView>();
 
 
     private void OnEnable()
@@ -69,7 +49,7 @@ public class HintManager : MonoBehaviour
         if (gridManager != null)
         {
             gridManager.GridChanged +=
-                RefreshHints;
+                UpdateHints;
         }
     }
 
@@ -79,7 +59,7 @@ public class HintManager : MonoBehaviour
         if (gridManager != null)
         {
             gridManager.GridChanged -=
-                RefreshHints;
+                UpdateHints;
         }
     }
 
@@ -88,7 +68,10 @@ public class HintManager : MonoBehaviour
         LevelData levelData
     )
     {
-        if (levelData == null)
+        currentLevel =
+            levelData;
+
+        if (currentLevel == null)
         {
             Debug.LogError(
                 "HintManager: LevelData is null."
@@ -98,88 +81,10 @@ public class HintManager : MonoBehaviour
         }
 
 
-        rowTargets =
-            (int[])
-            levelData
-                .RowTargets
-                .Clone();
-
-
-        columnTargets =
-            (int[])
-            levelData
-                .ColumnTargets
-                .Clone();
-
-
-        ConfigureLayoutSpacing();
-
-        BuildHints();
-
-        initialized =
-            true;
-
-        RefreshHints();
-    }
-
-
-    private void ConfigureLayoutSpacing()
-    {
-        HorizontalLayoutGroup
-            columnLayout =
-                columnHintsContainer
-                    .GetComponent<
-                        HorizontalLayoutGroup
-                    >();
-
-
-        if (columnLayout != null)
-        {
-            columnLayout.spacing =
-                gridManager.Spacing;
-        }
-
-
-        VerticalLayoutGroup
-            rowLayout =
-                rowHintsContainer
-                    .GetComponent<
-                        VerticalLayoutGroup
-                    >();
-
-
-        if (rowLayout != null)
-        {
-            rowLayout.spacing =
-                gridManager.Spacing;
-        }
-    }
-
-
-    private void BuildHints()
-    {
-        ClearContainer(
-            columnHintsContainer
-        );
-
-        ClearContainer(
-            rowHintsContainer
-        );
-
-
-        rowHintTexts.Clear();
-
-        columnHintTexts.Clear();
-
-
-        if (
-            rowTargets == null ||
-            rowTargets.Length !=
-            gridManager.Rows
-        )
+        if (gridManager == null)
         {
             Debug.LogError(
-                "HintManager: Row Targets count does not match Grid rows."
+                "HintManager: GridManager is not assigned."
             );
 
             return;
@@ -187,77 +92,409 @@ public class HintManager : MonoBehaviour
 
 
         if (
-            columnTargets == null ||
-            columnTargets.Length !=
-            gridManager.Columns
+            topHintsContainer == null ||
+            rowHintsContainer == null
         )
         {
             Debug.LogError(
-                "HintManager: Column Targets count does not match Grid columns."
+                "HintManager: hint containers are not assigned."
             );
 
             return;
+        }
+
+
+        if (hintGroupPrefab == null)
+        {
+            Debug.LogError(
+                "HintManager: HintGroup prefab is not assigned."
+            );
+
+            return;
+        }
+
+
+        ConfigureContainers();
+        BuildHintGroups();
+        UpdateHints();
+    }
+
+
+    public void UpdateHints()
+    {
+        if (
+            currentLevel == null ||
+            gridManager == null
+        )
+        {
+            return;
+        }
+
+
+        // -----------------------------
+        // Columns
+        // -----------------------------
+
+        for (
+            int x = 0;
+            x < currentLevel.Columns &&
+            x < columnHintGroups.Count;
+            x++
+        )
+        {
+            int occupiedCount =
+                GetOccupiedCountInColumn(
+                    x
+                );
+
+            columnHintGroups[x]
+                .UpdateProgress(
+                    occupiedCount
+                );
+        }
+
+
+        // -----------------------------
+        // Rows
+        // -----------------------------
+
+        for (
+            int y = 0;
+            y < currentLevel.Rows &&
+            y < rowHintGroups.Count;
+            y++
+        )
+        {
+            int occupiedCount =
+                GetOccupiedCountInRow(
+                    y
+                );
+
+            rowHintGroups[y]
+                .UpdateProgress(
+                    occupiedCount
+                );
+        }
+    }
+
+
+    public bool IsSolved()
+    {
+        if (
+            currentLevel == null ||
+            gridManager == null
+        )
+        {
+            return false;
         }
 
 
         for (
             int x = 0;
-            x < gridManager.Columns;
+            x < currentLevel.Columns;
             x++
         )
         {
-            TMP_Text hint =
-                Instantiate(
-                    hintPrefab,
-                    columnHintsContainer
+            int occupiedCount =
+                GetOccupiedCountInColumn(
+                    x
                 );
 
-
-            hint.name =
-                $"ColumnHint_{x}";
-
-
-            hint.text =
-                columnTargets[x]
-                    .ToString();
-
-
-            columnHintTexts.Add(
-                hint
-            );
+            if (
+                occupiedCount !=
+                currentLevel
+                    .ColumnTargets[x]
+            )
+            {
+                return false;
+            }
         }
 
 
         for (
             int y = 0;
-            y < gridManager.Rows;
+            y < currentLevel.Rows;
             y++
         )
         {
-            TMP_Text hint =
+            int occupiedCount =
+                GetOccupiedCountInRow(
+                    y
+                );
+
+            if (
+                occupiedCount !=
+                currentLevel
+                    .RowTargets[y]
+            )
+            {
+                return false;
+            }
+        }
+
+
+        return true;
+    }
+
+
+    private void ConfigureContainers()
+    {
+        ConfigureTopHintsContainer();
+        ConfigureRowHintsContainer();
+    }
+
+
+    private void ConfigureTopHintsContainer()
+    {
+        GridLayoutGroup layout =
+            topHintsContainer
+                .GetComponent<
+                    GridLayoutGroup
+                >();
+
+        if (layout == null)
+        {
+            Debug.LogWarning(
+                "HintManager: TopHintsContainer does not have GridLayoutGroup."
+            );
+
+            return;
+        }
+
+
+        layout.constraint =
+            GridLayoutGroup
+                .Constraint
+                .FixedColumnCount;
+
+        layout.constraintCount =
+            currentLevel.Columns;
+
+        layout.startCorner =
+            GridLayoutGroup
+                .Corner
+                .UpperLeft;
+
+        layout.startAxis =
+            GridLayoutGroup
+                .Axis
+                .Horizontal;
+
+        layout.childAlignment =
+            TextAnchor.MiddleCenter;
+
+        layout.cellSize =
+            new Vector2(
+                gridManager.CellSize,
+                topHintHeight
+            );
+
+        layout.spacing =
+            new Vector2(
+                gridManager.Spacing,
+                0f
+            );
+    }
+
+
+    private void ConfigureRowHintsContainer()
+    {
+        GridLayoutGroup layout =
+            rowHintsContainer
+                .GetComponent<
+                    GridLayoutGroup
+                >();
+
+        if (layout == null)
+        {
+            Debug.LogWarning(
+                "HintManager: RowHintsContainer does not have GridLayoutGroup."
+            );
+
+            return;
+        }
+
+
+        layout.constraint =
+            GridLayoutGroup
+                .Constraint
+                .FixedColumnCount;
+
+        layout.constraintCount =
+            1;
+
+        layout.startCorner =
+            GridLayoutGroup
+                .Corner
+                .UpperLeft;
+
+        layout.startAxis =
+            GridLayoutGroup
+                .Axis
+                .Horizontal;
+
+        layout.childAlignment =
+            TextAnchor.MiddleCenter;
+
+        layout.cellSize =
+            new Vector2(
+                rowHintWidth,
+                gridManager.CellSize
+            );
+
+        layout.spacing =
+            new Vector2(
+                0f,
+                gridManager.Spacing
+            );
+    }
+
+
+    private void BuildHintGroups()
+    {
+        ClearHintGroups();
+
+        // -----------------------------
+        // Column hints
+        // -----------------------------
+
+        for (
+            int x = 0;
+            x < currentLevel.Columns;
+            x++
+        )
+        {
+            HintGroupView group =
                 Instantiate(
-                    hintPrefab,
+                    hintGroupPrefab,
+                    topHintsContainer
+                );
+
+            group.name =
+                $"ColumnHint_{x}";
+
+            group.Initialize(
+                currentLevel
+                    .ColumnTargets[x],
+                HintGroupVisualType.Column
+            );
+
+            columnHintGroups.Add(
+                group
+            );
+        }
+
+
+        // -----------------------------
+        // Row hints
+        // -----------------------------
+
+        for (
+            int y = 0;
+            y < currentLevel.Rows;
+            y++
+        )
+        {
+            HintGroupView group =
+                Instantiate(
+                    hintGroupPrefab,
                     rowHintsContainer
                 );
 
-
-            hint.name =
+            group.name =
                 $"RowHint_{y}";
 
+            group.Initialize(
+                currentLevel
+                    .RowTargets[y],
+                HintGroupVisualType.Row
+            );
 
-            hint.text =
-                rowTargets[y]
-                    .ToString();
-
-
-            rowHintTexts.Add(
-                hint
+            rowHintGroups.Add(
+                group
             );
         }
     }
 
 
-    private void ClearContainer(
+    private int GetOccupiedCountInRow(
+        int rowIndex
+    )
+    {
+        int count = 0;
+
+        for (
+            int x = 0;
+            x < currentLevel.Columns;
+            x++
+        )
+        {
+            GridCell cell =
+                gridManager.GetCell(
+                    x,
+                    rowIndex
+                );
+
+            if (
+                cell != null &&
+                cell.IsOccupied()
+            )
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+
+    private int GetOccupiedCountInColumn(
+        int columnIndex
+    )
+    {
+        int count = 0;
+
+        for (
+            int y = 0;
+            y < currentLevel.Rows;
+            y++
+        )
+        {
+            GridCell cell =
+                gridManager.GetCell(
+                    columnIndex,
+                    y
+                );
+
+            if (
+                cell != null &&
+                cell.IsOccupied()
+            )
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+
+    private void ClearHintGroups()
+    {
+        columnHintGroups.Clear();
+        rowHintGroups.Clear();
+
+        ClearChildren(
+            topHintsContainer
+        );
+
+        ClearChildren(
+            rowHintsContainer
+        );
+    }
+
+
+    private void ClearChildren(
         RectTransform container
     )
     {
@@ -265,7 +502,6 @@ public class HintManager : MonoBehaviour
         {
             return;
         }
-
 
         for (
             int i =
@@ -279,256 +515,8 @@ public class HintManager : MonoBehaviour
                     .GetChild(i)
                     .gameObject;
 
-
-            child.SetActive(
-                false
-            );
-
-
-            Destroy(
-                child
-            );
+            child.SetActive(false);
+            Destroy(child);
         }
-    }
-
-
-    public void RefreshHints()
-    {
-        if (!initialized)
-        {
-            return;
-        }
-
-
-        RefreshRowHints();
-
-        RefreshColumnHints();
-    }
-
-
-    private void RefreshRowHints()
-    {
-        for (
-            int y = 0;
-            y < gridManager.Rows;
-            y++
-        )
-        {
-            int occupiedCount =
-                0;
-
-
-            for (
-                int x = 0;
-                x < gridManager.Columns;
-                x++
-            )
-            {
-                GridCell cell =
-                    gridManager
-                        .GetCell(
-                            x,
-                            y
-                        );
-
-
-                if (
-                    cell != null &&
-                    cell.State ==
-                    GridCellState.Occupied
-                )
-                {
-                    occupiedCount++;
-                }
-            }
-
-
-            ApplyHintState(
-                rowHintTexts[y],
-                occupiedCount,
-                rowTargets[y]
-            );
-        }
-    }
-
-
-    private void RefreshColumnHints()
-    {
-        for (
-            int x = 0;
-            x < gridManager.Columns;
-            x++
-        )
-        {
-            int occupiedCount =
-                0;
-
-
-            for (
-                int y = 0;
-                y < gridManager.Rows;
-                y++
-            )
-            {
-                GridCell cell =
-                    gridManager
-                        .GetCell(
-                            x,
-                            y
-                        );
-
-
-                if (
-                    cell != null &&
-                    cell.State ==
-                    GridCellState.Occupied
-                )
-                {
-                    occupiedCount++;
-                }
-            }
-
-
-            ApplyHintState(
-                columnHintTexts[x],
-                occupiedCount,
-                columnTargets[x]
-            );
-        }
-    }
-
-
-    private void ApplyHintState(
-        TMP_Text hintText,
-        int current,
-        int target
-    )
-    {
-        hintText.text =
-            target.ToString();
-
-
-        if (current > target)
-        {
-            hintText.color =
-                overflowColor;
-
-            return;
-        }
-
-
-        if (current == target)
-        {
-            hintText.color =
-                completeColor;
-
-            return;
-        }
-
-
-        hintText.color =
-            incompleteColor;
-    }
-
-
-    public bool IsSolved()
-    {
-        if (!initialized)
-        {
-            return false;
-        }
-
-
-        for (
-            int y = 0;
-            y < gridManager.Rows;
-            y++
-        )
-        {
-            int occupiedCount =
-                0;
-
-
-            for (
-                int x = 0;
-                x < gridManager.Columns;
-                x++
-            )
-            {
-                GridCell cell =
-                    gridManager
-                        .GetCell(
-                            x,
-                            y
-                        );
-
-
-                if (
-                    cell != null &&
-                    cell.State ==
-                    GridCellState.Occupied
-                )
-                {
-                    occupiedCount++;
-                }
-            }
-
-
-            if (
-                occupiedCount !=
-                rowTargets[y]
-            )
-            {
-                return false;
-            }
-        }
-
-
-        for (
-            int x = 0;
-            x < gridManager.Columns;
-            x++
-        )
-        {
-            int occupiedCount =
-                0;
-
-
-            for (
-                int y = 0;
-                y < gridManager.Rows;
-                y++
-            )
-            {
-                GridCell cell =
-                    gridManager
-                        .GetCell(
-                            x,
-                            y
-                        );
-
-
-                if (
-                    cell != null &&
-                    cell.State ==
-                    GridCellState.Occupied
-                )
-                {
-                    occupiedCount++;
-                }
-            }
-
-
-            if (
-                occupiedCount !=
-                columnTargets[x]
-            )
-            {
-                return false;
-            }
-        }
-
-
-        return true;
     }
 }
