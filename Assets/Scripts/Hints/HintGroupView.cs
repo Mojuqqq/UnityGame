@@ -9,25 +9,18 @@ public enum HintGroupVisualType
 
 public class HintGroupView : MonoBehaviour
 {
-    [Header("References")]
+    [Header("Prefab")]
 
     [SerializeField]
-    private RectTransform rowA;
-
-    [SerializeField]
-    private RectTransform rowB;
-
-    [SerializeField]
-    private HintIndicatorView
-        indicatorPrefab;
+    private HintIndicatorView indicatorPrefab;
 
 
-    [Header("Indicator Sizes")]
+    [Header("Sizes")]
 
     [SerializeField]
     private Vector2 columnIndicatorSize =
         new Vector2(
-            28f,
+            32f,
             12f
         );
 
@@ -35,8 +28,19 @@ public class HintGroupView : MonoBehaviour
     private Vector2 rowIndicatorSize =
         new Vector2(
             12f,
-            28f
+            32f
         );
+
+
+    [Header("Spacing")]
+
+    [SerializeField]
+    private float indicatorSpacing =
+        7f;
+
+    [SerializeField]
+    private float laneSpacing =
+        8f;
 
 
     private readonly List<HintIndicatorView>
@@ -45,18 +49,13 @@ public class HintGroupView : MonoBehaviour
 
 
     private int targetCount;
-    private HintGroupVisualType
-        visualType;
 
-
-    public int TargetCount =>
-        targetCount;
+    private HintGroupVisualType visualType;
 
 
     public void Initialize(
         int newTargetCount,
-        HintGroupVisualType
-            newVisualType
+        HintGroupVisualType newVisualType
     )
     {
         targetCount =
@@ -70,7 +69,10 @@ public class HintGroupView : MonoBehaviour
 
 
         BuildIndicators();
-        UpdateProgress(0);
+
+        UpdateProgress(
+            0
+        );
     }
 
 
@@ -78,15 +80,14 @@ public class HintGroupView : MonoBehaviour
         int currentCount
     )
     {
-        if (
-            indicators == null ||
-            indicators.Count == 0
-        )
+        if (indicators.Count == 0)
         {
             return;
         }
 
 
+        // Перебор:
+        // вся подсказка становится красной.
         if (currentCount > targetCount)
         {
             foreach (
@@ -94,43 +95,35 @@ public class HintGroupView : MonoBehaviour
                 in indicators
             )
             {
-                if (indicator != null)
-                {
-                    indicator.SetState(
-                        HintIndicatorState.Overflow
-                    );
-                }
+                indicator.SetState(
+                    HintIndicatorState.Overflow
+                );
             }
 
             return;
         }
 
 
+        // Нормальный прогресс.
         for (
             int i = 0;
             i < indicators.Count;
             i++
         )
         {
-            HintIndicatorView indicator =
-                indicators[i];
-
-            if (indicator == null)
-            {
-                continue;
-            }
-
             if (i < currentCount)
             {
-                indicator.SetState(
-                    HintIndicatorState.Filled
-                );
+                indicators[i]
+                    .SetState(
+                        HintIndicatorState.Filled
+                    );
             }
             else
             {
-                indicator.SetState(
-                    HintIndicatorState.Empty
-                );
+                indicators[i]
+                    .SetState(
+                        HintIndicatorState.Empty
+                    );
             }
         }
     }
@@ -138,170 +131,289 @@ public class HintGroupView : MonoBehaviour
 
     private void BuildIndicators()
     {
-        ClearRows();
+        ClearIndicators();
+
 
         if (
             indicatorPrefab == null ||
-            rowA == null ||
-            rowB == null
+            targetCount <= 0
         )
         {
-            Debug.LogError(
-                $"HintGroupView '{gameObject.name}': " +
-                "references are missing."
-            );
-
             return;
         }
 
 
-        int firstRowCount;
-        int secondRowCount;
-
-        GetRowDistribution(
-            targetCount,
-            out firstRowCount,
-            out secondRowCount
-        );
-
-
-        Vector2 targetSize =
+        if (
             visualType ==
             HintGroupVisualType.Column
-                ? columnIndicatorSize
-                : rowIndicatorSize;
-
-
-        for (
-            int i = 0;
-            i < firstRowCount;
-            i++
         )
         {
-            HintIndicatorView
-                indicator =
-                    Instantiate(
-                        indicatorPrefab,
-                        rowA
-                    );
+            BuildColumnIndicators();
+        }
+        else
+        {
+            BuildRowIndicators();
+        }
+    }
 
-            indicator.SetSize(
-                targetSize
+
+    // =====================================================
+    // COLUMN HINTS
+    // =====================================================
+
+    private void BuildColumnIndicators()
+    {
+        if (targetCount <= 5)
+        {
+            BuildVerticalLane(
+                targetCount,
+                0f
             );
 
-            indicators.Add(
-                indicator
-            );
+            return;
         }
 
 
-        rowB.gameObject.SetActive(
-            secondRowCount > 0
+        int leftCount =
+            targetCount / 2;
+
+        int rightCount =
+            targetCount -
+            leftCount;
+
+
+        float xOffset =
+            (
+                columnIndicatorSize.x +
+                laneSpacing
+            ) * 0.5f;
+
+
+        BuildVerticalLane(
+            leftCount,
+            -xOffset
         );
 
 
+        BuildVerticalLane(
+            rightCount,
+            xOffset
+        );
+    }
+
+
+    private void BuildVerticalLane(
+        int count,
+        float x
+    )
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+
+        float totalHeight =
+            count *
+            columnIndicatorSize.y +
+            (count - 1) *
+            indicatorSpacing;
+
+
+        float firstY =
+            totalHeight * 0.5f -
+            columnIndicatorSize.y *
+            0.5f;
+
+
         for (
             int i = 0;
-            i < secondRowCount;
+            i < count;
             i++
         )
         {
-            HintIndicatorView
-                indicator =
-                    Instantiate(
-                        indicatorPrefab,
-                        rowB
-                    );
+            float y =
+                firstY -
+                i *
+                (
+                    columnIndicatorSize.y +
+                    indicatorSpacing
+                );
 
-            indicator.SetSize(
-                targetSize
-            );
 
-            indicators.Add(
-                indicator
+            CreateIndicator(
+                columnIndicatorSize,
+                new Vector2(
+                    x,
+                    y
+                )
             );
         }
     }
 
 
-    private void GetRowDistribution(
-        int totalCount,
-        out int firstRowCount,
-        out int secondRowCount
+    // =====================================================
+    // ROW HINTS
+    // =====================================================
+
+    private void BuildRowIndicators()
+    {
+        if (targetCount <= 5)
+        {
+            BuildHorizontalLane(
+                targetCount,
+                0f
+            );
+
+            return;
+        }
+
+
+        int topCount =
+            targetCount / 2;
+
+        int bottomCount =
+            targetCount -
+            topCount;
+
+
+        float yOffset =
+            (
+                rowIndicatorSize.y +
+                laneSpacing
+            ) * 0.5f;
+
+
+        BuildHorizontalLane(
+            topCount,
+            yOffset
+        );
+
+
+        BuildHorizontalLane(
+            bottomCount,
+            -yOffset
+        );
+    }
+
+
+    private void BuildHorizontalLane(
+        int count,
+        float y
     )
     {
-        if (totalCount <= 0)
+        if (count <= 0)
         {
-            firstRowCount =
-                0;
-
-            secondRowCount =
-                0;
-
             return;
         }
 
 
-        if (totalCount <= 5)
+        float totalWidth =
+            count *
+            rowIndicatorSize.x +
+            (count - 1) *
+            indicatorSpacing;
+
+
+        float firstX =
+            -totalWidth * 0.5f +
+            rowIndicatorSize.x *
+            0.5f;
+
+
+        for (
+            int i = 0;
+            i < count;
+            i++
+        )
         {
-            firstRowCount =
-                totalCount;
+            float x =
+                firstX +
+                i *
+                (
+                    rowIndicatorSize.x +
+                    indicatorSpacing
+                );
 
-            secondRowCount =
-                0;
 
-            return;
+            CreateIndicator(
+                rowIndicatorSize,
+                new Vector2(
+                    x,
+                    y
+                )
+            );
         }
-
-
-        firstRowCount =
-            totalCount / 2;
-
-        secondRowCount =
-            totalCount -
-            firstRowCount;
     }
 
 
-    private void ClearRows()
+    // =====================================================
+    // CREATE
+    // =====================================================
+
+    private void CreateIndicator(
+        Vector2 size,
+        Vector2 position
+    )
+    {
+        HintIndicatorView indicator =
+            Instantiate(
+                indicatorPrefab,
+                transform
+            );
+
+
+        indicator.name =
+            $"HintIndicator_{indicators.Count}";
+
+
+        indicator.SetSize(
+            size
+        );
+
+
+        indicator.SetPosition(
+            position
+        );
+
+
+        indicator.SetState(
+            HintIndicatorState.Empty
+        );
+
+
+        indicators.Add(
+            indicator
+        );
+    }
+
+
+    private void ClearIndicators()
     {
         indicators.Clear();
 
-        ClearChildren(rowA);
-        ClearChildren(rowB);
-
-        if (rowB != null)
-        {
-            rowB.gameObject.SetActive(
-                false
-            );
-        }
-    }
-
-
-    private void ClearChildren(
-        RectTransform container
-    )
-    {
-        if (container == null)
-        {
-            return;
-        }
 
         for (
             int i =
-                container.childCount - 1;
+                transform.childCount - 1;
             i >= 0;
             i--
         )
         {
             GameObject child =
-                container
+                transform
                     .GetChild(i)
                     .gameObject;
 
-            child.SetActive(false);
-            Destroy(child);
+
+            child.SetActive(
+                false
+            );
+
+
+            Destroy(
+                child
+            );
         }
     }
 }

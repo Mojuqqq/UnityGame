@@ -9,7 +9,6 @@ public enum HintIndicatorState
 }
 
 [RequireComponent(typeof(Image))]
-[RequireComponent(typeof(LayoutElement))]
 public class HintIndicatorView : MonoBehaviour
 {
     [Header("Colors")]
@@ -43,7 +42,7 @@ public class HintIndicatorView : MonoBehaviour
 
 
     private Image targetImage;
-    private LayoutElement layoutElement;
+    private RectTransform rectTransform;
 
 
     private void Awake()
@@ -51,8 +50,8 @@ public class HintIndicatorView : MonoBehaviour
         targetImage =
             GetComponent<Image>();
 
-        layoutElement =
-            GetComponent<LayoutElement>();
+        rectTransform =
+            GetComponent<RectTransform>();
     }
 
 
@@ -61,6 +60,7 @@ public class HintIndicatorView : MonoBehaviour
     )
     {
         EnsureReferences();
+
 
         switch (state)
         {
@@ -96,17 +96,40 @@ public class HintIndicatorView : MonoBehaviour
     {
         EnsureReferences();
 
-        layoutElement.minWidth =
-            size.x;
 
-        layoutElement.preferredWidth =
-            size.x;
+        rectTransform.sizeDelta =
+            size;
+    }
 
-        layoutElement.minHeight =
-            size.y;
 
-        layoutElement.preferredHeight =
-            size.y;
+    public void SetPosition(
+        Vector2 anchoredPosition
+    )
+    {
+        EnsureReferences();
+
+
+        rectTransform.anchorMin =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+
+        rectTransform.anchorMax =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+
+        rectTransform.pivot =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+
+
+        rectTransform.anchoredPosition =
+            anchoredPosition;
     }
 
 
@@ -118,10 +141,11 @@ public class HintIndicatorView : MonoBehaviour
                 GetComponent<Image>();
         }
 
-        if (layoutElement == null)
+
+        if (rectTransform == null)
         {
-            layoutElement =
-                GetComponent<LayoutElement>();
+            rectTransform =
+                GetComponent<RectTransform>();
         }
     }
 }
