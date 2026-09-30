@@ -769,7 +769,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -70, y: 341}
+  m_AnchoredPosition: {x: -70, y: 335}
   m_SizeDelta: {x: 620, y: 110}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &535532125
@@ -1910,7 +1910,6 @@ MonoBehaviour:
   dragLayer: {fileID: 788330318}
   gridManager: {fileID: 1715468750}
   sidePadding: 20
-  topPadding: 20
   horizontalSpacing: 40
   verticalSpacing: 35
 --- !u!4 &1731843282

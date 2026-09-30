@@ -22,12 +22,10 @@ public class HintManager : MonoBehaviour
     [Header("Layout")]
 
     [SerializeField]
-    private float topHintHeight =
-        110f;
+    private float topHintHeight = 110f;
 
     [SerializeField]
-    private float rowHintWidth =
-        130f;
+    private float rowHintWidth = 130f;
 
 
     private LevelData currentLevel;
@@ -43,6 +41,8 @@ public class HintManager : MonoBehaviour
             new List<HintGroupView>();
 
 
+    // Координаты клеток,
+    // которые сейчас занимает ghost-preview.
     private readonly HashSet<Vector2Int>
         previewCells =
             new HashSet<Vector2Int>();
@@ -57,29 +57,35 @@ public class HintManager : MonoBehaviour
 
     private void OnEnable()
     {
-        if (gridManager != null)
+        if (gridManager == null)
         {
-            gridManager.GridChanged +=
-                UpdateHints;
-
-
-            gridManager.PlacementPreviewChanged +=
-                OnPlacementPreviewChanged;
+            return;
         }
+
+
+        gridManager.GridChanged +=
+            UpdateHints;
+
+
+        gridManager.PlacementPreviewChanged +=
+            OnPlacementPreviewChanged;
     }
 
 
     private void OnDisable()
     {
-        if (gridManager != null)
+        if (gridManager == null)
         {
-            gridManager.GridChanged -=
-                UpdateHints;
-
-
-            gridManager.PlacementPreviewChanged -=
-                OnPlacementPreviewChanged;
+            return;
         }
+
+
+        gridManager.GridChanged -=
+            UpdateHints;
+
+
+        gridManager.PlacementPreviewChanged -=
+            OnPlacementPreviewChanged;
     }
 
 
@@ -163,7 +169,7 @@ public class HintManager : MonoBehaviour
 
 
     // =====================================================
-    // PREVIEW EVENT
+    // GHOST PREVIEW
     // =====================================================
 
     private void OnPlacementPreviewChanged(
@@ -174,13 +180,10 @@ public class HintManager : MonoBehaviour
         previewCells.Clear();
 
 
-        // Невалидную позицию не добавляем
-        // в расчёт подсказок.
-        //
-        // Ghost при этом остаётся красным,
-        // но hints показывают реальное состояние поля.
+        // Если курсор ушёл с Grid
+        // и ghost-клеток больше нет —
+        // возвращаем реальные показатели.
         if (
-            !placementValid ||
             coordinates == null ||
             coordinates.Count == 0
         )
@@ -189,58 +192,46 @@ public class HintManager : MonoBehaviour
                 false;
 
 
-            UpdateHints();
+            UpdateHintVisuals(
+                false
+            );
 
 
             return;
         }
 
 
-        private void OnPlacementPreviewChanged(
-    IReadOnlyList<Vector2Int> coordinates,
-    bool placementValid
-)
-{
-    previewCells.Clear();
+        // ВАЖНО:
+        // placementValid здесь намеренно НЕ проверяем.
+        //
+        // Нам нужно показывать будущую заполненность
+        // даже если фигуру поставить нельзя:
+        //
+        // - пересечение с другой фигурой;
+        // - Blocked Cell;
+        // - часть фигуры выходит за Grid.
+        //
+        // GridManager передаёт нам все части ghost,
+        // которые находятся внутри Grid.
+
+        foreach (
+            Vector2Int coordinate
+            in coordinates
+        )
+        {
+            previewCells.Add(
+                coordinate
+            );
+        }
 
 
-    if (
-        coordinates == null ||
-        coordinates.Count == 0
-    )
-    {
         previewActive =
-            false;
+            previewCells.Count > 0;
 
 
         UpdateHintVisuals(
-            false
+            true
         );
-
-
-        return;
-    }
-
-
-    foreach (
-        Vector2Int coordinate
-        in coordinates
-    )
-    {
-        previewCells.Add(
-            coordinate
-        );
-    }
-
-
-    previewActive =
-        previewCells.Count > 0;
-
-
-    UpdateHintVisuals(
-        true
-    );
-}
     }
 
 
@@ -298,7 +289,7 @@ public class HintManager : MonoBehaviour
         if (layout == null)
         {
             Debug.LogError(
-                "TopHintsContainer requires GridLayoutGroup."
+                "HintManager: TopHintsContainer requires GridLayoutGroup."
             );
 
             return;
@@ -358,7 +349,7 @@ public class HintManager : MonoBehaviour
         if (layout == null)
         {
             Debug.LogError(
-                "RowHintsContainer requires GridLayoutGroup."
+                "HintManager: RowHintsContainer requires GridLayoutGroup."
             );
 
             return;
@@ -407,13 +398,17 @@ public class HintManager : MonoBehaviour
 
 
     // =====================================================
-    // CREATE GROUPS
+    // BUILD HINT GROUPS
     // =====================================================
 
     private void BuildHintGroups()
     {
         ClearHintGroups();
 
+
+        // -----------------------------
+        // Top / Column hints
+        // -----------------------------
 
         for (
             int x = 0;
@@ -443,6 +438,10 @@ public class HintManager : MonoBehaviour
             );
         }
 
+
+        // -----------------------------
+        // Right / Row hints
+        // -----------------------------
 
         for (
             int y = 0;
@@ -475,11 +474,13 @@ public class HintManager : MonoBehaviour
 
 
     // =====================================================
-    // NORMAL UPDATE
+    // REAL GRID UPDATE
     // =====================================================
 
     public void UpdateHints()
     {
+        // Когда реальное поле изменилось,
+        // сначала считаем его без старого preview.
         previewCells.Clear();
 
         previewActive =
@@ -509,6 +510,10 @@ public class HintManager : MonoBehaviour
         }
 
 
+        // -----------------------------
+        // Columns
+        // -----------------------------
+
         for (
             int x = 0;
             x < currentLevel.Columns &&
@@ -529,6 +534,10 @@ public class HintManager : MonoBehaviour
                 );
         }
 
+
+        // -----------------------------
+        // Rows
+        // -----------------------------
 
         for (
             int y = 0;
@@ -554,9 +563,6 @@ public class HintManager : MonoBehaviour
 
     // =====================================================
     // WIN CHECK
-    //
-    // ВАЖНО:
-    // preview здесь НЕ учитывается.
     // =====================================================
 
     public bool IsSolved()
@@ -570,18 +576,25 @@ public class HintManager : MonoBehaviour
         }
 
 
+        // ВАЖНО:
+        // здесь preview НЕ учитываем.
+        // Победа возможна только после реального drop.
+
         for (
             int x = 0;
             x < currentLevel.Columns;
             x++
         )
         {
-            if (
+            int occupied =
                 GetOccupiedCountInColumn(
                     x,
                     false
-                )
-                !=
+                );
+
+
+            if (
+                occupied !=
                 currentLevel.ColumnTargets[x]
             )
             {
@@ -596,12 +609,15 @@ public class HintManager : MonoBehaviour
             y++
         )
         {
-            if (
+            int occupied =
                 GetOccupiedCountInRow(
                     y,
                     false
-                )
-                !=
+                );
+
+
+            if (
+                occupied !=
                 currentLevel.RowTargets[y]
             )
             {
@@ -615,7 +631,7 @@ public class HintManager : MonoBehaviour
 
 
     // =====================================================
-    // COUNTS
+    // ROW COUNT
     // =====================================================
 
     private int GetOccupiedCountInRow(
@@ -644,7 +660,7 @@ public class HintManager : MonoBehaviour
                 cell.IsOccupied();
 
 
-            bool preview =
+            bool isPreviewCell =
                 includePreview &&
                 previewActive &&
                 previewCells.Contains(
@@ -655,10 +671,12 @@ public class HintManager : MonoBehaviour
                 );
 
 
-            // Не считаем одну клетку дважды.
+            // occupied || preview,
+            // поэтому пересечение с уже занятой клеткой
+            // не считается дважды.
             if (
                 occupied ||
-                preview
+                isPreviewCell
             )
             {
                 count++;
@@ -669,6 +687,10 @@ public class HintManager : MonoBehaviour
         return count;
     }
 
+
+    // =====================================================
+    // COLUMN COUNT
+    // =====================================================
 
     private int GetOccupiedCountInColumn(
         int columnIndex,
@@ -696,7 +718,7 @@ public class HintManager : MonoBehaviour
                 cell.IsOccupied();
 
 
-            bool preview =
+            bool isPreviewCell =
                 includePreview &&
                 previewActive &&
                 previewCells.Contains(
@@ -709,7 +731,7 @@ public class HintManager : MonoBehaviour
 
             if (
                 occupied ||
-                preview
+                isPreviewCell
             )
             {
                 count++;

@@ -1391,30 +1391,44 @@ private float pickupFadeDuration = 0.08f;
     // =====================================================
 
     private void UpdatePlacementPreview()
+{
+    gridManager
+        .ClearPlacementPreview();
+
+
+    hasValidPlacement =
+        false;
+
+
+    if (
+        pieceView.CurrentCells == null ||
+        pieceView.CurrentCells.Length == 0
+    )
     {
-        gridManager
-            .ClearPlacementPreview();
+        return;
+    }
 
 
-        hasValidPlacement =
-            false;
+    // =====================================================
+    // ВАРИАНТ 1
+    //
+    // Курсор находится прямо над Grid.
+    //
+    // Здесь сохраняем нашу прежнюю механику:
+    // именно схваченная клетка фигуры должна
+    // соответствовать клетке Grid под курсором.
+    // =====================================================
+
+    bool cursorIsOverGrid =
+        gridManager.TryGetCellUnderPointer(
+            lastPointerPosition,
+            lastEventCamera,
+            out GridCell hoveredCell
+        );
 
 
-        bool hasCell =
-            gridManager
-                .TryGetCellUnderPointer(
-                    lastPointerPosition,
-                    lastEventCamera,
-                    out GridCell hoveredCell
-                );
-
-
-        if (!hasCell)
-        {
-            return;
-        }
-
-
+    if (cursorIsOverGrid)
+    {
         grabbedCellIndex =
             Mathf.Clamp(
                 grabbedCellIndex,
@@ -1437,16 +1451,229 @@ private float pickupFadeDuration = 0.08f;
                 hoveredCell.Y -
                 grabbedCell.y
             );
-
-
-        hasValidPlacement =
-            gridManager
-                .ShowPlacementPreview(
-                    pieceView.CurrentCells,
-                    currentOrigin,
-                    pieceView.Definition.Color
-                );
     }
+
+    // =====================================================
+    // ВАРИАНТ 2
+    //
+    // Курсор находится СНАРУЖИ Grid,
+    // но часть фигуры уже висит над полем.
+    //
+    // Ищем клетку фигуры, которая сейчас
+    // визуально лучше всего совпадает с Grid.
+    // =====================================================
+
+    else
+    {
+        bool pieceOverlapsGrid =
+            TryGetPreviewOriginFromPieceOverlap(
+                out currentOrigin
+            );
+
+
+        if (!pieceOverlapsGrid)
+        {
+            return;
+        }
+    }
+
+
+    // =====================================================
+    // ПОКАЗЫВАЕМ GHOST
+    // =====================================================
+
+    hasValidPlacement =
+        gridManager.ShowPlacementPreview(
+            pieceView.CurrentCells,
+            currentOrigin,
+            pieceView.Definition.Color
+        );
+}   
+
+
+private bool TryGetPreviewOriginFromPieceOverlap(
+    out Vector2Int origin
+)
+{
+    origin =
+        Vector2Int.zero;
+
+
+    if (
+        pieceView == null ||
+        pieceView.CurrentCells == null ||
+        pieceView.CurrentCells.Length == 0 ||
+        gridManager == null
+    )
+    {
+        return false;
+    }
+
+
+    Rect pieceRect =
+        rectTransform.rect;
+
+
+    float cellSize =
+        pieceView.CellSize;
+
+
+    float step =
+        pieceView.CellSize +
+        pieceView.Spacing;
+
+
+    bool foundCandidate =
+        false;
+
+
+    float bestDistance =
+        float.MaxValue;
+
+
+    // Проверяем каждую клетку
+    // перетаскиваемой фигуры.
+    foreach (
+        Vector2Int pieceCell
+        in pieceView.CurrentCells
+    )
+    {
+        // ---------------------------------------------
+        // Центр конкретного квадратика фигуры
+        // в локальных координатах PieceView.
+        // ---------------------------------------------
+
+        Vector3 localCenter =
+            new Vector3(
+                pieceRect.xMin +
+                pieceCell.x * step +
+                cellSize * 0.5f,
+
+                pieceRect.yMax -
+                pieceCell.y * step -
+                cellSize * 0.5f,
+
+                0f
+            );
+
+
+        // Локальная позиция -> World.
+        Vector3 worldCenter =
+            rectTransform.TransformPoint(
+                localCenter
+            );
+
+
+        // World -> Screen.
+        Vector2 screenCenter =
+            RectTransformUtility
+                .WorldToScreenPoint(
+                    lastEventCamera,
+                    worldCenter
+                );
+
+
+        // ---------------------------------------------
+        // Проверяем:
+        // находится ли центр этой клетки фигуры
+        // сейчас над GridContainer?
+        // ---------------------------------------------
+
+        bool isOverGrid =
+            gridManager.TryGetCellUnderPointer(
+                screenCenter,
+                lastEventCamera,
+                out GridCell gridCell
+            );
+
+
+        if (
+            !isOverGrid ||
+            gridCell == null
+        )
+        {
+            continue;
+        }
+
+
+        // ---------------------------------------------
+        // Смотрим, насколько точно визуальная клетка
+        // совпала с ближайшей GridCell.
+        //
+        // Если несколько клеток фигуры находятся
+        // над Grid, выбираем наиболее точное совпадение.
+        // ---------------------------------------------
+
+        RectTransform gridCellRect =
+            gridCell.GetComponent<
+                RectTransform
+            >();
+
+
+        if (gridCellRect == null)
+        {
+            continue;
+        }
+
+
+        Vector3 gridWorldCenter =
+            gridCellRect.TransformPoint(
+                gridCellRect.rect.center
+            );
+
+
+        Vector2 gridScreenCenter =
+            RectTransformUtility
+                .WorldToScreenPoint(
+                    lastEventCamera,
+                    gridWorldCenter
+                );
+
+
+        float distance =
+            Vector2.SqrMagnitude(
+                screenCenter -
+                gridScreenCenter
+            );
+
+
+        if (
+            distance >=
+            bestDistance
+        )
+        {
+            continue;
+        }
+
+
+        bestDistance =
+            distance;
+
+
+        // Эта клетка фигуры должна попасть
+        // в найденную клетку Grid.
+        //
+        // Значит origin всей фигуры:
+        //
+        // GridCell - PieceCell
+
+        origin =
+            new Vector2Int(
+                gridCell.X -
+                pieceCell.x,
+
+                gridCell.Y -
+                pieceCell.y
+            );
+
+
+        foundCandidate =
+            true;
+    }
+
+
+    return foundCandidate;
+}
 
 
     // =====================================================
