@@ -2191,7 +2191,7 @@ MonoBehaviour:
   gridManager: {fileID: 1715468750}
   hintManager: {fileID: 1768200760}
   pieceSpawner: {fileID: 1731843281}
-  levelTitle: {fileID: 0}
+  levelTitle: {fileID: 824564980}
 --- !u!4 &1944400207
 Transform:
   m_ObjectHideFlags: 0
@@ -2700,9 +2700,9 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 955160268}
-  - {fileID: 788330318}
-  - {fileID: 1768200759}
   - {fileID: 1342905633}
+  - {fileID: 1768200759}
+  - {fileID: 788330318}
   - {fileID: 2135218267}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
