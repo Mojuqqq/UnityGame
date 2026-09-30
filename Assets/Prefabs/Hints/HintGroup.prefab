@@ -48,8 +48,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b2915815acf56948947bc4b3972bc4f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HintGroupView
-  rowA: {fileID: 0}
-  rowB: {fileID: 0}
   indicatorPrefab: {fileID: 6824359893348799716, guid: 8a6d3e898db64e64eba3d0df2c1306ee, type: 3}
   columnIndicatorSize: {x: 28, y: 12}
   rowIndicatorSize: {x: 12, y: 28}
+  indicatorSpacing: 7
+  laneSpacing: 8
+  edgePadding: 2

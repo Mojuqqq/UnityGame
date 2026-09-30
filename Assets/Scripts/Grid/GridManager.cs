@@ -75,6 +75,11 @@ public class GridManager : MonoBehaviour
             new List<GridCell>();
 
 
+    private readonly List<Vector2Int>
+        previewCoordinates =
+            new List<Vector2Int>();
+
+
     private bool initializedFromLevelData;
 
 
@@ -95,6 +100,12 @@ public class GridManager : MonoBehaviour
 
 
     public event Action GridChanged;
+
+
+    public event Action<
+        IReadOnlyList<Vector2Int>,
+        bool
+    > PlacementPreviewChanged;
 
 
     private void Start()
@@ -589,7 +600,7 @@ public class GridManager : MonoBehaviour
         Vector2Int origin
     )
     {
-        ClearPlacementPreview();
+        ClearPreviewVisuals();
 
 
         bool valid =
@@ -629,8 +640,14 @@ public class GridManager : MonoBehaviour
         }
 
 
-        return
-            valid;
+        UpdatePreviewCoordinates(
+            pieceCells,
+            origin,
+            valid
+        );
+
+
+        return valid;
     }
 
 
@@ -640,7 +657,7 @@ public class GridManager : MonoBehaviour
         Color pieceColor
     )
     {
-        ClearPlacementPreview();
+        ClearPreviewVisuals();
 
 
         bool valid =
@@ -697,12 +714,79 @@ public class GridManager : MonoBehaviour
         }
 
 
-        return
-            valid;
+        UpdatePreviewCoordinates(
+            pieceCells,
+            origin,
+            valid
+        );
+
+
+        return valid;
     }
 
 
-    public void ClearPlacementPreview()
+    private void UpdatePreviewCoordinates(
+        Vector2Int[] pieceCells,
+        Vector2Int origin,
+        bool valid
+    )
+    {
+        previewCoordinates.Clear();
+
+
+        if (
+            pieceCells != null &&
+            pieceCells.Length > 0
+        )
+        {
+            foreach (
+                Vector2Int pieceCell
+                in pieceCells
+            )
+            {
+                Vector2Int coordinate =
+                    new Vector2Int(
+                        origin.x +
+                        pieceCell.x,
+
+                        origin.y +
+                        pieceCell.y
+                    );
+
+
+                if (
+                    !IsInsideGrid(
+                        coordinate.x,
+                        coordinate.y
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                if (
+                    !previewCoordinates.Contains(
+                        coordinate
+                    )
+                )
+                {
+                    previewCoordinates.Add(
+                        coordinate
+                    );
+                }
+            }
+        }
+
+
+        PlacementPreviewChanged?.Invoke(
+            previewCoordinates,
+            valid
+        );
+    }
+
+
+    private void ClearPreviewVisuals()
     {
         foreach (
             GridCell cell
@@ -717,6 +801,21 @@ public class GridManager : MonoBehaviour
 
 
         previewCells.Clear();
+    }
+
+
+    public void ClearPlacementPreview()
+    {
+        ClearPreviewVisuals();
+
+
+        previewCoordinates.Clear();
+
+
+        PlacementPreviewChanged?.Invoke(
+            previewCoordinates,
+            false
+        );
     }
 
 
@@ -841,7 +940,6 @@ public class GridManager : MonoBehaviour
             }
 
 
-            // На всякий случай не стираем препятствия.
             if (cell.IsBlocked())
             {
                 continue;
@@ -1004,7 +1102,6 @@ public class GridManager : MonoBehaviour
         }
 
 
-        return
-            valid;
+        return valid;
     }
 }

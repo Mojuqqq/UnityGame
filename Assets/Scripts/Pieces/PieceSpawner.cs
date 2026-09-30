@@ -30,26 +30,23 @@ public class PieceSpawner : MonoBehaviour
     [Header("Mobile Layout")]
 
     [SerializeField]
-    private float sidePadding =
-        20f;
+    private float sidePadding = 20f;
 
     [SerializeField]
-    private float topPadding =
-        25f;
+    private float horizontalSpacing = 40f;
 
     [SerializeField]
-    private float horizontalSpacing =
-        40f;
-
-    [SerializeField]
-    private float verticalSpacing =
-        35f;
+    private float verticalSpacing = 35f;
 
 
     private readonly List<PieceView>
         spawnedPieces =
             new List<PieceView>();
 
+
+    // =====================================================
+    // BUILD
+    // =====================================================
 
     public void BuildPieces(
         PieceDefinition[] definitions
@@ -153,6 +150,10 @@ public class PieceSpawner : MonoBehaviour
     }
 
 
+    // =====================================================
+    // LAYOUT
+    // =====================================================
+
     private void LayoutPieces()
     {
         if (
@@ -164,10 +165,20 @@ public class PieceSpawner : MonoBehaviour
         }
 
 
-        float availableWidth =
-            piecesContainer.rect.width -
-            sidePadding * 2f;
+        Canvas.ForceUpdateCanvases();
 
+
+        float availableWidth =
+            Mathf.Max(
+                1f,
+                piecesContainer.rect.width -
+                sidePadding * 2f
+            );
+
+
+        // -------------------------------------------------
+        // 1. Собираем фигуры в строки
+        // -------------------------------------------------
 
         List<List<PieceView>> rows =
             new List<List<PieceView>>();
@@ -177,8 +188,7 @@ public class PieceSpawner : MonoBehaviour
             new List<PieceView>();
 
 
-        float currentRowWidth =
-            0f;
+        float currentRowWidth = 0f;
 
 
         foreach (
@@ -192,22 +202,21 @@ public class PieceSpawner : MonoBehaviour
                 >();
 
 
-            float width =
+            float pieceWidth =
                 rect.rect.width;
 
 
             float requiredWidth =
                 currentRow.Count == 0
-                    ? width
+                    ? pieceWidth
                     : currentRowWidth +
                       horizontalSpacing +
-                      width;
+                      pieceWidth;
 
 
             if (
                 currentRow.Count > 0 &&
-                requiredWidth >
-                availableWidth
+                requiredWidth > availableWidth
             )
             {
                 rows.Add(
@@ -219,8 +228,7 @@ public class PieceSpawner : MonoBehaviour
                     new List<PieceView>();
 
 
-                currentRowWidth =
-                    0f;
+                currentRowWidth = 0f;
             }
 
 
@@ -237,7 +245,7 @@ public class PieceSpawner : MonoBehaviour
 
 
             currentRowWidth +=
-                width;
+                pieceWidth;
         }
 
 
@@ -249,11 +257,48 @@ public class PieceSpawner : MonoBehaviour
         }
 
 
-        float currentY =
-            piecesContainer.rect.height *
-            0.5f -
-            topPadding;
+        // -------------------------------------------------
+        // 2. Считаем общую высоту всего блока фигур
+        // -------------------------------------------------
 
+        float totalContentHeight = 0f;
+
+
+        for (
+            int rowIndex = 0;
+            rowIndex < rows.Count;
+            rowIndex++
+        )
+        {
+            totalContentHeight +=
+                GetRowHeight(
+                    rows[rowIndex]
+                );
+
+
+            if (
+                rowIndex <
+                rows.Count - 1
+            )
+            {
+                totalContentHeight +=
+                    verticalSpacing;
+            }
+        }
+
+
+        // -------------------------------------------------
+        // 3. Начинаем не сверху панели,
+        //    а от верхней границы ЦЕНТРИРОВАННОГО блока
+        // -------------------------------------------------
+
+        float currentY =
+            totalContentHeight * 0.5f;
+
+
+        // -------------------------------------------------
+        // 4. Раскладываем строки
+        // -------------------------------------------------
 
         foreach (
             List<PieceView> row
@@ -261,45 +306,26 @@ public class PieceSpawner : MonoBehaviour
         )
         {
             float rowWidth =
-                0f;
+                GetRowWidth(
+                    row
+                );
+
 
             float rowHeight =
-                0f;
+                GetRowHeight(
+                    row
+                );
 
 
-            for (
-                int i = 0;
-                i < row.Count;
-                i++
-            )
-            {
-                RectTransform rect =
-                    row[i].GetComponent<
-                        RectTransform
-                    >();
-
-
-                rowWidth +=
-                    rect.rect.width;
-
-
-                if (i > 0)
-                {
-                    rowWidth +=
-                        horizontalSpacing;
-                }
-
-
-                rowHeight =
-                    Mathf.Max(
-                        rowHeight,
-                        rect.rect.height
-                    );
-            }
-
-
+            // Строка целиком центрируется по горизонтали.
             float currentX =
                 -rowWidth * 0.5f;
+
+
+            // Центр этой строки.
+            float rowCenterY =
+                currentY -
+                rowHeight * 0.5f;
 
 
             foreach (
@@ -338,16 +364,10 @@ public class PieceSpawner : MonoBehaviour
                     0.5f;
 
 
-                float y =
-                    currentY -
-                    rowHeight *
-                    0.5f;
-
-
                 rect.anchoredPosition =
                     new Vector2(
                         x,
-                        y
+                        rowCenterY
                     );
 
 
@@ -363,6 +383,75 @@ public class PieceSpawner : MonoBehaviour
         }
     }
 
+
+    private float GetRowWidth(
+        List<PieceView> row
+    )
+    {
+        float width = 0f;
+
+
+        for (
+            int i = 0;
+            i < row.Count;
+            i++
+        )
+        {
+            RectTransform rect =
+                row[i].GetComponent<
+                    RectTransform
+                >();
+
+
+            width +=
+                rect.rect.width;
+
+
+            if (i > 0)
+            {
+                width +=
+                    horizontalSpacing;
+            }
+        }
+
+
+        return width;
+    }
+
+
+    private float GetRowHeight(
+        List<PieceView> row
+    )
+    {
+        float height = 0f;
+
+
+        foreach (
+            PieceView piece
+            in row
+        )
+        {
+            RectTransform rect =
+                piece.GetComponent<
+                    RectTransform
+                >();
+
+
+            height =
+                Mathf.Max(
+                    height,
+                    rect.rect.height
+                );
+        }
+
+
+        return height;
+    }
+
+
+    // =====================================================
+    // CLEAR
+    // =====================================================
 
     public void ClearPieces()
     {

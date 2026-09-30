@@ -35,12 +35,20 @@ public class HintGroupView : MonoBehaviour
     [Header("Spacing")]
 
     [SerializeField]
-    private float indicatorSpacing =
-        7f;
+    private float indicatorSpacing = 7f;
 
     [SerializeField]
-    private float laneSpacing =
-        8f;
+    private float laneSpacing = 8f;
+
+
+    [Header("Edge Alignment")]
+
+    [Tooltip(
+        "Отступ индикаторов от нижней границы TopHints " +
+        "или левой границы RowHints."
+    )]
+    [SerializeField]
+    private float edgePadding = 0f;
 
 
     private readonly List<HintIndicatorView>
@@ -53,6 +61,10 @@ public class HintGroupView : MonoBehaviour
     private HintGroupVisualType visualType;
 
 
+    // =====================================================
+    // INITIALIZE
+    // =====================================================
+
     public void Initialize(
         int newTargetCount,
         HintGroupVisualType newVisualType
@@ -64,17 +76,23 @@ public class HintGroupView : MonoBehaviour
                 newTargetCount
             );
 
+
         visualType =
             newVisualType;
 
 
         BuildIndicators();
 
+
         UpdateProgress(
             0
         );
     }
 
+
+    // =====================================================
+    // PROGRESS
+    // =====================================================
 
     public void UpdateProgress(
         int currentCount
@@ -87,7 +105,7 @@ public class HintGroupView : MonoBehaviour
 
 
         // Перебор:
-        // вся подсказка становится красной.
+        // все индикаторы группы красные.
         if (currentCount > targetCount)
         {
             foreach (
@@ -100,11 +118,11 @@ public class HintGroupView : MonoBehaviour
                 );
             }
 
+
             return;
         }
 
 
-        // Нормальный прогресс.
         for (
             int i = 0;
             i < indicators.Count;
@@ -128,6 +146,10 @@ public class HintGroupView : MonoBehaviour
         }
     }
 
+
+    // =====================================================
+    // BUILD
+    // =====================================================
 
     private void BuildIndicators()
     {
@@ -158,7 +180,9 @@ public class HintGroupView : MonoBehaviour
 
 
     // =====================================================
-    // COLUMN HINTS
+    // TOP / COLUMN HINTS
+    //
+    // Индикаторы прижаты к BOTTOM.
     // =====================================================
 
     private void BuildColumnIndicators()
@@ -170,12 +194,14 @@ public class HintGroupView : MonoBehaviour
                 0f
             );
 
+
             return;
         }
 
 
         int leftCount =
             targetCount / 2;
+
 
         int rightCount =
             targetCount -
@@ -213,15 +239,13 @@ public class HintGroupView : MonoBehaviour
         }
 
 
-        float totalHeight =
-            count *
-            columnIndicatorSize.y +
-            (count - 1) *
-            indicatorSpacing;
-
+        // Anchor находится на BOTTOM CENTER группы.
+        //
+        // Первая полоска касается нижней границы,
+        // следующие строятся вверх.
 
         float firstY =
-            totalHeight * 0.5f -
+            edgePadding +
             columnIndicatorSize.y *
             0.5f;
 
@@ -233,7 +257,7 @@ public class HintGroupView : MonoBehaviour
         )
         {
             float y =
-                firstY -
+                firstY +
                 i *
                 (
                     columnIndicatorSize.y +
@@ -243,6 +267,12 @@ public class HintGroupView : MonoBehaviour
 
             CreateIndicator(
                 columnIndicatorSize,
+
+                new Vector2(
+                    0.5f,
+                    0f
+                ),
+
                 new Vector2(
                     x,
                     y
@@ -253,7 +283,9 @@ public class HintGroupView : MonoBehaviour
 
 
     // =====================================================
-    // ROW HINTS
+    // RIGHT / ROW HINTS
+    //
+    // Индикаторы прижаты к LEFT.
     // =====================================================
 
     private void BuildRowIndicators()
@@ -265,12 +297,14 @@ public class HintGroupView : MonoBehaviour
                 0f
             );
 
+
             return;
         }
 
 
         int topCount =
             targetCount / 2;
+
 
         int bottomCount =
             targetCount -
@@ -308,15 +342,13 @@ public class HintGroupView : MonoBehaviour
         }
 
 
-        float totalWidth =
-            count *
-            rowIndicatorSize.x +
-            (count - 1) *
-            indicatorSpacing;
-
+        // Anchor находится на LEFT CENTER группы.
+        //
+        // Первая полоска начинается прямо от левого края,
+        // остальные строятся вправо.
 
         float firstX =
-            -totalWidth * 0.5f +
+            edgePadding +
             rowIndicatorSize.x *
             0.5f;
 
@@ -338,6 +370,12 @@ public class HintGroupView : MonoBehaviour
 
             CreateIndicator(
                 rowIndicatorSize,
+
+                new Vector2(
+                    0f,
+                    0.5f
+                ),
+
                 new Vector2(
                     x,
                     y
@@ -353,6 +391,7 @@ public class HintGroupView : MonoBehaviour
 
     private void CreateIndicator(
         Vector2 size,
+        Vector2 anchor,
         Vector2 position
     )
     {
@@ -367,14 +406,32 @@ public class HintGroupView : MonoBehaviour
             $"HintIndicator_{indicators.Count}";
 
 
+        RectTransform indicatorRect =
+            indicator.GetComponent<
+                RectTransform
+            >();
+
+
+        indicatorRect.anchorMin =
+            anchor;
+
+        indicatorRect.anchorMax =
+            anchor;
+
+        indicatorRect.pivot =
+            new Vector2(
+                0.5f,
+                0.5f
+            );
+
+
         indicator.SetSize(
             size
         );
 
 
-        indicator.SetPosition(
-            position
-        );
+        indicatorRect.anchoredPosition =
+            position;
 
 
         indicator.SetState(
@@ -387,6 +444,10 @@ public class HintGroupView : MonoBehaviour
         );
     }
 
+
+    // =====================================================
+    // CLEAR
+    // =====================================================
 
     private void ClearIndicators()
     {
