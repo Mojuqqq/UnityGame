@@ -3132,7 +3132,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1550213886
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3973,7 +3973,7 @@ MonoBehaviour:
   gridManager: {fileID: 1715468750}
   hintManager: {fileID: 1768200760}
   pieceSpawner: {fileID: 1731843281}
-  gameplayHintController: {fileID: 0}
+  gameplayHintController: {fileID: 1198946904}
   levelTitle: {fileID: 824564980}
 --- !u!4 &1944400207
 Transform:
