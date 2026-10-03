@@ -2,8 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class LevelManager :
-    MonoBehaviour
+public class LevelManager : MonoBehaviour
 {
     [Header("Fallback Level")]
 
@@ -18,6 +17,12 @@ public class LevelManager :
 
 
     [Header("Gameplay")]
+
+    [SerializeField]
+    private AdaptivePiecePanelLayout adaptivePiecePanelLayout;
+
+    [SerializeField]
+    private AdaptiveBoardLayout adaptiveBoardLayout;
 
     [SerializeField]
     private GridManager gridManager;
@@ -88,6 +93,16 @@ public class LevelManager :
         }
 
 
+        if (adaptiveBoardLayout == null)
+        {
+            Debug.LogError(
+                "LevelManager: AdaptiveBoardLayout is not assigned."
+            );
+
+            return;
+        }
+
+
         if (gridManager == null)
         {
             Debug.LogError(
@@ -118,22 +133,43 @@ public class LevelManager :
         }
 
 
-        gridManager.Initialize(
-            currentLevel.Columns,
-            currentLevel.Rows,
-            currentLevel.BlockedCells
-        );
+        // =================================================
+        // 1. CANVAS
+        // =================================================
+
+       Canvas.ForceUpdateCanvases();
 
 
-        hintManager.Initialize(
-            currentLevel
-        );
+// 1. Размер Board.
+adaptiveBoardLayout.ApplyLayout(
+    currentLevel.Columns,
+    currentLevel.Rows
+);
 
 
-        pieceSpawner.BuildPieces(
-            currentLevel.Pieces
-        );
+gridManager.Initialize(
+    currentLevel.Columns,
+    currentLevel.Rows,
+    currentLevel.BlockedCells
+);
 
+
+adaptivePiecePanelLayout.ApplyLayout();
+
+
+hintManager.Initialize(
+    currentLevel
+);
+
+
+pieceSpawner.BuildPieces(
+    currentLevel.Pieces
+);
+
+
+        // =================================================
+        // 6. TITLE
+        // =================================================
 
         if (levelTitle != null)
         {

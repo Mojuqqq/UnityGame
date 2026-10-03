@@ -21,7 +21,7 @@ public class GridManager : MonoBehaviour
     private GridCell cellPrefab;
 
 
-    [Header("Layout")]
+    [Header("Fallback Layout")]
 
     [SerializeField]
     private float spacing = 8f;
@@ -82,6 +82,8 @@ public class GridManager : MonoBehaviour
 
     private bool initializedFromLevelData;
 
+    private bool hasExternalLayoutMetrics;
+
 
     public int Columns =>
         columns;
@@ -89,11 +91,13 @@ public class GridManager : MonoBehaviour
     public int Rows =>
         rows;
 
+
     public float CellSize
     {
         get;
         private set;
     }
+
 
     public float Spacing =>
         spacing;
@@ -114,6 +118,47 @@ public class GridManager : MonoBehaviour
         {
             CreateGrid();
         }
+    }
+
+
+    // =====================================================
+    // ADAPTIVE LAYOUT
+    // =====================================================
+
+    public void SetLayoutMetrics(
+        float newCellSize,
+        float newSpacing
+    )
+    {
+        CellSize =
+            Mathf.Max(
+                1f,
+                newCellSize
+            );
+
+
+        spacing =
+            Mathf.Max(
+                0f,
+                newSpacing
+            );
+
+
+        hasExternalLayoutMetrics =
+            true;
+
+
+        if (gridLayout == null)
+        {
+            gridLayout =
+                GetComponent<GridLayoutGroup>();
+        }
+
+
+        ApplyGridLayoutSettings();
+
+
+        Canvas.ForceUpdateCanvases();
     }
 
 
@@ -292,49 +337,67 @@ public class GridManager : MonoBehaviour
         }
 
 
-        float containerWidth =
-            gridRect.rect.width;
+        // Если AdaptiveBoardLayout уже передал
+        // реальный размер клетки —
+        // НЕ вычисляем его повторно.
+        if (!hasExternalLayoutMetrics)
+        {
+            float containerWidth =
+                gridRect.rect.width;
 
 
-        float containerHeight =
-            gridRect.rect.height;
+            float containerHeight =
+                gridRect.rect.height;
 
 
-        float totalHorizontalSpacing =
-            spacing *
-            (columns - 1);
+            float horizontalSpacingTotal =
+                spacing *
+                (columns - 1);
 
 
-        float totalVerticalSpacing =
-            spacing *
-            (rows - 1);
+            float verticalSpacingTotal =
+                spacing *
+                (rows - 1);
 
 
-        float availableWidth =
-            containerWidth -
-            totalHorizontalSpacing;
+            float availableWidth =
+                containerWidth -
+                horizontalSpacingTotal;
 
 
-        float availableHeight =
-            containerHeight -
-            totalVerticalSpacing;
+            float availableHeight =
+                containerHeight -
+                verticalSpacingTotal;
 
 
-        float cellWidth =
-            availableWidth /
-            columns;
+            float cellWidth =
+                availableWidth /
+                columns;
 
 
-        float cellHeight =
-            availableHeight /
-            rows;
+            float cellHeight =
+                availableHeight /
+                rows;
 
 
-        CellSize =
-            Mathf.Min(
-                cellWidth,
-                cellHeight
-            );
+            CellSize =
+                Mathf.Min(
+                    cellWidth,
+                    cellHeight
+                );
+        }
+
+
+        ApplyGridLayoutSettings();
+    }
+
+
+    private void ApplyGridLayoutSettings()
+    {
+        if (gridLayout == null)
+        {
+            return;
+        }
 
 
         gridLayout.constraint =
@@ -361,8 +424,10 @@ public class GridManager : MonoBehaviour
             );
 
 
+        // Теперь контейнер и сетка имеют
+        // одинаковый фактический размер.
         gridLayout.childAlignment =
-            TextAnchor.MiddleCenter;
+            TextAnchor.UpperLeft;
 
 
         gridLayout.startCorner =
@@ -438,8 +503,7 @@ public class GridManager : MonoBehaviour
         }
 
 
-        return
-            cells[x, y];
+        return cells[x, y];
     }
 
 
@@ -468,13 +532,8 @@ public class GridManager : MonoBehaviour
             );
 
 
-        if (cell == null)
-        {
-            return false;
-        }
-
-
         return
+            cell != null &&
             cell.IsEmpty();
     }
 
@@ -502,16 +561,14 @@ public class GridManager : MonoBehaviour
         }
 
 
-        bool pointerInside =
-            RectTransformUtility
+        if (
+            !RectTransformUtility
                 .RectangleContainsScreenPoint(
                     gridRect,
                     screenPosition,
                     eventCamera
-                );
-
-
-        if (!pointerInside)
+                )
+        )
         {
             return false;
         }
@@ -578,7 +635,6 @@ public class GridManager : MonoBehaviour
                     closestDistance =
                         distance;
 
-
                     closestCell =
                         cell;
                 }
@@ -607,8 +663,7 @@ public class GridManager : MonoBehaviour
             GetPlacementCells(
                 pieceCells,
                 origin,
-                out List<GridCell>
-                    targetCells
+                out List<GridCell> targetCells
             );
 
 
@@ -664,8 +719,7 @@ public class GridManager : MonoBehaviour
             GetPlacementCells(
                 pieceCells,
                 origin,
-                out List<GridCell>
-                    targetCells
+                out List<GridCell> targetCells
             );
 
 
@@ -841,8 +895,7 @@ public class GridManager : MonoBehaviour
         Vector2Int[] pieceCells,
         Color pieceColor,
         Vector2Int origin,
-        out List<Vector2Int>
-            placedCoordinates
+        out List<Vector2Int> placedCoordinates
     )
     {
         placedCoordinates =
@@ -853,8 +906,7 @@ public class GridManager : MonoBehaviour
             GetPlacementCells(
                 pieceCells,
                 origin,
-                out List<GridCell>
-                    targetCells
+                out List<GridCell> targetCells
             );
 
 
@@ -934,13 +986,10 @@ public class GridManager : MonoBehaviour
                 );
 
 
-            if (cell == null)
-            {
-                continue;
-            }
-
-
-            if (cell.IsBlocked())
+            if (
+                cell == null ||
+                cell.IsBlocked()
+            )
             {
                 continue;
             }
@@ -1015,14 +1064,13 @@ public class GridManager : MonoBehaviour
 
 
     // =====================================================
-    // INTERNAL PLACEMENT CHECK
+    // INTERNAL
     // =====================================================
 
     private bool GetPlacementCells(
         Vector2Int[] pieceCells,
         Vector2Int origin,
-        out List<GridCell>
-            targetCells
+        out List<GridCell> targetCells
     )
     {
         targetCells =
@@ -1092,9 +1140,7 @@ public class GridManager : MonoBehaviour
             );
 
 
-            if (
-                !gridCell.IsEmpty()
-            )
+            if (!gridCell.IsEmpty())
             {
                 valid =
                     false;

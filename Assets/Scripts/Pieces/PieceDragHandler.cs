@@ -133,6 +133,9 @@ private float pickupFadeDuration = 0.08f;
             0.5f
         );
 
+    public bool IsCurrentlyDragging =>
+    isDragging &&
+    !isSettling;
 
     // =====================================================
     // CONFIGURE
@@ -373,6 +376,16 @@ private float pickupFadeDuration = 0.08f;
         lastEventCamera =
             eventData.pressEventCamera;
 
+            if (PieceRotationZone.Instance != null)
+{
+    PieceRotationZone.Instance
+        .BeginTracking(
+            this,
+            eventData.position,
+            eventData.pressEventCamera
+        );
+}
+
 
         wasPlacedAtDragStart =
             isPlaced;
@@ -470,6 +483,16 @@ private float pickupFadeDuration = 0.08f;
         lastEventCamera =
             eventData.pressEventCamera;
 
+            if (PieceRotationZone.Instance != null)
+{
+    PieceRotationZone.Instance
+        .UpdateTrackingPointer(
+            this,
+            eventData.position,
+            eventData.pressEventCamera
+        );
+}
+
 
         UpdateDragVisualSize(
             eventData.position,
@@ -503,6 +526,13 @@ private float pickupFadeDuration = 0.08f;
             return;
         }
 
+        if (PieceRotationZone.Instance != null)
+{
+    PieceRotationZone.Instance
+        .EndTracking(
+            this
+        );
+}
 
         isDragging =
             false;
@@ -1361,6 +1391,20 @@ private float pickupFadeDuration = 0.08f;
     }
 
 
+    public void RotateFromExternalControl()
+{
+    if (
+        !isDragging ||
+        isSettling
+    )
+    {
+        return;
+    }
+
+
+    RotatePiece();
+}
+
     // =====================================================
     // ROTATE
     // =====================================================
@@ -1862,5 +1906,15 @@ private IEnumerator FadeAlpha(
 
     alphaFadeRoutine =
         null;
+}
+private void OnDisable()
+{
+    if (PieceRotationZone.Instance != null)
+    {
+        PieceRotationZone.Instance
+            .EndTracking(
+                this
+            );
+    }
 }
 }

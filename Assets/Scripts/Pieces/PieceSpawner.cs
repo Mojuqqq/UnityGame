@@ -27,21 +27,65 @@ public class PieceSpawner : MonoBehaviour
     private GridManager gridManager;
 
 
-    [Header("Mobile Layout")]
+    [Header("Adaptive Piece Size")]
 
     [SerializeField]
-    private float sidePadding = 20f;
+    [Min(1f)]
+    private float minPanelCellSize = 30f;
 
     [SerializeField]
-    private float horizontalSpacing = 40f;
+    [Min(1f)]
+    private float maxPanelCellSize = 70f;
+
+
+    [Tooltip(
+        "Максимальный размер клетки фигуры " +
+        "относительно клетки игрового поля."
+    )]
+    [SerializeField]
+    [Range(0.1f, 1f)]
+    private float gridCellRatio = 0.38f;
+
+
+    [Tooltip(
+        "Отступ между клетками внутри фигуры " +
+        "относительно размера клетки."
+    )]
+    [SerializeField]
+    [Range(0f, 0.3f)]
+    private float internalSpacingRatio = 0.10f;
+
+
+    [Header("Piece Spacing")]
 
     [SerializeField]
-    private float verticalSpacing = 35f;
+    [Min(0f)]
+    private float horizontalPieceSpacing = 36f;
+
+    [SerializeField]
+    [Min(0f)]
+    private float verticalPieceSpacing = 30f;
 
 
     private readonly List<PieceView>
         spawnedPieces =
             new List<PieceView>();
+
+
+    // =====================================================
+    // INTERNAL ROW
+    // =====================================================
+
+    private class PieceRow
+    {
+        public readonly List<PieceView>
+            pieces =
+                new List<PieceView>();
+
+        public float width;
+
+        public float height;
+    }
 
 
     // =====================================================
@@ -146,15 +190,15 @@ public class PieceSpawner : MonoBehaviour
         Canvas.ForceUpdateCanvases();
 
 
-        LayoutPieces();
+        RefreshLayout();
     }
 
 
     // =====================================================
-    // LAYOUT
+    // PUBLIC REFRESH
     // =====================================================
 
-    private void LayoutPieces()
+    public void RefreshLayout()
     {
         if (
             spawnedPieces.Count == 0 ||
@@ -169,26 +213,180 @@ public class PieceSpawner : MonoBehaviour
 
 
         float availableWidth =
+            piecesContainer.rect.width;
+
+
+        float availableHeight =
+            piecesContainer.rect.height;
+
+
+        if (
+            availableWidth <= 0f ||
+            availableHeight <= 0f
+        )
+        {
+            return;
+        }
+
+
+        float effectiveMaxCellSize =
+            maxPanelCellSize;
+
+
+        // Связываем размер фигур в панели
+        // с размером клеток игрового Grid.
+        if (
+            gridManager != null &&
+            gridManager.CellSize > 0f
+        )
+        {
+            effectiveMaxCellSize =
+                Mathf.Min(
+                    maxPanelCellSize,
+
+                    gridManager.CellSize *
+                    gridCellRatio
+                );
+        }
+
+
+        effectiveMaxCellSize =
             Mathf.Max(
-                1f,
-                piecesContainer.rect.width -
-                sidePadding * 2f
+                minPanelCellSize,
+                effectiveMaxCellSize
             );
 
 
-        // -------------------------------------------------
-        // 1. Собираем фигуры в строки
-        // -------------------------------------------------
-
-        List<List<PieceView>> rows =
-            new List<List<PieceView>>();
-
-
-        List<PieceView> currentRow =
-            new List<PieceView>();
+        float selectedCellSize =
+            FindBestCellSize(
+                availableWidth,
+                availableHeight,
+                effectiveMaxCellSize
+            );
 
 
-        float currentRowWidth = 0f;
+        float selectedInternalSpacing =
+            selectedCellSize *
+            internalSpacingRatio;
+
+
+        // =================================================
+        // APPLY SIZE TO PIECES
+        // =================================================
+
+        foreach (
+            PieceView piece
+            in spawnedPieces
+        )
+        {
+            piece.SetLayout(
+                selectedCellSize,
+                selectedInternalSpacing
+            );
+        }
+
+
+        Canvas.ForceUpdateCanvases();
+
+
+        // =================================================
+        // BUILD FINAL ROWS
+        // =================================================
+
+        List<PieceRow> rows =
+            BuildRows(
+                availableWidth,
+                selectedCellSize,
+                selectedInternalSpacing
+            );
+
+
+        LayoutRows(
+            rows
+        );
+    }
+
+
+    // =====================================================
+    // FIND BEST CELL SIZE
+    // =====================================================
+
+    private float FindBestCellSize(
+        float availableWidth,
+        float availableHeight,
+        float maxCellSize
+    )
+    {
+        float candidate =
+            maxCellSize;
+
+
+        while (
+            candidate >=
+            minPanelCellSize
+        )
+        {
+            float internalSpacing =
+                candidate *
+                internalSpacingRatio;
+
+
+            List<PieceRow> rows =
+                BuildRows(
+                    availableWidth,
+                    candidate,
+                    internalSpacing
+                );
+
+
+            float totalHeight =
+                GetRowsTotalHeight(
+                    rows
+                );
+
+
+            if (
+                totalHeight <=
+                availableHeight
+            )
+            {
+                return candidate;
+            }
+
+
+            candidate -=
+                1f;
+        }
+
+
+        Debug.LogWarning(
+            "PieceSpawner: " +
+            "pieces do not fully fit into PiecePanel. " +
+            "Using minimum cell size."
+        );
+
+
+        return
+            minPanelCellSize;
+    }
+
+
+    // =====================================================
+    // BUILD ROWS
+    // =====================================================
+
+    private List<PieceRow> BuildRows(
+        float availableWidth,
+        float cellSize,
+        float internalSpacing
+    )
+    {
+        List<PieceRow> rows =
+            new List<PieceRow>();
+
+
+        PieceRow currentRow =
+            new PieceRow();
 
 
         foreach (
@@ -196,27 +394,26 @@ public class PieceSpawner : MonoBehaviour
             in spawnedPieces
         )
         {
-            RectTransform rect =
-                piece.GetComponent<
-                    RectTransform
-                >();
-
-
-            float pieceWidth =
-                rect.rect.width;
+            Vector2 pieceSize =
+                CalculatePieceSize(
+                    piece,
+                    cellSize,
+                    internalSpacing
+                );
 
 
             float requiredWidth =
-                currentRow.Count == 0
-                    ? pieceWidth
-                    : currentRowWidth +
-                      horizontalSpacing +
-                      pieceWidth;
+                currentRow.pieces.Count == 0
+                    ? pieceSize.x
+                    : currentRow.width +
+                      horizontalPieceSpacing +
+                      pieceSize.x;
 
 
             if (
-                currentRow.Count > 0 &&
-                requiredWidth > availableWidth
+                currentRow.pieces.Count > 0 &&
+                requiredWidth >
+                availableWidth
             )
             {
                 rows.Add(
@@ -225,31 +422,39 @@ public class PieceSpawner : MonoBehaviour
 
 
                 currentRow =
-                    new List<PieceView>();
-
-
-                currentRowWidth = 0f;
+                    new PieceRow();
             }
 
 
-            if (currentRow.Count > 0)
+            if (
+                currentRow.pieces.Count > 0
+            )
             {
-                currentRowWidth +=
-                    horizontalSpacing;
+                currentRow.width +=
+                    horizontalPieceSpacing;
             }
 
 
-            currentRow.Add(
+            currentRow.pieces.Add(
                 piece
             );
 
 
-            currentRowWidth +=
-                pieceWidth;
+            currentRow.width +=
+                pieceSize.x;
+
+
+            currentRow.height =
+                Mathf.Max(
+                    currentRow.height,
+                    pieceSize.y
+                );
         }
 
 
-        if (currentRow.Count > 0)
+        if (
+            currentRow.pieces.Count > 0
+        )
         {
             rows.Add(
                 currentRow
@@ -257,80 +462,174 @@ public class PieceSpawner : MonoBehaviour
         }
 
 
-        // -------------------------------------------------
-        // 2. Считаем общую высоту всего блока фигур
-        // -------------------------------------------------
-
-        float totalContentHeight = 0f;
+        return rows;
+    }
 
 
-        for (
-            int rowIndex = 0;
-            rowIndex < rows.Count;
-            rowIndex++
+    // =====================================================
+    // PIECE SIZE
+    // =====================================================
+
+    private Vector2 CalculatePieceSize(
+        PieceView piece,
+        float cellSize,
+        float internalSpacing
+    )
+    {
+        if (
+            piece == null ||
+            piece.CurrentCells == null ||
+            piece.CurrentCells.Length == 0
         )
         {
-            totalContentHeight +=
-                GetRowHeight(
-                    rows[rowIndex]
+            return Vector2.zero;
+        }
+
+
+        int maxX =
+            0;
+
+        int maxY =
+            0;
+
+
+        foreach (
+            Vector2Int cell
+            in piece.CurrentCells
+        )
+        {
+            maxX =
+                Mathf.Max(
+                    maxX,
+                    cell.x
                 );
 
 
+            maxY =
+                Mathf.Max(
+                    maxY,
+                    cell.y
+                );
+        }
+
+
+        int widthInCells =
+            maxX + 1;
+
+
+        int heightInCells =
+            maxY + 1;
+
+
+        float width =
+            widthInCells *
+            cellSize
+            +
+            (widthInCells - 1) *
+            internalSpacing;
+
+
+        float height =
+            heightInCells *
+            cellSize
+            +
+            (heightInCells - 1) *
+            internalSpacing;
+
+
+        return
+            new Vector2(
+                width,
+                height
+            );
+    }
+
+
+    // =====================================================
+    // ROW HEIGHT
+    // =====================================================
+
+    private float GetRowsTotalHeight(
+        List<PieceRow> rows
+    )
+    {
+        float height =
+            0f;
+
+
+        for (
+            int i = 0;
+            i < rows.Count;
+            i++
+        )
+        {
+            height +=
+                rows[i].height;
+
+
             if (
-                rowIndex <
+                i <
                 rows.Count - 1
             )
             {
-                totalContentHeight +=
-                    verticalSpacing;
+                height +=
+                    verticalPieceSpacing;
             }
         }
 
 
-        // -------------------------------------------------
-        // 3. Начинаем не сверху панели,
-        //    а от верхней границы ЦЕНТРИРОВАННОГО блока
-        // -------------------------------------------------
+        return height;
+    }
 
+
+    // =====================================================
+    // FINAL POSITIONING
+    // =====================================================
+
+    private void LayoutRows(
+        List<PieceRow> rows
+    )
+    {
+        if (
+            rows == null ||
+            rows.Count == 0
+        )
+        {
+            return;
+        }
+
+
+        float totalHeight =
+            GetRowsTotalHeight(
+                rows
+            );
+
+
+        // Верх центрированного блока.
         float currentY =
-            totalContentHeight * 0.5f;
+            totalHeight *
+            0.5f;
 
-
-        // -------------------------------------------------
-        // 4. Раскладываем строки
-        // -------------------------------------------------
 
         foreach (
-            List<PieceView> row
+            PieceRow row
             in rows
         )
         {
-            float rowWidth =
-                GetRowWidth(
-                    row
-                );
-
-
-            float rowHeight =
-                GetRowHeight(
-                    row
-                );
-
-
-            // Строка целиком центрируется по горизонтали.
             float currentX =
-                -rowWidth * 0.5f;
+                -row.width *
+                0.5f;
 
 
-            // Центр этой строки.
             float rowCenterY =
                 currentY -
-                rowHeight * 0.5f;
+                row.height *
+                0.5f;
 
 
             foreach (
                 PieceView piece
-                in row
+                in row.pieces
             )
             {
                 RectTransform rect =
@@ -345,11 +644,13 @@ public class PieceSpawner : MonoBehaviour
                         0.5f
                     );
 
+
                 rect.anchorMax =
                     new Vector2(
                         0.5f,
                         0.5f
                     );
+
 
                 rect.pivot =
                     new Vector2(
@@ -373,79 +674,14 @@ public class PieceSpawner : MonoBehaviour
 
                 currentX +=
                     rect.rect.width +
-                    horizontalSpacing;
+                    horizontalPieceSpacing;
             }
 
 
             currentY -=
-                rowHeight +
-                verticalSpacing;
+                row.height +
+                verticalPieceSpacing;
         }
-    }
-
-
-    private float GetRowWidth(
-        List<PieceView> row
-    )
-    {
-        float width = 0f;
-
-
-        for (
-            int i = 0;
-            i < row.Count;
-            i++
-        )
-        {
-            RectTransform rect =
-                row[i].GetComponent<
-                    RectTransform
-                >();
-
-
-            width +=
-                rect.rect.width;
-
-
-            if (i > 0)
-            {
-                width +=
-                    horizontalSpacing;
-            }
-        }
-
-
-        return width;
-    }
-
-
-    private float GetRowHeight(
-        List<PieceView> row
-    )
-    {
-        float height = 0f;
-
-
-        foreach (
-            PieceView piece
-            in row
-        )
-        {
-            RectTransform rect =
-                piece.GetComponent<
-                    RectTransform
-                >();
-
-
-            height =
-                Mathf.Max(
-                    height,
-                    rect.rect.height
-                );
-        }
-
-
-        return height;
     }
 
 
