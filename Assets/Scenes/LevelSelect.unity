@@ -224,8 +224,6 @@ RectTransform:
   m_Children:
   - {fileID: 1864900365}
   - {fileID: 211458173}
-  - {fileID: 1352725622}
-  - {fileID: 755072528}
   - {fileID: 256359682}
   - {fileID: 731941358}
   m_Father: {fileID: 890659134}
@@ -265,6 +263,8 @@ RectTransform:
   m_Children:
   - {fileID: 1110800829}
   - {fileID: 340233783}
+  - {fileID: 1352725622}
+  - {fileID: 755072528}
   m_Father: {fileID: 159670844}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -1005,11 +1005,11 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 159670844}
+  m_Father: {fileID: 211458173}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -220}
+  m_AnchoredPosition: {x: 0, y: -319.99997}
   m_SizeDelta: {x: 600, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &755072529
@@ -1850,7 +1850,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 959706225}
-  - component: {fileID: 959706224}
+  - component: {fileID: 959706226}
   m_Layer: 0
   m_Name: LevelSelectManager
   m_TagString: Untagged
@@ -1858,22 +1858,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &959706224
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 959706223}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b32f24fe2503af442948c6c5718d7875, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LevelSelectManager
-  levelDatabase: {fileID: 11400000, guid: 9b2a93a76df6e09448dce961df1e71fd, type: 2}
-  buttonsContainer: {fileID: 0}
-  levelButtonPrefab: {fileID: 2768179947031924034, guid: 1efa1324c57da954b8ea7d4f94c5f742, type: 3}
-  gameSceneName: Level01
 --- !u!4 &959706225
 Transform:
   m_ObjectHideFlags: 0
@@ -1889,6 +1873,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &959706226
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 959706223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b32f24fe2503af442948c6c5718d7875, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelSelectManager
+  levelDatabase: {fileID: 11400000, guid: 9b2a93a76df6e09448dce961df1e71fd, type: 2}
+  levelText: {fileID: 1352725623}
+  progressText: {fileID: 755072529}
+  playButton: {fileID: 256359683}
+  playButtonText: {fileID: 553989684}
+  hintCountText: {fileID: 1562105413}
+  achievementsPopup: {fileID: 798392399}
+  dailyTasksPopup: {fileID: 1638265444}
+  gameSceneName: Level01
 --- !u!1 &1057237293
 GameObject:
   m_ObjectHideFlags: 0
@@ -2663,7 +2668,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 159670844}
+  m_Father: {fileID: 211458173}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -2699,8 +2704,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4279900698
+  m_fontColor: {r: 0.1, g: 0.1, b: 0.1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -2999,7 +3004,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1638265445
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3070,7 +3075,7 @@ GameObject:
   - component: {fileID: 1734207246}
   - component: {fileID: 1734207245}
   m_Layer: 5
-  m_Name: AchievementsPanel
+  m_Name: DailyTasksPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
