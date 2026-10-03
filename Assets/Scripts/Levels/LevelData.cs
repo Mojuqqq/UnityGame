@@ -1,11 +1,43 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+
+
+[Serializable]
+public class LevelSolutionEntry
+{
+    [SerializeField]
+    private int pieceIndex;
+
+
+    [SerializeField]
+    private Vector2Int origin;
+
+
+    [SerializeField]
+    [Range(0, 3)]
+    private int rotationSteps;
+
+
+    public int PieceIndex =>
+        pieceIndex;
+
+
+    public Vector2Int Origin =>
+        origin;
+
+
+    public int RotationSteps =>
+        rotationSteps;
+}
+
 
 [CreateAssetMenu(
     fileName = "Level_001",
     menuName = "Puzzle/Level Data"
 )]
-public class LevelData : ScriptableObject
+public class LevelData :
+    ScriptableObject
 {
     [Header("Information")]
 
@@ -13,7 +45,8 @@ public class LevelData : ScriptableObject
     private int levelNumber = 1;
 
     [SerializeField]
-    private string displayName = "УРОВЕНЬ 1";
+    private string displayName =
+        "УРОВЕНЬ 1";
 
 
     [Header("Grid Size")]
@@ -36,13 +69,16 @@ public class LevelData : ScriptableObject
     [Header("Hints")]
 
     [Tooltip(
-        "Количество занятых клеток в каждой строке сверху вниз."
+        "Количество занятых клеток " +
+        "в каждой строке сверху вниз."
     )]
     [SerializeField]
     private int[] rowTargets;
 
+
     [Tooltip(
-        "Количество занятых клеток в каждой колонке слева направо."
+        "Количество занятых клеток " +
+        "в каждой колонке слева направо."
     )]
     [SerializeField]
     private int[] columnTargets;
@@ -58,30 +94,267 @@ public class LevelData : ScriptableObject
     private Vector2Int[] blockedCells;
 
 
+    [Header("Solution")]
+
+    [Tooltip(
+        "Эталонное решение уровня. " +
+        "Каждая запись соответствует одной фигуре " +
+        "из массива Pieces."
+    )]
+    [SerializeField]
+    private LevelSolutionEntry[] solution;
+
+
+    // =====================================================
+    // PROPERTIES
+    // =====================================================
+
     public int LevelNumber =>
         levelNumber;
+
 
     public string DisplayName =>
         displayName;
 
+
     public int Columns =>
         columns;
+
 
     public int Rows =>
         rows;
 
+
     public PieceDefinition[] Pieces =>
         pieces;
+
 
     public int[] RowTargets =>
         rowTargets;
 
+
     public int[] ColumnTargets =>
         columnTargets;
+
 
     public Vector2Int[] BlockedCells =>
         blockedCells;
 
+
+    public LevelSolutionEntry[] Solution =>
+        solution;
+
+
+    // =====================================================
+    // SOLUTION ACCESS
+    // =====================================================
+
+    public LevelSolutionEntry
+        GetSolutionEntryByPieceIndex(
+            int pieceIndex
+        )
+    {
+        if (solution == null)
+        {
+            return null;
+        }
+
+
+        foreach (
+            LevelSolutionEntry entry
+            in solution
+        )
+        {
+            if (
+                entry != null &&
+                entry.PieceIndex ==
+                pieceIndex
+            )
+            {
+                return entry;
+            }
+        }
+
+
+        return null;
+    }
+
+
+    public Vector2Int[] GetSolutionCells(
+        LevelSolutionEntry entry
+    )
+    {
+        if (entry == null)
+        {
+            return new Vector2Int[0];
+        }
+
+
+        Vector2Int[] rotatedCells =
+            GetRotatedPieceCells(
+                entry.PieceIndex,
+                entry.RotationSteps
+            );
+
+
+        Vector2Int[] result =
+            new Vector2Int[
+                rotatedCells.Length
+            ];
+
+
+        for (
+            int i = 0;
+            i < rotatedCells.Length;
+            i++
+        )
+        {
+            result[i] =
+                entry.Origin +
+                rotatedCells[i];
+        }
+
+
+        return result;
+    }
+
+
+    public Vector2Int[] GetRotatedPieceCells(
+        int pieceIndex,
+        int rotationSteps
+    )
+    {
+        if (
+            pieces == null ||
+            pieceIndex < 0 ||
+            pieceIndex >= pieces.Length ||
+            pieces[pieceIndex] == null ||
+            pieces[pieceIndex].Cells == null
+        )
+        {
+            return new Vector2Int[0];
+        }
+
+
+        Vector2Int[] source =
+            pieces[pieceIndex].Cells;
+
+
+        Vector2Int[] result =
+            new Vector2Int[source.Length];
+
+
+        int normalizedSteps =
+            (
+                (rotationSteps % 4)
+                +
+                4
+            )
+            %
+            4;
+
+
+        for (
+            int i = 0;
+            i < source.Length;
+            i++
+        )
+        {
+            Vector2Int rotated =
+                source[i];
+
+
+            for (
+                int step = 0;
+                step < normalizedSteps;
+                step++
+            )
+            {
+                // Та же формула,
+                // которую использует PieceView.
+                rotated =
+                    new Vector2Int(
+                        -rotated.y,
+                        rotated.x
+                    );
+            }
+
+
+            result[i] =
+                rotated;
+        }
+
+
+        NormalizeCells(
+            result
+        );
+
+
+        return result;
+    }
+
+
+    private void NormalizeCells(
+        Vector2Int[] cells
+    )
+    {
+        if (
+            cells == null ||
+            cells.Length == 0
+        )
+        {
+            return;
+        }
+
+
+        int minX =
+            cells[0].x;
+
+        int minY =
+            cells[0].y;
+
+
+        foreach (
+            Vector2Int cell
+            in cells
+        )
+        {
+            minX =
+                Mathf.Min(
+                    minX,
+                    cell.x
+                );
+
+
+            minY =
+                Mathf.Min(
+                    minY,
+                    cell.y
+                );
+        }
+
+
+        for (
+            int i = 0;
+            i < cells.Length;
+            i++
+        )
+        {
+            cells[i] =
+                new Vector2Int(
+                    cells[i].x -
+                    minX,
+
+                    cells[i].y -
+                    minY
+                );
+        }
+    }
+
+
+    // =====================================================
+    // VALIDATION
+    // =====================================================
 
     public bool IsValid(
         out string errorMessage
@@ -119,7 +392,8 @@ public class LevelData : ScriptableObject
         )
         {
             errorMessage =
-                $"Row Targets must contain exactly {rows} values.";
+                $"Row Targets must contain " +
+                $"exactly {rows} values.";
 
             return false;
         }
@@ -131,7 +405,8 @@ public class LevelData : ScriptableObject
         )
         {
             errorMessage =
-                $"Column Targets must contain exactly {columns} values.";
+                $"Column Targets must contain " +
+                $"exactly {columns} values.";
 
             return false;
         }
@@ -153,7 +428,8 @@ public class LevelData : ScriptableObject
             )
             {
                 errorMessage =
-                    $"Row {y} has impossible target: {rowTargets[y]}.";
+                    $"Row {y} has impossible target: " +
+                    $"{rowTargets[y]}.";
 
                 return false;
             }
@@ -172,7 +448,8 @@ public class LevelData : ScriptableObject
             )
             {
                 errorMessage =
-                    $"Column {x} has impossible target: {columnTargets[x]}.";
+                    $"Column {x} has impossible target: " +
+                    $"{columnTargets[x]}.";
 
                 return false;
             }
@@ -183,25 +460,31 @@ public class LevelData : ScriptableObject
         // HINT SUM
         // -----------------------------------------
 
-        int rowSum = 0;
+        int rowSum =
+            0;
+
 
         foreach (
             int value
             in rowTargets
         )
         {
-            rowSum += value;
+            rowSum +=
+                value;
         }
 
 
-        int columnSum = 0;
+        int columnSum =
+            0;
+
 
         foreach (
             int value
             in columnTargets
         )
         {
-            columnSum += value;
+            columnSum +=
+                value;
         }
 
 
@@ -209,7 +492,8 @@ public class LevelData : ScriptableObject
         {
             errorMessage =
                 $"Hint totals do not match. " +
-                $"Rows = {rowSum}, Columns = {columnSum}.";
+                $"Rows = {rowSum}, " +
+                $"Columns = {columnSum}.";
 
             return false;
         }
@@ -231,7 +515,8 @@ public class LevelData : ScriptableObject
         }
 
 
-        int totalPieceCells = 0;
+        int totalPieceCells =
+            0;
 
 
         foreach (
@@ -242,7 +527,8 @@ public class LevelData : ScriptableObject
             if (piece == null)
             {
                 errorMessage =
-                    "The Pieces list contains an empty element.";
+                    "The Pieces list contains " +
+                    "an empty element.";
 
                 return false;
             }
@@ -265,7 +551,10 @@ public class LevelData : ScriptableObject
         }
 
 
-        if (rowSum != totalPieceCells)
+        if (
+            rowSum !=
+            totalPieceCells
+        )
         {
             errorMessage =
                 $"Hint total does not match piece cells. " +
@@ -282,6 +571,7 @@ public class LevelData : ScriptableObject
 
         int[] blockedPerRow =
             new int[rows];
+
 
         int[] blockedPerColumn =
             new int[columns];
@@ -343,7 +633,7 @@ public class LevelData : ScriptableObject
 
 
         // -----------------------------------------
-        // CHECK AVAILABLE CELLS
+        // AVAILABLE CELLS
         // -----------------------------------------
 
         for (
@@ -365,8 +655,7 @@ public class LevelData : ScriptableObject
                 errorMessage =
                     $"Row {y} requires " +
                     $"{rowTargets[y]} occupied cells, " +
-                    $"but only {availableCells} are available " +
-                    "because of blocked cells.";
+                    $"but only {availableCells} are available.";
 
                 return false;
             }
@@ -392,15 +681,224 @@ public class LevelData : ScriptableObject
                 errorMessage =
                     $"Column {x} requires " +
                     $"{columnTargets[x]} occupied cells, " +
-                    $"but only {availableCells} are available " +
-                    "because of blocked cells.";
+                    $"but only {availableCells} are available.";
 
                 return false;
             }
         }
 
 
-        errorMessage = "";
+        // -----------------------------------------
+        // SOLUTION EXISTS
+        // -----------------------------------------
+
+        if (
+            solution == null ||
+            solution.Length !=
+            pieces.Length
+        )
+        {
+            errorMessage =
+                $"Solution must contain exactly " +
+                $"{pieces.Length} entries.";
+
+            return false;
+        }
+
+
+        HashSet<int>
+            usedPieceIndexes =
+                new HashSet<int>();
+
+
+        HashSet<Vector2Int>
+            solutionOccupiedCells =
+                new HashSet<Vector2Int>();
+
+
+        // -----------------------------------------
+        // SOLUTION ENTRIES
+        // -----------------------------------------
+
+        foreach (
+            LevelSolutionEntry entry
+            in solution
+        )
+        {
+            if (entry == null)
+            {
+                errorMessage =
+                    "Solution contains " +
+                    "an empty entry.";
+
+                return false;
+            }
+
+
+            int pieceIndex =
+                entry.PieceIndex;
+
+
+            if (
+                pieceIndex < 0 ||
+                pieceIndex >= pieces.Length
+            )
+            {
+                errorMessage =
+                    $"Solution Piece Index " +
+                    $"{pieceIndex} is invalid.";
+
+                return false;
+            }
+
+
+            if (
+                !usedPieceIndexes.Add(
+                    pieceIndex
+                )
+            )
+            {
+                errorMessage =
+                    $"Piece Index {pieceIndex} " +
+                    "appears more than once in Solution.";
+
+                return false;
+            }
+
+
+            Vector2Int[] solutionCells =
+                GetSolutionCells(
+                    entry
+                );
+
+
+            foreach (
+                Vector2Int coordinate
+                in solutionCells
+            )
+            {
+                if (
+                    coordinate.x < 0 ||
+                    coordinate.x >= columns ||
+                    coordinate.y < 0 ||
+                    coordinate.y >= rows
+                )
+                {
+                    errorMessage =
+                        $"Solution piece {pieceIndex} " +
+                        $"has cell " +
+                        $"({coordinate.x}, {coordinate.y}) " +
+                        "outside the grid.";
+
+                    return false;
+                }
+
+
+                if (
+                    uniqueBlockedCells.Contains(
+                        coordinate
+                    )
+                )
+                {
+                    errorMessage =
+                        $"Solution piece {pieceIndex} " +
+                        $"occupies blocked cell " +
+                        $"({coordinate.x}, {coordinate.y}).";
+
+                    return false;
+                }
+
+
+                if (
+                    !solutionOccupiedCells.Add(
+                        coordinate
+                    )
+                )
+                {
+                    errorMessage =
+                        $"Solution contains overlap at " +
+                        $"({coordinate.x}, {coordinate.y}).";
+
+                    return false;
+                }
+            }
+        }
+
+
+        // -----------------------------------------
+        // CHECK SOLUTION AGAINST TARGETS
+        // -----------------------------------------
+
+        int[] solutionRows =
+            new int[rows];
+
+
+        int[] solutionColumns =
+            new int[columns];
+
+
+        foreach (
+            Vector2Int coordinate
+            in solutionOccupiedCells
+        )
+        {
+            solutionRows[
+                coordinate.y
+            ]++;
+
+
+            solutionColumns[
+                coordinate.x
+            ]++;
+        }
+
+
+        for (
+            int y = 0;
+            y < rows;
+            y++
+        )
+        {
+            if (
+                solutionRows[y] !=
+                rowTargets[y]
+            )
+            {
+                errorMessage =
+                    $"Solution row {y} has " +
+                    $"{solutionRows[y]} occupied cells, " +
+                    $"but Row Target requires " +
+                    $"{rowTargets[y]}.";
+
+                return false;
+            }
+        }
+
+
+        for (
+            int x = 0;
+            x < columns;
+            x++
+        )
+        {
+            if (
+                solutionColumns[x] !=
+                columnTargets[x]
+            )
+            {
+                errorMessage =
+                    $"Solution column {x} has " +
+                    $"{solutionColumns[x]} occupied cells, " +
+                    $"but Column Target requires " +
+                    $"{columnTargets[x]}.";
+
+                return false;
+            }
+        }
+
+
+        errorMessage =
+            "";
 
         return true;
     }

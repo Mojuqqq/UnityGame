@@ -10,7 +10,8 @@ public enum GridCellState
 
 
 [RequireComponent(typeof(Image))]
-public class GridCell : MonoBehaviour
+public class GridCell :
+    MonoBehaviour
 {
     public int X
     {
@@ -37,6 +38,15 @@ public class GridCell : MonoBehaviour
 
     [SerializeField]
     private GameObject blockedVisual;
+
+
+    [Header("Gameplay Hint Visuals")]
+
+    [SerializeField]
+    private Image solutionHintOverlay;
+
+    [SerializeField]
+    private GameObject emptyHintVisual;
 
 
     [Header("Cell Colors")]
@@ -87,6 +97,8 @@ public class GridCell : MonoBehaviour
 
 
         UpdateBlockedVisual();
+
+        ClearGameplayHints();
     }
 
 
@@ -109,6 +121,9 @@ public class GridCell : MonoBehaviour
         SetState(
             GridCellState.Empty
         );
+
+
+        ClearGameplayHints();
     }
 
 
@@ -165,7 +180,7 @@ public class GridCell : MonoBehaviour
 
 
     // =====================================================
-    // PREVIEW
+    // DRAG PREVIEW
     // =====================================================
 
     public void ShowPreview(
@@ -183,6 +198,84 @@ public class GridCell : MonoBehaviour
     public void ClearPreview()
     {
         ApplyStateVisuals();
+    }
+
+
+    // =====================================================
+    // GAMEPLAY HINTS
+    // =====================================================
+
+    public void ShowSolutionHint(
+        Color color
+    )
+    {
+        if (solutionHintOverlay == null)
+        {
+            return;
+        }
+
+
+        solutionHintOverlay.color =
+            color;
+
+
+        solutionHintOverlay
+            .gameObject
+            .SetActive(
+                true
+            );
+    }
+
+
+    public void HideSolutionHint()
+    {
+        if (solutionHintOverlay == null)
+        {
+            return;
+        }
+
+
+        solutionHintOverlay
+            .gameObject
+            .SetActive(
+                false
+            );
+    }
+
+
+    public void ShowEmptyHint()
+    {
+        if (emptyHintVisual == null)
+        {
+            return;
+        }
+
+
+        emptyHintVisual.SetActive(
+            true
+        );
+    }
+
+
+    public void HideEmptyHint()
+    {
+        if (emptyHintVisual == null)
+        {
+            return;
+        }
+
+
+        emptyHintVisual.SetActive(
+            false
+        );
+    }
+
+
+    public void ClearGameplayHints()
+    {
+        HideSolutionHint();
+
+        HideEmptyHint();
     }
 
 

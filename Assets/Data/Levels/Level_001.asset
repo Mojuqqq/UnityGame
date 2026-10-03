@@ -18,5 +18,10 @@ MonoBehaviour:
   rows: 2
   pieces:
   - {fileID: 11400000, guid: 50a2206d921cd5d42a01cd149867f7cc, type: 2}
-  rowTargets: 0200000002000000
-  columnTargets: 010000000200000001000000
+  rowTargets: 0200000002000000i
+  columnTargets: 010000000200000001000000i
+  blockedCells: []
+  solution:
+  - pieceIndex: 0
+    origin: {x: 0, y: 0}
+    rotationSteps: 0

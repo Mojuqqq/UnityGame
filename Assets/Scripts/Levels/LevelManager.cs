@@ -33,6 +33,10 @@ public class LevelManager : MonoBehaviour
     [SerializeField]
     private PieceSpawner pieceSpawner;
 
+    [SerializeField]
+private GameplayHintController
+    gameplayHintController;
+
 
     [Header("UI")]
 
@@ -165,6 +169,13 @@ hintManager.Initialize(
 pieceSpawner.BuildPieces(
     currentLevel.Pieces
 );
+
+if (gameplayHintController != null)
+{
+    gameplayHintController.Initialize(
+        currentLevel
+    );
+}
 
 
         // =================================================

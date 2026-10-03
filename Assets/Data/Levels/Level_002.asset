@@ -19,5 +19,13 @@ MonoBehaviour:
   pieces:
   - {fileID: 11400000, guid: 2085f7f4b4d5ac54abff9b5498957e41, type: 2}
   - {fileID: 11400000, guid: 2085f7f4b4d5ac54abff9b5498957e41, type: 2}
-  rowTargets: 030000000200000003000000
-  columnTargets: 030000000200000003000000
+  rowTargets: 030000000200000003000000i
+  columnTargets: 030000000200000003000000i
+  blockedCells: []
+  solution:
+  - pieceIndex: 0
+    origin: {x: 0, y: 0}
+    rotationSteps: 0
+  - pieceIndex: 1
+    origin: {x: 1, y: 0}
+    rotationSteps: 2
