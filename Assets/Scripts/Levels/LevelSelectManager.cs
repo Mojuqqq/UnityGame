@@ -1,5 +1,7 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class LevelSelectManager :
     MonoBehaviour
@@ -10,15 +12,37 @@ public class LevelSelectManager :
     private LevelDatabase levelDatabase;
 
 
-    [Header("UI")]
+    [Header("Current Level UI")]
 
     [SerializeField]
-    private RectTransform
-        buttonsContainer;
+    private TMP_Text levelText;
 
     [SerializeField]
-    private LevelButtonView
-        levelButtonPrefab;
+    private TMP_Text progressText;
+
+
+    [Header("Play")]
+
+    [SerializeField]
+    private Button playButton;
+
+    [SerializeField]
+    private TMP_Text playButtonText;
+
+
+    [Header("Resources")]
+
+    [SerializeField]
+    private TMP_Text hintCountText;
+
+
+    [Header("Popups")]
+
+    [SerializeField]
+    private GameObject achievementsPopup;
+
+    [SerializeField]
+    private GameObject dailyTasksPopup;
 
 
     [Header("Scenes")]
@@ -28,163 +52,185 @@ public class LevelSelectManager :
         "Level01";
 
 
+    private LevelData currentPlayableLevel;
+
+
+    // =====================================================
+    // START
+    // =====================================================
+
     private void Start()
-{
-    if (levelDatabase == null)
-    {
-        Debug.LogError(
-            "LevelSelectManager: LevelDatabase is not assigned."
-        );
-
-        return;
-    }
-
-
-    if (
-        !levelDatabase.IsValid(
-            out string errorMessage
-        )
-    )
-    {
-        Debug.LogError(
-            $"Invalid LevelDatabase: {errorMessage}"
-        );
-
-        return;
-    }
-
-
-    UnlockFirstLevel();
-
-    BuildLevelButtons();
-}
-
-
-    private void UnlockFirstLevel()
     {
         if (levelDatabase == null)
         {
-            return;
-        }
-
-        LevelData firstLevel =
-            levelDatabase.GetFirstLevel();
-
-        if (firstLevel == null)
-        {
-            return;
-        }
-
-        ProgressManager.UnlockLevel(
-            firstLevel.LevelNumber
-        );
-    }
-
-
-    private void BuildLevelButtons()
-    {
-        ClearButtons();
-
-
-        if (levelDatabase == null)
-        {
             Debug.LogError(
-                "LevelSelectManager: LevelDatabase is not assigned."
+                "LevelSelectManager: " +
+                "LevelDatabase is not assigned."
             );
 
-            return;
-        }
-
-
-        if (buttonsContainer == null)
-        {
-            Debug.LogError(
-                "LevelSelectManager: Buttons Container is not assigned."
-            );
-
-            return;
-        }
-
-
-        if (levelButtonPrefab == null)
-        {
-            Debug.LogError(
-                "LevelSelectManager: Level Button Prefab is not assigned."
-            );
-
-            return;
-        }
-
-
-        foreach (
-            LevelData level
-            in levelDatabase.Levels
-        )
-        {
-            if (level == null)
-            {
-                continue;
-            }
-
-
-            bool unlocked =
-                ProgressManager
-                    .IsLevelUnlocked(
-                        level.LevelNumber
-                    );
-
-
-            bool completed =
-                ProgressManager
-                    .IsLevelCompleted(
-                        level.LevelNumber
-                    );
-
-
-            LevelButtonView button =
-                Instantiate(
-                    levelButtonPrefab,
-                    buttonsContainer
-                );
-
-
-            button.name =
-                $"LevelButton_{level.LevelNumber}";
-
-
-            button.Initialize(
-                level,
-                this,
-                unlocked,
-                completed
-            );
-        }
-    }
-
-
-    public void SelectLevel(
-        LevelData level
-    )
-    {
-        if (level == null)
-        {
             return;
         }
 
 
         if (
-            !ProgressManager
-                .IsLevelUnlocked(
-                    level.LevelNumber
-                )
+            !levelDatabase.IsValid(
+                out string errorMessage
+            )
         )
+        {
+            Debug.LogError(
+                $"LevelSelectManager: " +
+                $"Invalid LevelDatabase. " +
+                $"{errorMessage}"
+            );
+
+            return;
+        }
+
+
+        HideAllPopups();
+
+        RefreshMenu();
+    }
+
+
+    // =====================================================
+    // REFRESH
+    // =====================================================
+
+    public void RefreshMenu()
+    {
+        currentPlayableLevel =
+            ProgressManager
+                .GetCurrentPlayableLevel(
+                    levelDatabase
+                );
+
+
+        RefreshLevelInfo();
+
+        RefreshHints();
+    }
+
+
+    private void RefreshLevelInfo()
+    {
+        int completed =
+            ProgressManager
+                .GetCompletedLevelCount(
+                    levelDatabase
+                );
+
+
+        if (progressText != null)
+        {
+            progressText.text =
+                $"{completed} / " +
+                $"{levelDatabase.Count}";
+        }
+
+
+        // =================================================
+        // ALL LEVELS COMPLETED
+        // =================================================
+
+        if (currentPlayableLevel == null)
+        {
+            if (levelText != null)
+            {
+                levelText.text =
+                    "ВСЕ УРОВНИ ПРОЙДЕНЫ";
+            }
+
+
+            if (playButton != null)
+            {
+                playButton.interactable =
+                    false;
+            }
+
+
+            if (playButtonText != null)
+            {
+                playButtonText.text =
+                    "ГОТОВО";
+            }
+
+
+            return;
+        }
+
+
+        // =================================================
+        // CURRENT LEVEL
+        // =================================================
+
+        if (levelText != null)
+        {
+            if (
+                !string.IsNullOrWhiteSpace(
+                    currentPlayableLevel
+                        .DisplayName
+                )
+            )
+            {
+                levelText.text =
+                    currentPlayableLevel
+                        .DisplayName;
+            }
+            else
+            {
+                levelText.text =
+                    $"УРОВЕНЬ " +
+                    $"{currentPlayableLevel.LevelNumber}";
+            }
+        }
+
+
+        if (playButton != null)
+        {
+            playButton.interactable =
+                true;
+        }
+
+
+        if (playButtonText != null)
+        {
+            playButtonText.text =
+                "ИГРАТЬ";
+        }
+    }
+
+
+    private void RefreshHints()
+    {
+        if (hintCountText == null)
+        {
+            return;
+        }
+
+
+        hintCountText.text =
+            PlayerResources
+                .GetHints()
+                .ToString();
+    }
+
+
+    // =====================================================
+    // PLAY
+    // =====================================================
+
+    public void PlayCurrentLevel()
+    {
+        if (currentPlayableLevel == null)
         {
             return;
         }
 
 
         LevelSelectionState.SelectLevel(
-            level
+            currentPlayableLevel
         );
 
 
@@ -194,32 +240,74 @@ public class LevelSelectManager :
     }
 
 
-    private void ClearButtons()
+    // =====================================================
+    // ACHIEVEMENTS
+    // =====================================================
+
+    public void OpenAchievements()
     {
-        if (buttonsContainer == null)
+        HideAllPopups();
+
+
+        if (achievementsPopup != null)
         {
-            return;
-        }
-
-
-        for (
-            int i =
-                buttonsContainer.childCount - 1;
-            i >= 0;
-            i--
-        )
-        {
-            GameObject child =
-                buttonsContainer
-                    .GetChild(i)
-                    .gameObject;
-
-            child.SetActive(false);
-
-            Destroy(child);
+            achievementsPopup.SetActive(
+                true
+            );
         }
     }
 
+
+    // =====================================================
+    // DAILY TASKS
+    // =====================================================
+
+    public void OpenDailyTasks()
+    {
+        HideAllPopups();
+
+
+        if (dailyTasksPopup != null)
+        {
+            dailyTasksPopup.SetActive(
+                true
+            );
+        }
+    }
+
+
+    // =====================================================
+    // POPUPS
+    // =====================================================
+
+    public void ClosePopups()
+    {
+        HideAllPopups();
+    }
+
+
+    private void HideAllPopups()
+    {
+        if (achievementsPopup != null)
+        {
+            achievementsPopup.SetActive(
+                false
+            );
+        }
+
+
+        if (dailyTasksPopup != null)
+        {
+            dailyTasksPopup.SetActive(
+                false
+            );
+        }
+    }
+
+
+    // =====================================================
+    // TESTING
+    // =====================================================
 
     [ContextMenu(
         "Reset Progress For Testing"
@@ -230,12 +318,43 @@ public class LevelSelectManager :
             levelDatabase
         );
 
-        UnlockFirstLevel();
 
-        BuildLevelButtons();
+        LevelSelectionState
+            .ClearSelection();
+
+
+        RefreshMenu();
+
 
         Debug.Log(
             "Level progress reset."
+        );
+    }
+
+
+    [ContextMenu(
+        "Reset All Player Data For Testing"
+    )]
+    private void ResetAllPlayerDataForTesting()
+    {
+        ProgressManager.ResetProgress(
+            levelDatabase
+        );
+
+
+        PlayerResources
+            .ResetForTesting();
+
+
+        LevelSelectionState
+            .ClearSelection();
+
+
+        RefreshMenu();
+
+
+        Debug.Log(
+            "Player test data reset."
         );
     }
 }
