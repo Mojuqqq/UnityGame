@@ -50,6 +50,12 @@ private GameplayHintController
     public LevelData CurrentLevel =>
         currentLevel;
 
+    [Header("Rewards")]
+
+[SerializeField]
+[Min(0)]
+private int coinsPerLevel =
+    100;
 
     private void Start()
     {
@@ -198,35 +204,61 @@ if (gameplayHintController != null)
 
 
     public void CompleteCurrentLevel()
+{
+    if (currentLevel == null)
     {
-        if (currentLevel == null)
-        {
-            return;
-        }
+        return;
+    }
 
 
-        ProgressManager.CompleteLevel(
-            currentLevel.LevelNumber
+    bool alreadyCompleted =
+        ProgressManager
+            .IsLevelCompleted(
+                currentLevel.LevelNumber
+            );
+
+
+    ProgressManager.CompleteLevel(
+        currentLevel.LevelNumber
+    );
+
+
+    // Награда и статистика выдаются
+    // только за первое прохождение.
+    if (!alreadyCompleted)
+    {
+        PlayerResources.AddCoins(
+            coinsPerLevel
         );
 
 
-        LevelData nextLevel =
-            GetNextLevel();
-
-
-        if (nextLevel != null)
-        {
-            ProgressManager.UnlockLevel(
-                nextLevel.LevelNumber
-            );
-        }
+        PlayerStats
+            .RecordLevelCompletedToday();
 
 
         Debug.Log(
-            $"Completed level " +
-            $"{currentLevel.LevelNumber}"
+            $"Level reward: +{coinsPerLevel} coins."
         );
     }
+
+
+    LevelData nextLevel =
+        GetNextLevel();
+
+
+    if (nextLevel != null)
+    {
+        ProgressManager.UnlockLevel(
+            nextLevel.LevelNumber
+        );
+    }
+
+
+    Debug.Log(
+        $"Completed level " +
+        $"{currentLevel.LevelNumber}"
+    );
+}
 
 
     public bool HasNextLevel()

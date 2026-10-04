@@ -78,6 +78,7 @@ private float pickupFadeDuration = 0.08f;
     private Vector3 homeTopLeftWorld;
 
     private bool homeCaptured;
+    private bool countedForPlacementAchievement;
 
 
     // =====================================================
@@ -683,16 +684,27 @@ private float pickupFadeDuration = 0.08f;
 
 
         placedOrigin =
-            targetOrigin;
+    targetOrigin;
 
-        placedCoordinates =
-            newCoordinates;
+placedCoordinates =
+    newCoordinates;
 
-        isPlaced =
-            true;
+isPlaced =
+    true;
 
 
-        FinishSettling();
+if (!countedForPlacementAchievement)
+{
+    countedForPlacementAchievement =
+        true;
+
+
+    PlayerStats
+        .RecordPiecePlaced();
+}
+
+
+FinishSettling();
     }
 
 

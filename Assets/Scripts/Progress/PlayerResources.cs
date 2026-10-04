@@ -1,30 +1,52 @@
 using UnityEngine;
 
+
+public enum HintType
+{
+    RevealPiece,
+    RevealEmptyCells
+}
+
+
 public static class PlayerResources
 {
-    private const string HintsKey =
-        "Puzzle_Player_Hints";
+    private const string CoinsKey =
+        "Puzzle_Player_Coins";
 
 
-    private const int DefaultHints =
-        5;
+    private const string RevealPieceHintsKey =
+        "Puzzle_Hints_RevealPiece";
+
+
+    private const string EmptyCellsHintsKey =
+        "Puzzle_Hints_EmptyCells";
+
+
+    // Пока тестовые стартовые значения.
+    private const int DefaultCoins =
+        0;
+
+    private const int DefaultRevealPieceHints =
+        2;
+
+    private const int DefaultEmptyCellsHints =
+        2;
 
 
     // =====================================================
-    // HINTS
+    // COINS
     // =====================================================
 
-    public static int GetHints()
+    public static int GetCoins()
     {
-        return
-            PlayerPrefs.GetInt(
-                HintsKey,
-                DefaultHints
-            );
+        return PlayerPrefs.GetInt(
+            CoinsKey,
+            DefaultCoins
+        );
     }
 
 
-    public static void AddHints(
+    public static void AddCoins(
         int amount
     )
     {
@@ -34,13 +56,9 @@ public static class PlayerResources
         }
 
 
-        int current =
-            GetHints();
-
-
         PlayerPrefs.SetInt(
-            HintsKey,
-            current + amount
+            CoinsKey,
+            GetCoins() + amount
         );
 
 
@@ -48,21 +66,29 @@ public static class PlayerResources
     }
 
 
-    public static bool TrySpendHint()
+    public static bool TrySpendCoins(
+        int amount
+    )
     {
+        if (amount <= 0)
+        {
+            return true;
+        }
+
+
         int current =
-            GetHints();
+            GetCoins();
 
 
-        if (current <= 0)
+        if (current < amount)
         {
             return false;
         }
 
 
         PlayerPrefs.SetInt(
-            HintsKey,
-            current - 1
+            CoinsKey,
+            current - amount
         );
 
 
@@ -74,13 +100,139 @@ public static class PlayerResources
 
 
     // =====================================================
-    // TEST
+    // HINTS
+    // =====================================================
+
+    public static int GetHintCount(
+        HintType type
+    )
+    {
+        switch (type)
+        {
+            case HintType.RevealPiece:
+
+                return PlayerPrefs.GetInt(
+                    RevealPieceHintsKey,
+                    DefaultRevealPieceHints
+                );
+
+
+            case HintType.RevealEmptyCells:
+
+                return PlayerPrefs.GetInt(
+                    EmptyCellsHintsKey,
+                    DefaultEmptyCellsHints
+                );
+        }
+
+
+        return 0;
+    }
+
+
+    public static void AddHints(
+        HintType type,
+        int amount
+    )
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+
+        string key =
+            GetHintKey(
+                type
+            );
+
+
+        PlayerPrefs.SetInt(
+            key,
+            GetHintCount(type) + amount
+        );
+
+
+        PlayerPrefs.Save();
+    }
+
+
+    public static bool TrySpendHint(
+        HintType type
+    )
+    {
+        int current =
+            GetHintCount(
+                type
+            );
+
+
+        if (current <= 0)
+        {
+            return false;
+        }
+
+
+        PlayerPrefs.SetInt(
+            GetHintKey(type),
+            current - 1
+        );
+
+
+        PlayerPrefs.Save();
+
+
+        return true;
+    }
+
+
+    private static string GetHintKey(
+        HintType type
+    )
+    {
+        switch (type)
+        {
+            case HintType.RevealPiece:
+
+                return
+                    RevealPieceHintsKey;
+
+
+            case HintType.RevealEmptyCells:
+
+                return
+                    EmptyCellsHintsKey;
+        }
+
+
+        return "";
+    }
+
+
+    // =====================================================
+    // TEST RESET
     // =====================================================
 
     public static void ResetForTesting()
     {
         PlayerPrefs.DeleteKey(
-            HintsKey
+            CoinsKey
+        );
+
+
+        PlayerPrefs.DeleteKey(
+            RevealPieceHintsKey
+        );
+
+
+        PlayerPrefs.DeleteKey(
+            EmptyCellsHintsKey
+        );
+
+
+        // Старый ресурс больше не используется.
+        PlayerPrefs.DeleteKey(
+            "Puzzle_Player_Hints"
         );
 
 

@@ -160,9 +160,34 @@ public class GameplayHintController :
         // Ресурс списывается только если
         // подсказку реально можно показать.
         if (
-            !PlayerResources
-                .TrySpendHint()
+    !PlayerResources
+        .TrySpendHint(
+            HintType.RevealPiece
         )
+)
+{
+    RefreshUI();
+
+    return;
+}
+
+
+PlayerStats.RecordHintUsed();
+
+if (
+    !PlayerResources
+        .TrySpendHint(
+            HintType.RevealEmptyCells
+        )
+)
+{
+    RefreshUI();
+
+    return;
+}
+
+
+PlayerStats.RecordHintUsed();
         {
             RefreshUI();
 
