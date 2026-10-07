@@ -52,9 +52,9 @@ private GameplayHintController
 
     [Header("Rewards")]
 
-[SerializeField]
-[Min(0)]
-private int coinsPerLevel =
+    [SerializeField]
+    [Min(0)]
+    private int coinsPerLevel =
     100;
 
     private void Start()

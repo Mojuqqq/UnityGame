@@ -165,6 +165,28 @@ public class GameplayHintController :
             HintType.RevealPiece
         )
 )
+if (
+    !PlayerResources
+        .TrySpendHint(
+            HintType.RevealEmptyCells
+        )
+)
+{
+    RefreshUI();
+
+    return;
+}
+
+
+PlayerStats.RecordHintUsed();
+{
+    RefreshUI();
+
+    return;
+}
+
+
+PlayerStats.RecordHintUsed();
 {
     RefreshUI();
 
