@@ -203,18 +203,26 @@ public class LevelSelectManager :
 
 
     private void RefreshHints()
+{
+    if (hintCountText == null)
     {
-        if (hintCountText == null)
-        {
-            return;
-        }
-
-
-        hintCountText.text =
-            PlayerResources
-                .GetHints()
-                .ToString();
+        return;
     }
+
+
+    int totalHints =
+        PlayerResources.GetHintCount(
+            HintType.RevealPiece
+        )
+        +
+        PlayerResources.GetHintCount(
+            HintType.RevealEmptyCells
+        );
+
+
+    hintCountText.text =
+        totalHints.ToString();
+}
 
 
     // =====================================================
