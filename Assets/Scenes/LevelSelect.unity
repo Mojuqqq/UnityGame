@@ -846,7 +846,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 459598116}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1441670916}
+        m_TargetAssemblyTypeName: HintShopController, Assembly-CSharp
+        m_MethodName: WatchAdForHint
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &459598116
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1217,7 +1229,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 550777309}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1441670916}
+        m_TargetAssemblyTypeName: HintShopController, Assembly-CSharp
+        m_MethodName: OpenRevealPieceShop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &550777309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1853,7 +1877,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 872719382}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1441670916}
+        m_TargetAssemblyTypeName: HintShopController, Assembly-CSharp
+        m_MethodName: BuySelectedHints
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &872719382
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2995,6 +3031,67 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1393291194}
   m_CullTransparentMesh: 1
+--- !u!1 &1441670915
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1441670917}
+  - component: {fileID: 1441670916}
+  m_Layer: 0
+  m_Name: HintShopController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1441670916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1441670915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d9b9e3cdd3cfd84a91d7b7c2e30d843, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HintShopController
+  shopPopup: {fileID: 1532425056}
+  selectedHintIcon: {fileID: 45365159}
+  ownedText: {fileID: 1981847059}
+  quantitySlider: {fileID: 615439985}
+  quantityText: {fileID: 1379462524}
+  costText: {fileID: 1856580721}
+  buyButton: {fileID: 872719381}
+  revealPieceCountText: {fileID: 464587153}
+  emptyCellsCountText: {fileID: 1511218431}
+  coinsText: {fileID: 1527073458}
+  revealPieceIcon: {fileID: 0}
+  emptyCellsIcon: {fileID: 0}
+  revealPiecePrice: 50
+  emptyCellsPrice: 30
+  maxPurchaseAmount: 10
+  adRewardAmount: 1
+  simulateRewardedAd: 1
+--- !u!4 &1441670917
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1441670915}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 135.92351, y: 236.18234, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1503396890
 GameObject:
   m_ObjectHideFlags: 0
@@ -3794,7 +3891,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1769261621}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1441670916}
+        m_TargetAssemblyTypeName: HintShopController, Assembly-CSharp
+        m_MethodName: OpenEmptyCellsShop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1769261621
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4516,7 +4625,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2018601594}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1441670916}
+        m_TargetAssemblyTypeName: HintShopController, Assembly-CSharp
+        m_MethodName: CloseShop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2018601594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4834,3 +4955,4 @@ SceneRoots:
   - {fileID: 1744295372}
   - {fileID: 959706225}
   - {fileID: 943786409}
+  - {fileID: 1441670917}

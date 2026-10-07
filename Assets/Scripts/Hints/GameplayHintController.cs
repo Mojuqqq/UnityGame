@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+
 public class GameplayHintController :
     MonoBehaviour
 {
@@ -84,9 +85,7 @@ public class GameplayHintController :
 
         ClearAllCellHintVisuals();
 
-
         SubscribeToGrid();
-
 
         CloseHintPopup();
 
@@ -138,63 +137,133 @@ public class GameplayHintController :
     // =====================================================
 
     public void RevealRandomPiece()
-{
-    if (currentLevel == null)
     {
-        return;
-    }
+        if (currentLevel == null)
+        {
+            return;
+        }
 
 
-    List<int> candidates =
-        GetPieceHintCandidates();
+        List<int> candidates =
+            GetPieceHintCandidates();
 
 
-    if (candidates.Count == 0)
-    {
-        RefreshUI();
+        if (candidates.Count == 0)
+        {
+            RefreshUI();
 
-        return;
-    }
+            return;
+        }
 
 
-    if (
-        !PlayerResources.TrySpendHint(
-            HintType.RevealPiece
+        if (
+            !PlayerResources.TrySpendHint(
+                HintType.RevealPiece
+            )
         )
-    )
-    {
-        RefreshUI();
+        {
+            RefreshUI();
 
-        return;
-    }
-
-
-    PlayerStats.RecordHintUsed();
+            return;
+        }
 
 
-    int randomIndex =
-        Random.Range(
-            0,
-            candidates.Count
+        PlayerStats.RecordHintUsed();
+
+
+        int randomIndex =
+            Random.Range(
+                0,
+                candidates.Count
+            );
+
+
+        int pieceIndex =
+            candidates[randomIndex];
+
+
+        revealedPieceIndices.Add(
+            pieceIndex
         );
 
 
-    int pieceIndex =
-        candidates[randomIndex];
+        RefreshRevealedPieceVisuals();
+
+        RefreshUI();
+
+        CloseHintPopup();
+    }
 
 
-    revealedPieceIndices.Add(
-        pieceIndex
-    );
+    private List<int> GetPieceHintCandidates()
+    {
+        List<int> result =
+            new List<int>();
 
 
-    RefreshRevealedPieceVisuals();
+        if (
+            currentLevel == null ||
+            currentLevel.Solution == null
+        )
+        {
+            return result;
+        }
 
-    RefreshUI();
 
-    CloseHintPopup();
-}
-    
+        foreach (
+            LevelSolutionEntry entry
+            in currentLevel.Solution
+        )
+        {
+            if (entry == null)
+            {
+                continue;
+            }
+
+
+            int pieceIndex =
+                entry.PieceIndex;
+
+
+            // Уже раскрывали эту фигуру.
+            if (
+                revealedPieceIndices.Contains(
+                    pieceIndex
+                )
+            )
+            {
+                continue;
+            }
+
+
+            Vector2Int[] cells =
+                currentLevel.GetSolutionCells(
+                    entry
+                );
+
+
+            // Если вся область уже занята,
+            // подсказка ничего нового не даст.
+            if (
+                AreAllCellsOccupied(
+                    cells
+                )
+            )
+            {
+                continue;
+            }
+
+
+            result.Add(
+                pieceIndex
+            );
+        }
+
+
+        return result;
+    }
+
+
     private void RefreshRevealedPieceVisuals()
     {
         if (
@@ -225,10 +294,9 @@ public class GameplayHintController :
 
 
             Vector2Int[] cells =
-                currentLevel
-                    .GetSolutionCells(
-                        entry
-                    );
+                currentLevel.GetSolutionCells(
+                    entry
+                );
 
 
             bool filled =
@@ -239,9 +307,7 @@ public class GameplayHintController :
 
             Color hintColor =
                 currentLevel
-                    .Pieces[
-                        pieceIndex
-                    ]
+                    .Pieces[pieceIndex]
                     .Color;
 
 
@@ -288,92 +354,245 @@ public class GameplayHintController :
     // =====================================================
 
     public void RevealRandomEmptyCells()
-{
-    if (currentLevel == null)
     {
-        return;
-    }
+        if (currentLevel == null)
+        {
+            return;
+        }
 
 
-    List<Vector2Int> candidates =
-        GetEmptyCellCandidates();
+        List<Vector2Int> candidates =
+            GetEmptyCellCandidates();
 
 
-    if (candidates.Count == 0)
-    {
-        RefreshUI();
+        if (candidates.Count == 0)
+        {
+            RefreshUI();
 
-        return;
-    }
+            return;
+        }
 
 
-    if (
-        !PlayerResources.TrySpendHint(
-            HintType.RevealEmptyCells
+        if (
+            !PlayerResources.TrySpendHint(
+                HintType.RevealEmptyCells
+            )
         )
-    )
-    {
-        RefreshUI();
+        {
+            RefreshUI();
 
-        return;
-    }
-
-
-    PlayerStats.RecordHintUsed();
+            return;
+        }
 
 
-    int revealCount =
-        Mathf.Min(
-            emptyCellsPerUse,
-            candidates.Count
-        );
+        PlayerStats.RecordHintUsed();
 
 
-    for (
-        int i = 0;
-        i < revealCount;
-        i++
-    )
-    {
-        int randomIndex =
-            Random.Range(
-                0,
+        int revealCount =
+            Mathf.Min(
+                emptyCellsPerUse,
                 candidates.Count
             );
 
 
-        Vector2Int coordinate =
-            candidates[randomIndex];
+        for (
+            int i = 0;
+            i < revealCount;
+            i++
+        )
+        {
+            int randomIndex =
+                Random.Range(
+                    0,
+                    candidates.Count
+                );
 
 
-        candidates.RemoveAt(
-            randomIndex
-        );
+            Vector2Int coordinate =
+                candidates[randomIndex];
 
 
-        revealedEmptyCells.Add(
-            coordinate
-        );
-
-
-        GridCell cell =
-            gridManager.GetCell(
-                coordinate.x,
-                coordinate.y
+            candidates.RemoveAt(
+                randomIndex
             );
 
 
-        if (cell != null)
-        {
-            cell.ShowEmptyHint();
+            revealedEmptyCells.Add(
+                coordinate
+            );
+
+
+            GridCell cell =
+                gridManager.GetCell(
+                    coordinate.x,
+                    coordinate.y
+                );
+
+
+            if (cell != null)
+            {
+                cell.ShowEmptyHint();
+            }
         }
+
+
+        RefreshUI();
+
+        CloseHintPopup();
     }
 
 
-    RefreshUI();
+    private List<Vector2Int>
+        GetEmptyCellCandidates()
+    {
+        List<Vector2Int> result =
+            new List<Vector2Int>();
 
-    CloseHintPopup();
-}
+
+        if (
+            currentLevel == null ||
+            gridManager == null
+        )
+        {
+            return result;
+        }
+
+
+        HashSet<Vector2Int>
+            solutionOccupied =
+                GetSolutionOccupiedCells();
+
+
+        HashSet<Vector2Int>
+            blocked =
+                new HashSet<Vector2Int>();
+
+
+        if (currentLevel.BlockedCells != null)
+        {
+            foreach (
+                Vector2Int coordinate
+                in currentLevel.BlockedCells
+            )
+            {
+                blocked.Add(
+                    coordinate
+                );
+            }
+        }
+
+
+        for (
+            int y = 0;
+            y < currentLevel.Rows;
+            y++
+        )
+        {
+            for (
+                int x = 0;
+                x < currentLevel.Columns;
+                x++
+            )
+            {
+                Vector2Int coordinate =
+                    new Vector2Int(
+                        x,
+                        y
+                    );
+
+
+                // По правильному решению
+                // здесь должна стоять фигура.
+                if (
+                    solutionOccupied.Contains(
+                        coordinate
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                // Blocked cells игрок уже видит.
+                if (
+                    blocked.Contains(
+                        coordinate
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                // Уже показывали эту клетку.
+                if (
+                    revealedEmptyCells.Contains(
+                        coordinate
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                result.Add(
+                    coordinate
+                );
+            }
+        }
+
+
+        return result;
+    }
+
+
+    private HashSet<Vector2Int>
+        GetSolutionOccupiedCells()
+    {
+        HashSet<Vector2Int> result =
+            new HashSet<Vector2Int>();
+
+
+        if (
+            currentLevel == null ||
+            currentLevel.Solution == null
+        )
+        {
+            return result;
+        }
+
+
+        foreach (
+            LevelSolutionEntry entry
+            in currentLevel.Solution
+        )
+        {
+            if (entry == null)
+            {
+                continue;
+            }
+
+
+            Vector2Int[] cells =
+                currentLevel.GetSolutionCells(
+                    entry
+                );
+
+
+            foreach (
+                Vector2Int coordinate
+                in cells
+            )
+            {
+                result.Add(
+                    coordinate
+                );
+            }
+        }
+
+
+        return result;
+    }
 
 
     // =====================================================
@@ -382,19 +601,7 @@ public class GameplayHintController :
 
     private void HandleGridChanged()
     {
-        // Раскрытая фигура:
-        //
-        // Пока её область не заполнена —
-        // показываем подсветку.
-        //
-        // Когда область заполнена —
-        // скрываем.
-        //
-        // Если игрок потом снова освободит
-        // эту область, подсветка появится
-        // обратно.
         RefreshRevealedPieceVisuals();
-
 
         RefreshUI();
     }
@@ -448,51 +655,51 @@ public class GameplayHintController :
     // =====================================================
 
     private void RefreshUI()
-{
-    int pieceHints =
-        PlayerResources.GetHintCount(
-            HintType.RevealPiece
-        );
-
-
-    int emptyHints =
-        PlayerResources.GetHintCount(
-            HintType.RevealEmptyCells
-        );
-
-
-    // Пока Level01 всё ещё использует
-    // старый общий текстовый счётчик.
-    if (hintCountText != null)
     {
-        hintCountText.text =
-            (
-                pieceHints +
-                emptyHints
-            )
-            .ToString();
+        int pieceHints =
+            PlayerResources.GetHintCount(
+                HintType.RevealPiece
+            );
+
+
+        int emptyHints =
+            PlayerResources.GetHintCount(
+                HintType.RevealEmptyCells
+            );
+
+
+        // Пока в Level01 остался
+        // один общий счётчик.
+        if (hintCountText != null)
+        {
+            hintCountText.text =
+                (
+                    pieceHints +
+                    emptyHints
+                )
+                .ToString();
+        }
+
+
+        if (revealPieceButton != null)
+        {
+            revealPieceButton.interactable =
+                pieceHints > 0
+                &&
+                GetPieceHintCandidates()
+                    .Count > 0;
+        }
+
+
+        if (revealEmptyCellsButton != null)
+        {
+            revealEmptyCellsButton.interactable =
+                emptyHints > 0
+                &&
+                GetEmptyCellCandidates()
+                    .Count > 0;
+        }
     }
-
-
-    if (revealPieceButton != null)
-    {
-        revealPieceButton.interactable =
-            pieceHints > 0
-            &&
-            GetPieceHintCandidates()
-                .Count > 0;
-    }
-
-
-    if (revealEmptyCellsButton != null)
-    {
-        revealEmptyCellsButton.interactable =
-            emptyHints > 0
-            &&
-            GetEmptyCellCandidates()
-                .Count > 0;
-    }
-}
 
 
     // =====================================================
