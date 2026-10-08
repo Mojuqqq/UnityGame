@@ -225,21 +225,21 @@ if (gameplayHintController != null)
 
     // Награда и статистика выдаются
     // только за первое прохождение.
-    if (!alreadyCompleted)
-    {
-        PlayerResources.AddCoins(
-            coinsPerLevel
-        );
+    PlayerStats
+    .RecordLevelCompletedToday();
 
 
-        PlayerStats
-            .RecordLevelCompletedToday();
+if (!alreadyCompleted)
+{
+    PlayerResources.AddCoins(
+        coinsPerLevel
+    );
 
 
-        Debug.Log(
-            $"Level reward: +{coinsPerLevel} coins."
-        );
-    }
+    Debug.Log(
+        $"Level reward: +{coinsPerLevel} coins."
+    );
+}
 
 
     LevelData nextLevel =
