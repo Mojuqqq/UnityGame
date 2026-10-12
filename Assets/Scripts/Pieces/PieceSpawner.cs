@@ -71,6 +71,13 @@ public class PieceSpawner : MonoBehaviour
         spawnedPieces =
             new List<PieceView>();
 
+public IReadOnlyList<PieceView>
+    SpawnedPieces =>
+        spawnedPieces;
+
+
+public RectTransform PiecesContainer =>
+    piecesContainer;
 
     // =====================================================
     // INTERNAL ROW

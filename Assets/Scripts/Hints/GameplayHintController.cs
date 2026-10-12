@@ -13,12 +13,6 @@ public class GameplayHintController :
     private GridManager gridManager;
 
 
-    [Header("Popup")]
-
-    [SerializeField]
-    private GameObject hintPopup;
-
-
     [Header("Buttons")]
 
     [SerializeField]
@@ -28,10 +22,13 @@ public class GameplayHintController :
     private Button revealEmptyCellsButton;
 
 
-    [Header("Counter")]
+[Header("Counters")]
 
-    [SerializeField]
-    private TMP_Text hintCountText;
+[SerializeField]
+private TMP_Text revealPieceCountText;
+
+[SerializeField]
+private TMP_Text emptyCellsCountText;
 
 
     [Header("Piece Hint")]
@@ -87,47 +84,7 @@ public class GameplayHintController :
 
         SubscribeToGrid();
 
-        CloseHintPopup();
-
         RefreshUI();
-    }
-
-
-    // =====================================================
-    // POPUP
-    // =====================================================
-
-    public void OpenHintPopup()
-    {
-        if (
-            currentLevel == null ||
-            hintPopup == null
-        )
-        {
-            return;
-        }
-
-
-        RefreshUI();
-
-
-        hintPopup.SetActive(
-            true
-        );
-    }
-
-
-    public void CloseHintPopup()
-    {
-        if (hintPopup == null)
-        {
-            return;
-        }
-
-
-        hintPopup.SetActive(
-            false
-        );
     }
 
 
@@ -191,7 +148,6 @@ public class GameplayHintController :
 
         RefreshUI();
 
-        CloseHintPopup();
     }
 
 
@@ -438,7 +394,6 @@ public class GameplayHintController :
 
         RefreshUI();
 
-        CloseHintPopup();
     }
 
 
@@ -655,52 +610,52 @@ public class GameplayHintController :
     // =====================================================
 
     private void RefreshUI()
+{
+    int pieceHints =
+        PlayerResources.GetHintCount(
+            HintType.RevealPiece
+        );
+
+
+    int emptyHints =
+        PlayerResources.GetHintCount(
+            HintType.RevealEmptyCells
+        );
+
+
+    if (revealPieceCountText != null)
     {
-        int pieceHints =
-            PlayerResources.GetHintCount(
-                HintType.RevealPiece
-            );
-
-
-        int emptyHints =
-            PlayerResources.GetHintCount(
-                HintType.RevealEmptyCells
-            );
-
-
-        // Пока в Level01 остался
-        // один общий счётчик.
-        if (hintCountText != null)
-        {
-            hintCountText.text =
-                (
-                    pieceHints +
-                    emptyHints
-                )
-                .ToString();
-        }
-
-
-        if (revealPieceButton != null)
-        {
-            revealPieceButton.interactable =
-                pieceHints > 0
-                &&
-                GetPieceHintCandidates()
-                    .Count > 0;
-        }
-
-
-        if (revealEmptyCellsButton != null)
-        {
-            revealEmptyCellsButton.interactable =
-                emptyHints > 0
-                &&
-                GetEmptyCellCandidates()
-                    .Count > 0;
-        }
+        revealPieceCountText.text =
+            pieceHints.ToString();
     }
 
+
+    if (emptyCellsCountText != null)
+    {
+        emptyCellsCountText.text =
+            emptyHints.ToString();
+    }
+
+
+    if (revealPieceButton != null)
+    {
+        revealPieceButton.interactable =
+            pieceHints > 0
+            &&
+            GetPieceHintCandidates()
+                .Count > 0;
+    }
+
+
+    if (revealEmptyCellsButton != null)
+    {
+        revealEmptyCellsButton.interactable =
+            emptyHints > 0
+            &&
+            GetEmptyCellCandidates()
+                .Count > 0;
+    }
+}
 
     // =====================================================
     // VISUAL RESET

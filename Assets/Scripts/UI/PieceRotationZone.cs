@@ -1,10 +1,9 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
+
 
 [RequireComponent(typeof(RectTransform))]
 public class PieceRotationZone :
-    MonoBehaviour,
-    IPointerDownHandler
+    MonoBehaviour
 {
     public static PieceRotationZone Instance
     {
@@ -21,32 +20,43 @@ public class PieceRotationZone :
 
     [SerializeField]
     [Range(0f, 1f)]
-    private float inactiveAlpha = 0.25f;
+    private float inactiveAlpha =
+        0.35f;
 
 
     [SerializeField]
     [Range(0f, 1f)]
-    private float activeAlpha = 0.65f;
+    private float activeAlpha =
+        0.70f;
 
 
     [SerializeField]
     [Range(0f, 1f)]
-    private float hoverAlpha = 1f;
+    private float hoverAlpha =
+        1f;
 
 
     [Header("Rotation")]
 
     [Tooltip(
-        "Через сколько секунд нахождения " +
-        "в зоне происходит следующий поворот."
+        "Задержка перед первым автоматическим поворотом."
     )]
     [SerializeField]
-    [Range(0.5f, 0.8f)]
-    private float hoverRotationInterval = 0.65f;
+    [Range(1f, 1.5f)]
+    private float initialHoverDelay =
+        1.2f;
+
+
+    [Tooltip(
+        "Интервал между следующими поворотами."
+    )]
+    [SerializeField]
+    [Range(0.6f, 0.8f)]
+    private float hoverRotationInterval =
+        0.7f;
 
 
     private RectTransform rectTransform;
-
 
     private PieceDragHandler activePiece;
 
@@ -57,6 +67,8 @@ public class PieceRotationZone :
 
 
     private bool pointerInside;
+
+    private bool firstRotationDone;
 
     private float hoverTimer;
 
@@ -82,6 +94,8 @@ public class PieceRotationZone :
         }
 
 
+        ResetHoverState();
+
         UpdateVisual();
     }
 
@@ -103,23 +117,14 @@ public class PieceRotationZone :
             !activePiece.IsCurrentlyDragging
         )
         {
-            hoverTimer =
-                0f;
-
-
-            pointerInside =
-                false;
-
+            ResetHoverState();
 
             UpdateVisual();
-
 
             return;
         }
 
 
-        // Даже если курсор перестал двигаться,
-        // таймер продолжает работать.
         UpdatePointerInsideState();
 
 
@@ -127,6 +132,9 @@ public class PieceRotationZone :
         {
             hoverTimer =
                 0f;
+
+            firstRotationDone =
+                false;
 
             return;
         }
@@ -136,9 +144,15 @@ public class PieceRotationZone :
             Time.unscaledDeltaTime;
 
 
+        float requiredTime =
+            firstRotationDone
+                ? hoverRotationInterval
+                : initialHoverDelay;
+
+
         if (
             hoverTimer <
-            hoverRotationInterval
+            requiredTime
         )
         {
             return;
@@ -149,13 +163,17 @@ public class PieceRotationZone :
             0f;
 
 
+        firstRotationDone =
+            true;
+
+
         activePiece
             .RotateFromExternalControl();
     }
 
 
     // =====================================================
-    // TRACK DRAGGED PIECE
+    // TRACK
     // =====================================================
 
     public void BeginTracking(
@@ -184,6 +202,9 @@ public class PieceRotationZone :
 
         hoverTimer =
             0f;
+
+        firstRotationDone =
+            false;
 
 
         UpdatePointerInsideState();
@@ -222,8 +243,6 @@ public class PieceRotationZone :
         UpdatePointerInsideState();
 
 
-        // Только что вошли в зону —
-        // начинаем новый интервал.
         if (
             pointerInside &&
             !wasInside
@@ -231,11 +250,12 @@ public class PieceRotationZone :
         {
             hoverTimer =
                 0f;
+
+            firstRotationDone =
+                false;
         }
 
 
-        // Вышли из зоны —
-        // тоже сбрасываем таймер.
         if (
             !pointerInside &&
             wasInside
@@ -243,6 +263,9 @@ public class PieceRotationZone :
         {
             hoverTimer =
                 0f;
+
+            firstRotationDone =
+                false;
         }
 
 
@@ -267,49 +290,14 @@ public class PieceRotationZone :
             null;
 
 
-        pointerInside =
-            false;
-
-
-        hoverTimer =
-            0f;
-
+        ResetHoverState();
 
         UpdateVisual();
     }
 
 
     // =====================================================
-    // CLICK / TAP
-    // =====================================================
-
-    public void OnPointerDown(
-        PointerEventData eventData
-    )
-    {
-        if (
-            activePiece == null ||
-            !activePiece.IsCurrentlyDragging
-        )
-        {
-            return;
-        }
-
-
-        // Нажатие = один моментальный поворот на 90°.
-        activePiece
-            .RotateFromExternalControl();
-
-
-        // После ручного поворота начинаем
-        // отсчёт hover заново.
-        hoverTimer =
-            0f;
-    }
-
-
-    // =====================================================
-    // POINTER INSIDE
+    // POINTER
     // =====================================================
 
     private void UpdatePointerInsideState()
@@ -333,6 +321,19 @@ public class PieceRotationZone :
 
 
         UpdateVisual();
+    }
+
+
+    private void ResetHoverState()
+    {
+        pointerInside =
+            false;
+
+        hoverTimer =
+            0f;
+
+        firstRotationDone =
+            false;
     }
 
 

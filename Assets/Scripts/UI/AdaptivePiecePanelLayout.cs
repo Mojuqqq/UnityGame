@@ -1,7 +1,9 @@
 using UnityEngine;
 
+
 [RequireComponent(typeof(RectTransform))]
-public class AdaptivePiecePanelLayout : MonoBehaviour
+public class AdaptivePiecePanelLayout :
+    MonoBehaviour
 {
     [Header("References")]
 
@@ -12,44 +14,72 @@ public class AdaptivePiecePanelLayout : MonoBehaviour
     private RectTransform piecesContainer;
 
     [SerializeField]
+    private RectTransform activePieceZone;
+
+    [SerializeField]
     private PieceSpawner pieceSpawner;
 
 
-    [Header("Panel Size")]
+    [Header("Bottom Area Height")]
 
     [SerializeField]
-    [Range(0.1f, 0.4f)]
-    private float heightRatio = 0.22f;
-
-    [SerializeField]
-    [Min(1f)]
-    private float minHeight = 280f;
+    [Range(0.1f, 0.35f)]
+    private float heightRatio =
+        0.20f;
 
     [SerializeField]
     [Min(1f)]
-    private float maxHeight = 420f;
+    private float minHeight =
+        260f;
+
+    [SerializeField]
+    [Min(1f)]
+    private float maxHeight =
+        360f;
 
 
-    [Header("Outer Margins")]
+    [Header("Margins")]
 
     [SerializeField]
     [Min(0f)]
-    private float horizontalMargin = 40f;
+    private float leftMargin =
+        40f;
 
     [SerializeField]
     [Min(0f)]
-    private float bottomMargin = 40f;
-
-
-    [Header("Inner Padding")]
+    private float rightMargin =
+        40f;
 
     [SerializeField]
     [Min(0f)]
-    private float horizontalPadding = 28f;
+    private float bottomMargin =
+        40f;
 
     [SerializeField]
     [Min(0f)]
-    private float verticalPadding = 24f;
+    private float gap =
+        24f;
+
+
+    [Header("Active Piece Zone")]
+
+    [SerializeField]
+    [Min(100f)]
+    private float activeZoneWidth =
+        220f;
+
+
+    [Header("Piece Panel Padding")]
+
+    [SerializeField]
+    [Min(0f)]
+    private float horizontalPadding =
+        24f;
+
+    [SerializeField]
+    [Min(0f)]
+    private float verticalPadding =
+        20f;
 
 
     private RectTransform panelRect;
@@ -102,14 +132,6 @@ public class AdaptivePiecePanelLayout : MonoBehaviour
             safeArea.rect.height;
 
 
-        float panelWidth =
-            Mathf.Max(
-                1f,
-                safeWidth -
-                horizontalMargin * 2f
-            );
-
-
         float panelHeight =
             Mathf.Clamp(
                 safeHeight *
@@ -120,29 +142,52 @@ public class AdaptivePiecePanelLayout : MonoBehaviour
             );
 
 
+        float zoneWidth =
+            Mathf.Clamp(
+                activeZoneWidth,
+                140f,
+                safeWidth * 0.32f
+            );
+
+
+        float panelWidth =
+            safeWidth
+            -
+            leftMargin
+            -
+            rightMargin
+            -
+            gap
+            -
+            zoneWidth;
+
+
+        panelWidth =
+            Mathf.Max(
+                1f,
+                panelWidth
+            );
+
+
         // =================================================
-        // PANEL
-        //
-        // Прижимаем его к нижней части SafeArea.
+        // PIECE PANEL
         // =================================================
 
         panelRect.anchorMin =
             new Vector2(
-                0.5f,
+                0f,
                 0f
             );
-
 
         panelRect.anchorMax =
             new Vector2(
-                0.5f,
+                0f,
                 0f
             );
 
-
         panelRect.pivot =
             new Vector2(
-                0.5f,
+                0f,
                 0f
             );
 
@@ -156,7 +201,7 @@ public class AdaptivePiecePanelLayout : MonoBehaviour
 
         panelRect.anchoredPosition =
             new Vector2(
-                0f,
+                leftMargin,
                 bottomMargin
             );
 
@@ -166,19 +211,63 @@ public class AdaptivePiecePanelLayout : MonoBehaviour
 
 
         // =================================================
+        // ACTIVE PIECE ZONE
+        // =================================================
+
+        if (activePieceZone != null)
+        {
+            activePieceZone.anchorMin =
+                new Vector2(
+                    0f,
+                    0f
+                );
+
+            activePieceZone.anchorMax =
+                new Vector2(
+                    0f,
+                    0f
+                );
+
+            activePieceZone.pivot =
+                new Vector2(
+                    0f,
+                    0f
+                );
+
+
+            activePieceZone.sizeDelta =
+                new Vector2(
+                    zoneWidth,
+                    panelHeight
+                );
+
+
+            activePieceZone.anchoredPosition =
+                new Vector2(
+                    leftMargin
+                    +
+                    panelWidth
+                    +
+                    gap,
+
+                    bottomMargin
+                );
+
+
+            activePieceZone.localScale =
+                Vector3.one;
+        }
+
+
+        // =================================================
         // PIECES CONTAINER
-        //
-        // Растягиваем внутри Panel,
-        // оставляя внутренние отступы.
         // =================================================
 
         piecesContainer.anchorMin =
             Vector2.zero;
 
-
         piecesContainer.anchorMax =
             Vector2.one;
-
 
         piecesContainer.pivot =
             new Vector2(
@@ -208,8 +297,6 @@ public class AdaptivePiecePanelLayout : MonoBehaviour
         Canvas.ForceUpdateCanvases();
 
 
-        // Если фигуры уже созданы —
-        // сразу пересобираем их layout.
         if (pieceSpawner != null)
         {
             pieceSpawner.RefreshLayout();
