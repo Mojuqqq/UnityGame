@@ -4,12 +4,13 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
+
 [RequireComponent(typeof(CanvasGroup))]
 public class PieceDragHandler :
     MonoBehaviour,
     IPointerDownHandler,
     IPointerUpHandler,
-    IPointerClickHandler,   
+    IPointerClickHandler,
     IBeginDragHandler,
     IDragHandler,
     IEndDragHandler
@@ -24,7 +25,6 @@ public class PieceDragHandler :
 
     [SerializeField]
     private RectTransform piecePanel;
-    private PieceSpawner pieceSpawner;
 
 
     [Header("Drag Visuals")]
@@ -32,9 +32,10 @@ public class PieceDragHandler :
     [SerializeField]
     [Range(0.1f, 1f)]
     private float dragAlpha = 0.68f;
+
     [SerializeField]
-[Min(0.01f)]
-private float pickupFadeDuration = 0.08f;
+    [Min(0.01f)]
+    private float pickupFadeDuration = 0.08f;
 
 
     [Header("Drop Animation")]
@@ -57,6 +58,9 @@ private float pickupFadeDuration = 0.08f;
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     private RectTransform gridRect;
+
+    private PieceSpawner pieceSpawner;
+
     private Coroutine alphaFadeRoutine;
 
 
@@ -65,6 +69,7 @@ private float pickupFadeDuration = 0.08f;
     // =====================================================
 
     private Transform homeParent;
+
     private int homeSiblingIndex;
 
     private Vector2 homeAnchoredPosition;
@@ -80,6 +85,10 @@ private float pickupFadeDuration = 0.08f;
     private Vector3 homeTopLeftWorld;
 
     private bool homeCaptured;
+
+
+    // Достижение:
+    // конкретную фигуру считаем только один раз.
     private bool countedForPlacementAchievement;
 
 
@@ -91,13 +100,13 @@ private float pickupFadeDuration = 0.08f;
 
     private Vector2Int placedOrigin;
 
-    private List<Vector2Int>
+    private readonly List<Vector2Int>
         placedCoordinates =
             new List<Vector2Int>();
 
 
     // =====================================================
-    // PREVIOUS PLACEMENT
+    // PREVIOUS GRID PLACEMENT
     // =====================================================
 
     private bool wasPlacedAtDragStart;
@@ -113,6 +122,9 @@ private float pickupFadeDuration = 0.08f;
 
     private bool isDragging;
     private bool isSettling;
+
+    // Нужен, чтобы отпускание после drag
+    // не воспринималось как обычный click.
     private bool draggedSincePointerDown;
 
     private bool hasValidPlacement;
@@ -139,45 +151,28 @@ private float pickupFadeDuration = 0.08f;
 
 
     public bool IsCurrentlyDragging =>
-    isDragging &&
-    !isSettling;
+        isDragging &&
+        !isSettling;
+
 
     // =====================================================
-    // CONFIGURE
+    // UNITY
     // =====================================================
 
-    public void Configure(
-        GridManager newGridManager,
-        RectTransform newDragLayer,
-        RectTransform newPiecePanel
-    )
+    private void Awake()
     {
-        gridManager =
-            newGridManager;
-
-        dragLayer =
-            newDragLayer;
-
-        piecePanel =
-            newPiecePanel;
+        pieceView =
+            GetComponent<PieceView>();
 
 
-        if (gridManager != null)
-        {
-            gridRect =
-                gridManager.GetComponent<
-                    RectTransform
-                >();
-        }
+        rectTransform =
+            GetComponent<RectTransform>();
+
+
+        canvasGroup =
+            GetComponent<CanvasGroup>();
     }
 
-    public void SetPieceSpawner(
-    PieceSpawner newPieceSpawner
-)
-{
-    pieceSpawner =
-        newPieceSpawner;
-}
 
     private void Start()
     {
@@ -190,9 +185,7 @@ private float pickupFadeDuration = 0.08f;
         )
         {
             gridRect =
-                gridManager.GetComponent<
-                    RectTransform
-                >();
+                gridManager.GetComponent<RectTransform>();
         }
     }
 
@@ -208,14 +201,53 @@ private float pickupFadeDuration = 0.08f;
         }
 
 
+        // Оставляем R для тестирования на ПК.
         if (
             Keyboard.current != null &&
-            Keyboard.current.rKey
-                .wasPressedThisFrame
+            Keyboard.current.rKey.wasPressedThisFrame
         )
         {
             RotatePiece();
         }
+    }
+
+
+    // =====================================================
+    // CONFIGURE
+    // =====================================================
+
+    public void Configure(
+        GridManager newGridManager,
+        RectTransform newDragLayer,
+        RectTransform newPiecePanel
+    )
+    {
+        gridManager =
+            newGridManager;
+
+
+        dragLayer =
+            newDragLayer;
+
+
+        piecePanel =
+            newPiecePanel;
+
+
+        if (gridManager != null)
+        {
+            gridRect =
+                gridManager.GetComponent<RectTransform>();
+        }
+    }
+
+
+    public void SetPieceSpawner(
+        PieceSpawner newPieceSpawner
+    )
+    {
+        pieceSpawner =
+            newPieceSpawner;
     }
 
 
@@ -231,8 +263,19 @@ private float pickupFadeDuration = 0.08f;
         }
 
 
+        if (
+            pieceView == null ||
+            rectTransform == null ||
+            canvasGroup == null
+        )
+        {
+            return;
+        }
+
+
         homeParent =
             transform.parent;
+
 
         homeSiblingIndex =
             transform.GetSiblingIndex();
@@ -245,8 +288,10 @@ private float pickupFadeDuration = 0.08f;
         homeAnchorMin =
             rectTransform.anchorMin;
 
+
         homeAnchorMax =
             rectTransform.anchorMax;
+
 
         homePivot =
             rectTransform.pivot;
@@ -254,6 +299,7 @@ private float pickupFadeDuration = 0.08f;
 
         homeCellSize =
             pieceView.CellSize;
+
 
         homeSpacing =
             pieceView.Spacing;
@@ -267,6 +313,8 @@ private float pickupFadeDuration = 0.08f;
             GetCurrentTopLeftWorld();
 
 
+        // Если PiecePanel не был назначен напрямую,
+        // пытаемся определить его через PiecesContainer.
         if (
             piecePanel == null &&
             homeParent != null &&
@@ -275,9 +323,7 @@ private float pickupFadeDuration = 0.08f;
         {
             piecePanel =
                 homeParent.parent
-                    .GetComponent<
-                        RectTransform
-                    >();
+                    .GetComponent<RectTransform>();
         }
 
 
@@ -286,81 +332,183 @@ private float pickupFadeDuration = 0.08f;
     }
 
 
+    public void RefreshPanelHome()
+    {
+        if (
+            isDragging ||
+            isSettling ||
+            isPlaced
+        )
+        {
+            return;
+        }
+
+
+        if (
+            pieceView == null ||
+            rectTransform == null ||
+            canvasGroup == null
+        )
+        {
+            return;
+        }
+
+
+        // Не перезаписываем Home,
+        // если объект сейчас вообще не в PiecePanel.
+        if (
+            piecePanel != null &&
+            !transform.IsChildOf(
+                piecePanel
+            )
+        )
+        {
+            return;
+        }
+
+
+        homeParent =
+            transform.parent;
+
+
+        homeSiblingIndex =
+            transform.GetSiblingIndex();
+
+
+        homeAnchoredPosition =
+            rectTransform.anchoredPosition;
+
+
+        homeAnchorMin =
+            rectTransform.anchorMin;
+
+
+        homeAnchorMax =
+            rectTransform.anchorMax;
+
+
+        homePivot =
+            rectTransform.pivot;
+
+
+        homeCellSize =
+            pieceView.CellSize;
+
+
+        homeSpacing =
+            pieceView.Spacing;
+
+
+        homeAlpha =
+            canvasGroup.alpha;
+
+
+        homeTopLeftWorld =
+            GetCurrentTopLeftWorld();
+
+
+        homeCaptured =
+            true;
+    }
+
+
     // =====================================================
-    // BEGIN DRAG
+    // POINTER
     // =====================================================
 
     public void OnPointerDown(
-    PointerEventData eventData
-)
-{
-    if (isSettling)
+        PointerEventData eventData
+    )
     {
-        return;
-    }
-
-    draggedSincePointerDown =
-    false;
-
-
-    CaptureHomePosition();
+        if (isSettling)
+        {
+            return;
+        }
 
 
-    StartAlphaFade(
-        dragAlpha,
-        pickupFadeDuration
-    );
-}
+        draggedSincePointerDown =
+            false;
 
-    public void OnPointerUp(
-    PointerEventData eventData
-)
-{
-   
-    if (isSettling)
-    {
-        return;
-    }
 
-    if (!isDragging)
-    {
+        CaptureHomePosition();
+
+
         StartAlphaFade(
-            homeAlpha,
+            dragAlpha,
             pickupFadeDuration
         );
     }
-}
 
-public void OnPointerClick(
-    PointerEventData eventData
-)
-{
-    if (
-        draggedSincePointerDown ||
-        isDragging ||
-        isSettling ||
-        isPlaced
+
+    public void OnPointerUp(
+        PointerEventData eventData
     )
     {
-        return;
+        if (isSettling)
+        {
+            return;
+        }
+
+
+        if (!isDragging)
+        {
+            StartAlphaFade(
+                homeAlpha,
+                pickupFadeDuration
+            );
+        }
     }
 
 
-    if (pieceView == null)
+    public void OnPointerClick(
+        PointerEventData eventData
+    )
     {
-        return;
+        if (
+            draggedSincePointerDown ||
+            isDragging ||
+            isSettling ||
+            isPlaced
+        )
+        {
+            return;
+        }
+
+
+        if (pieceView == null)
+        {
+            return;
+        }
+
+
+        // Поворачивать кликом разрешаем
+        // только фигуру, которая реально лежит в PiecePanel.
+        if (
+            piecePanel != null &&
+            !transform.IsChildOf(
+                piecePanel
+            )
+        )
+        {
+            return;
+        }
+
+
+        pieceView.RotateClockwise();
+
+
+        // После поворота габариты фигуры могли измениться.
+        // Поэтому пересобираем раскладку всей панели.
+        if (pieceSpawner != null)
+        {
+            pieceSpawner.RefreshLayout();
+        }
     }
 
 
-    pieceView.RotateClockwise();
-
-
-    if (pieceSpawner != null)
-    {
-        pieceSpawner.RefreshLayout();
-    }
-}
-
+    // =====================================================
+    // BEGIN DRAG
+    // =====================================================
 
     public void OnBeginDrag(
         PointerEventData eventData
@@ -371,7 +519,6 @@ public void OnPointerClick(
             return;
         }
 
-draggedSincePointerDown = true;
 
         if (
             pieceView == null ||
@@ -388,6 +535,10 @@ draggedSincePointerDown = true;
         }
 
 
+        draggedSincePointerDown =
+            true;
+
+
         CaptureHomePosition();
 
 
@@ -400,12 +551,14 @@ draggedSincePointerDown = true;
         isDragging =
             true;
 
+
         hasValidPlacement =
             false;
 
 
         lastPointerPosition =
             eventData.position;
+
 
         lastEventCamera =
             eventData.pressEventCamera;
@@ -414,11 +567,14 @@ draggedSincePointerDown = true;
         wasPlacedAtDragStart =
             isPlaced;
 
-            
+
+        // Если фигура уже стояла на Grid,
+        // временно освобождаем её клетки.
         if (isPlaced)
         {
             previousOrigin =
                 placedOrigin;
+
 
             previousRotationSteps =
                 pieceView.RotationSteps;
@@ -430,6 +586,7 @@ draggedSincePointerDown = true;
 
 
             placedCoordinates.Clear();
+
 
             isPlaced =
                 false;
@@ -451,11 +608,13 @@ draggedSincePointerDown = true;
                 0.5f
             );
 
+
         rectTransform.anchorMax =
             new Vector2(
                 0.5f,
                 0.5f
             );
+
 
         rectTransform.pivot =
             new Vector2(
@@ -504,6 +663,7 @@ draggedSincePointerDown = true;
         lastPointerPosition =
             eventData.position;
 
+
         lastEventCamera =
             eventData.pressEventCamera;
 
@@ -544,12 +704,14 @@ draggedSincePointerDown = true;
         isDragging =
             false;
 
+
         isSettling =
             true;
 
 
         canvasGroup.interactable =
             false;
+
 
         canvasGroup.blocksRaycasts =
             false;
@@ -571,12 +733,11 @@ draggedSincePointerDown = true;
         }
 
 
-        gridManager
-            .ClearPlacementPreview();
+        gridManager.ClearPlacementPreview();
 
 
         // -----------------------------------------------
-        // 2. Вернули в PiecePanel
+        // 2. Бросили обратно в PiecePanel
         // -----------------------------------------------
 
         if (
@@ -594,7 +755,8 @@ draggedSincePointerDown = true;
 
 
         // -----------------------------------------------
-        // 3. Раньше стояла на Grid
+        // 3. Если фигура была на Grid,
+        //    а drop невалидный — возвращаем её назад.
         // -----------------------------------------------
 
         if (wasPlacedAtDragStart)
@@ -613,7 +775,8 @@ draggedSincePointerDown = true;
 
 
         // -----------------------------------------------
-        // 4. Взяли из панели и бросили мимо
+        // 4. Фигура была из PiecePanel
+        //    и её бросили мимо.
         // -----------------------------------------------
 
         StartCoroutine(
@@ -623,7 +786,7 @@ draggedSincePointerDown = true;
 
 
     // =====================================================
-    // DROP ANIMATIONS
+    // DROP TO GRID
     // =====================================================
 
     private IEnumerator AnimateToGridAndPlace(
@@ -631,19 +794,32 @@ draggedSincePointerDown = true;
     )
     {
         if (
-            !gridManager
-                .TryGetCellTopLeftWorld(
-                    targetOrigin.x,
-                    targetOrigin.y,
-                    out Vector3 targetTopLeft
-                )
+            !gridManager.TryGetCellTopLeftWorld(
+                targetOrigin.x,
+                targetOrigin.y,
+                out Vector3 targetTopLeft
+            )
         )
         {
-            gridManager
-                .ClearPlacementPreview();
+            gridManager.ClearPlacementPreview();
 
-            yield return
-                AnimateBackHome();
+
+            if (wasPlacedAtDragStart)
+            {
+                pieceView.SetRotationSteps(
+                    previousRotationSteps
+                );
+
+
+                yield return
+                    AnimateBackToPreviousGrid();
+            }
+            else
+            {
+                yield return
+                    AnimateBackHome();
+            }
+
 
             yield break;
         }
@@ -676,6 +852,7 @@ draggedSincePointerDown = true;
                     previousRotationSteps
                 );
 
+
                 yield return
                     AnimateBackToPreviousGrid();
             }
@@ -685,46 +862,53 @@ draggedSincePointerDown = true;
                     AnimateBackHome();
             }
 
+
             yield break;
         }
 
 
         placedOrigin =
-    targetOrigin;
-
-placedCoordinates =
-    newCoordinates;
-
-isPlaced =
-    true;
+            targetOrigin;
 
 
+        placedCoordinates.Clear();
 
 
-if (!countedForPlacementAchievement)
-{
-    countedForPlacementAchievement =
-        true;
+        placedCoordinates.AddRange(
+            newCoordinates
+        );
 
 
-    PlayerStats
-        .RecordPiecePlaced();
-}
+        isPlaced =
+            true;
 
 
-FinishSettling();
+        if (!countedForPlacementAchievement)
+        {
+            countedForPlacementAchievement =
+                true;
+
+
+            PlayerStats.RecordPiecePlaced();
+        }
+
+
+        FinishSettling();
     }
 
+
+    // =====================================================
+    // RETURN TO PREVIOUS GRID POSITION
+    // =====================================================
 
     private IEnumerator AnimateBackToPreviousGrid()
     {
         if (
-            !gridManager
-                .TryGetCellTopLeftWorld(
-                    previousOrigin.x,
-                    previousOrigin.y,
-                    out Vector3 targetTopLeft
-                )
+            !gridManager.TryGetCellTopLeftWorld(
+                previousOrigin.x,
+                previousOrigin.y,
+                out Vector3 targetTopLeft
+            )
         )
         {
             yield return
@@ -771,8 +955,14 @@ FinishSettling();
         placedOrigin =
             previousOrigin;
 
-        placedCoordinates =
-            restoredCoordinates;
+
+        placedCoordinates.Clear();
+
+
+        placedCoordinates.AddRange(
+            restoredCoordinates
+        );
+
 
         isPlaced =
             true;
@@ -782,10 +972,13 @@ FinishSettling();
     }
 
 
+    // =====================================================
+    // RETURN TO PIECE PANEL
+    // =====================================================
+
     private IEnumerator AnimateBackHome()
     {
-        gridManager
-            .ClearPlacementPreview();
+        gridManager.ClearPlacementPreview();
 
 
         yield return
@@ -802,13 +995,26 @@ FinishSettling();
 
         placedCoordinates.Clear();
 
+
         isPlaced =
             false;
 
 
         FinishSettling();
+
+
+        // Фигура могла поменять ориентацию,
+        // поэтому после возвращения пересобираем панель.
+        if (pieceSpawner != null)
+        {
+            pieceSpawner.RefreshLayout();
+        }
     }
 
+
+    // =====================================================
+    // ANIMATION
+    // =====================================================
 
     private IEnumerator AnimateVisual(
         Vector3 targetTopLeftWorld,
@@ -824,8 +1030,10 @@ FinishSettling();
         float startCellSize =
             pieceView.CellSize;
 
+
         float startSpacing =
             pieceView.Spacing;
+
 
         float startAlpha =
             canvasGroup.alpha;
@@ -921,13 +1129,12 @@ FinishSettling();
 
 
     // =====================================================
-    // WORLD POSITION HELPERS
+    // WORLD POSITION
     // =====================================================
 
     private Vector3 GetCurrentTopLeftWorld()
     {
-        rectTransform
-            .ForceUpdateRectTransforms();
+        rectTransform.ForceUpdateRectTransforms();
 
 
         Vector3 localTopLeft =
@@ -949,8 +1156,7 @@ FinishSettling();
         Vector3 targetTopLeft
     )
     {
-        rectTransform
-            .ForceUpdateRectTransforms();
+        rectTransform.ForceUpdateRectTransforms();
 
 
         Vector3 currentTopLeft =
@@ -980,19 +1186,19 @@ FinishSettling();
 
 
         float targetCellSize =
-    Mathf.Lerp(
-        homeCellSize,
-        gridManager.CellSize,
-        progress
-    );
+            Mathf.Lerp(
+                homeCellSize,
+                gridManager.CellSize,
+                progress
+            );
 
 
-float targetSpacing =
-    Mathf.Lerp(
-        homeSpacing,
-        gridManager.Spacing,
-        progress
-    );
+        float targetSpacing =
+            Mathf.Lerp(
+                homeSpacing,
+                gridManager.Spacing,
+                progress
+            );
 
 
         pieceView.SetLayout(
@@ -1009,12 +1215,11 @@ float targetSpacing =
     {
         if (
             piecePanel != null &&
-            RectTransformUtility
-                .RectangleContainsScreenPoint(
-                    piecePanel,
-                    screenPosition,
-                    eventCamera
-                )
+            RectTransformUtility.RectangleContainsScreenPoint(
+                piecePanel,
+                screenPosition,
+                eventCamera
+            )
         )
         {
             return 0f;
@@ -1023,12 +1228,11 @@ float targetSpacing =
 
         if (
             gridRect != null &&
-            RectTransformUtility
-                .RectangleContainsScreenPoint(
-                    gridRect,
-                    screenPosition,
-                    eventCamera
-                )
+            RectTransformUtility.RectangleContainsScreenPoint(
+                gridRect,
+                screenPosition,
+                eventCamera
+            )
         )
         {
             return 1f;
@@ -1076,11 +1280,12 @@ float targetSpacing =
             total;
 
 
-        return Mathf.SmoothStep(
-            0f,
-            1f,
-            progress
-        );
+        return
+            Mathf.SmoothStep(
+                0f,
+                1f,
+                progress
+            );
     }
 
 
@@ -1091,13 +1296,12 @@ float targetSpacing =
     )
     {
         bool success =
-            RectTransformUtility
-                .ScreenPointToLocalPointInRectangle(
-                    target,
-                    screenPosition,
-                    eventCamera,
-                    out Vector2 localPoint
-                );
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                target,
+                screenPosition,
+                eventCamera,
+                out Vector2 localPoint
+            );
 
 
         if (!success)
@@ -1133,17 +1337,17 @@ float targetSpacing =
 
 
         Vector2 closestScreen =
-            RectTransformUtility
-                .WorldToScreenPoint(
-                    eventCamera,
-                    closestWorld
-                );
+            RectTransformUtility.WorldToScreenPoint(
+                eventCamera,
+                closestWorld
+            );
 
 
-        return Vector2.Distance(
-            screenPosition,
-            closestScreen
-        );
+        return
+            Vector2.Distance(
+                screenPosition,
+                closestScreen
+            );
     }
 
 
@@ -1177,13 +1381,12 @@ float targetSpacing =
 
 
         bool success =
-            RectTransformUtility
-                .ScreenPointToLocalPointInRectangle(
-                    rectTransform,
-                    screenPosition,
-                    eventCamera,
-                    out Vector2 localPoint
-                );
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                rectTransform,
+                screenPosition,
+                eventCamera,
+                out Vector2 localPoint
+            );
 
 
         if (!success)
@@ -1199,6 +1402,7 @@ float targetSpacing =
         float cellSize =
             pieceView.CellSize;
 
+
         float step =
             pieceView.CellSize +
             pieceView.Spacing;
@@ -1206,6 +1410,7 @@ float targetSpacing =
 
         int nearestIndex =
             0;
+
 
         float nearestDistance =
             float.MaxValue;
@@ -1223,12 +1428,14 @@ float targetSpacing =
 
             float left =
                 pieceRect.xMin +
-                cell.x * step;
+                cell.x *
+                step;
 
 
             float top =
                 pieceRect.yMax -
-                cell.y * step;
+                cell.y *
+                step;
 
 
             float right =
@@ -1277,10 +1484,12 @@ float targetSpacing =
             Vector2 center =
                 new Vector2(
                     left +
-                    cellSize * 0.5f,
+                    cellSize *
+                    0.5f,
 
                     top -
-                    cellSize * 0.5f
+                    cellSize *
+                    0.5f
                 );
 
 
@@ -1299,15 +1508,12 @@ float targetSpacing =
                 nearestDistance =
                     distance;
 
+
                 nearestIndex =
                     i;
             }
         }
 
-
-        // Если клик пришёл именно
-        // в промежуток между квадратами,
-        // берём ближайшую клетку.
 
         grabbedCellIndex =
             nearestIndex;
@@ -1340,13 +1546,12 @@ float targetSpacing =
 
 
         bool success =
-            RectTransformUtility
-                .ScreenPointToLocalPointInRectangle(
-                    dragLayer,
-                    screenPosition,
-                    eventCamera,
-                    out Vector2 pointerLocal
-                );
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                dragLayer,
+                screenPosition,
+                eventCamera,
+                out Vector2 pointerLocal
+            );
 
 
         if (!success)
@@ -1375,6 +1580,7 @@ float targetSpacing =
 
         float cellSize =
             pieceView.CellSize;
+
 
         float step =
             pieceView.CellSize +
@@ -1411,26 +1617,35 @@ float targetSpacing =
     }
 
 
+    // =====================================================
+    // ROTATION
+    // =====================================================
+
+    // Оставлено для совместимости/возможного
+    // внешнего управления в будущем.
     public void RotateFromExternalControl()
-{
-    if (
-        !isDragging ||
-        isSettling
-    )
     {
-        return;
+        if (
+            !isDragging ||
+            isSettling
+        )
+        {
+            return;
+        }
+
+
+        RotatePiece();
     }
 
 
-    RotatePiece();
-}
-
-    // =====================================================
-    // ROTATE
-    // =====================================================
-
     private void RotatePiece()
     {
+        if (pieceView == null)
+        {
+            return;
+        }
+
+
         pieceView.RotateClockwise();
 
 
@@ -1455,289 +1670,244 @@ float targetSpacing =
     // =====================================================
 
     private void UpdatePlacementPreview()
-{
-    gridManager
-        .ClearPlacementPreview();
-
-
-    hasValidPlacement =
-        false;
-
-
-    if (
-        pieceView.CurrentCells == null ||
-        pieceView.CurrentCells.Length == 0
-    )
     {
-        return;
-    }
+        gridManager.ClearPlacementPreview();
 
 
-    // =====================================================
-    // ВАРИАНТ 1
-    //
-    // Курсор находится прямо над Grid.
-    //
-    // Здесь сохраняем нашу прежнюю механику:
-    // именно схваченная клетка фигуры должна
-    // соответствовать клетке Grid под курсором.
-    // =====================================================
-
-    bool cursorIsOverGrid =
-        gridManager.TryGetCellUnderPointer(
-            lastPointerPosition,
-            lastEventCamera,
-            out GridCell hoveredCell
-        );
+        hasValidPlacement =
+            false;
 
 
-    if (cursorIsOverGrid)
-    {
-        grabbedCellIndex =
-            Mathf.Clamp(
-                grabbedCellIndex,
-                0,
-                pieceView.CurrentCells.Length - 1
-            );
-
-
-        Vector2Int grabbedCell =
-            pieceView.CurrentCells[
-                grabbedCellIndex
-            ];
-
-
-        currentOrigin =
-            new Vector2Int(
-                hoveredCell.X -
-                grabbedCell.x,
-
-                hoveredCell.Y -
-                grabbedCell.y
-            );
-    }
-
-    // =====================================================
-    // ВАРИАНТ 2
-    //
-    // Курсор находится СНАРУЖИ Grid,
-    // но часть фигуры уже висит над полем.
-    //
-    // Ищем клетку фигуры, которая сейчас
-    // визуально лучше всего совпадает с Grid.
-    // =====================================================
-
-    else
-    {
-        bool pieceOverlapsGrid =
-            TryGetPreviewOriginFromPieceOverlap(
-                out currentOrigin
-            );
-
-
-        if (!pieceOverlapsGrid)
+        if (
+            pieceView.CurrentCells == null ||
+            pieceView.CurrentCells.Length == 0
+        )
         {
             return;
         }
-    }
 
 
-    // =====================================================
-    // ПОКАЗЫВАЕМ GHOST
-    // =====================================================
-
-    hasValidPlacement =
-        gridManager.ShowPlacementPreview(
-            pieceView.CurrentCells,
-            currentOrigin,
-            pieceView.Definition.Color
-        );
-}   
-
-
-private bool TryGetPreviewOriginFromPieceOverlap(
-    out Vector2Int origin
-)
-{
-    origin =
-        Vector2Int.zero;
-
-
-    if (
-        pieceView == null ||
-        pieceView.CurrentCells == null ||
-        pieceView.CurrentCells.Length == 0 ||
-        gridManager == null
-    )
-    {
-        return false;
-    }
-
-
-    Rect pieceRect =
-        rectTransform.rect;
-
-
-    float cellSize =
-        pieceView.CellSize;
-
-
-    float step =
-        pieceView.CellSize +
-        pieceView.Spacing;
-
-
-    bool foundCandidate =
-        false;
-
-
-    float bestDistance =
-        float.MaxValue;
-
-
-    // Проверяем каждую клетку
-    // перетаскиваемой фигуры.
-    foreach (
-        Vector2Int pieceCell
-        in pieceView.CurrentCells
-    )
-    {
         // ---------------------------------------------
-        // Центр конкретного квадратика фигуры
-        // в локальных координатах PieceView.
+        // Вариант 1:
+        // курсор прямо над конкретной GridCell.
         // ---------------------------------------------
 
-        Vector3 localCenter =
-            new Vector3(
-                pieceRect.xMin +
-                pieceCell.x * step +
-                cellSize * 0.5f,
-
-                pieceRect.yMax -
-                pieceCell.y * step -
-                cellSize * 0.5f,
-
-                0f
+        bool cursorIsOverGrid =
+            gridManager.TryGetCellUnderPointer(
+                lastPointerPosition,
+                lastEventCamera,
+                out GridCell hoveredCell
             );
 
 
-        // Локальная позиция -> World.
-        Vector3 worldCenter =
-            rectTransform.TransformPoint(
-                localCenter
+        if (cursorIsOverGrid)
+        {
+            grabbedCellIndex =
+                Mathf.Clamp(
+                    grabbedCellIndex,
+                    0,
+                    pieceView.CurrentCells.Length - 1
+                );
+
+
+            Vector2Int grabbedCell =
+                pieceView.CurrentCells[
+                    grabbedCellIndex
+                ];
+
+
+            currentOrigin =
+                new Vector2Int(
+                    hoveredCell.X -
+                    grabbedCell.x,
+
+                    hoveredCell.Y -
+                    grabbedCell.y
+                );
+        }
+        else
+        {
+            // -----------------------------------------
+            // Вариант 2:
+            // курсор снаружи Grid,
+            // но сама фигура уже перекрывает поле.
+            // -----------------------------------------
+
+            bool pieceOverlapsGrid =
+                TryGetPreviewOriginFromPieceOverlap(
+                    out currentOrigin
+                );
+
+
+            if (!pieceOverlapsGrid)
+            {
+                return;
+            }
+        }
+
+
+        hasValidPlacement =
+            gridManager.ShowPlacementPreview(
+                pieceView.CurrentCells,
+                currentOrigin,
+                pieceView.Definition.Color
             );
+    }
 
 
-        // World -> Screen.
-        Vector2 screenCenter =
-            RectTransformUtility
-                .WorldToScreenPoint(
+    private bool TryGetPreviewOriginFromPieceOverlap(
+        out Vector2Int origin
+    )
+    {
+        origin =
+            Vector2Int.zero;
+
+
+        if (
+            pieceView == null ||
+            pieceView.CurrentCells == null ||
+            pieceView.CurrentCells.Length == 0 ||
+            gridManager == null
+        )
+        {
+            return false;
+        }
+
+
+        Rect pieceRect =
+            rectTransform.rect;
+
+
+        float cellSize =
+            pieceView.CellSize;
+
+
+        float step =
+            pieceView.CellSize +
+            pieceView.Spacing;
+
+
+        bool foundCandidate =
+            false;
+
+
+        float bestDistance =
+            float.MaxValue;
+
+
+        foreach (
+            Vector2Int pieceCell
+            in pieceView.CurrentCells
+        )
+        {
+            Vector3 localCenter =
+                new Vector3(
+                    pieceRect.xMin +
+                    pieceCell.x *
+                    step +
+                    cellSize *
+                    0.5f,
+
+                    pieceRect.yMax -
+                    pieceCell.y *
+                    step -
+                    cellSize *
+                    0.5f,
+
+                    0f
+                );
+
+
+            Vector3 worldCenter =
+                rectTransform.TransformPoint(
+                    localCenter
+                );
+
+
+            Vector2 screenCenter =
+                RectTransformUtility.WorldToScreenPoint(
                     lastEventCamera,
                     worldCenter
                 );
 
 
-        // ---------------------------------------------
-        // Проверяем:
-        // находится ли центр этой клетки фигуры
-        // сейчас над GridContainer?
-        // ---------------------------------------------
-
-        bool isOverGrid =
-            gridManager.TryGetCellUnderPointer(
-                screenCenter,
-                lastEventCamera,
-                out GridCell gridCell
-            );
+            bool isOverGrid =
+                gridManager.TryGetCellUnderPointer(
+                    screenCenter,
+                    lastEventCamera,
+                    out GridCell gridCell
+                );
 
 
-        if (
-            !isOverGrid ||
-            gridCell == null
-        )
-        {
-            continue;
-        }
+            if (
+                !isOverGrid ||
+                gridCell == null
+            )
+            {
+                continue;
+            }
 
 
-        // ---------------------------------------------
-        // Смотрим, насколько точно визуальная клетка
-        // совпала с ближайшей GridCell.
-        //
-        // Если несколько клеток фигуры находятся
-        // над Grid, выбираем наиболее точное совпадение.
-        // ---------------------------------------------
-
-        RectTransform gridCellRect =
-            gridCell.GetComponent<
-                RectTransform
-            >();
+            RectTransform gridCellRect =
+                gridCell.GetComponent<RectTransform>();
 
 
-        if (gridCellRect == null)
-        {
-            continue;
-        }
+            if (gridCellRect == null)
+            {
+                continue;
+            }
 
 
-        Vector3 gridWorldCenter =
-            gridCellRect.TransformPoint(
-                gridCellRect.rect.center
-            );
+            Vector3 gridWorldCenter =
+                gridCellRect.TransformPoint(
+                    gridCellRect.rect.center
+                );
 
 
-        Vector2 gridScreenCenter =
-            RectTransformUtility
-                .WorldToScreenPoint(
+            Vector2 gridScreenCenter =
+                RectTransformUtility.WorldToScreenPoint(
                     lastEventCamera,
                     gridWorldCenter
                 );
 
 
-        float distance =
-            Vector2.SqrMagnitude(
-                screenCenter -
-                gridScreenCenter
-            );
+            float distance =
+                Vector2.SqrMagnitude(
+                    screenCenter -
+                    gridScreenCenter
+                );
 
 
-        if (
-            distance >=
-            bestDistance
-        )
-        {
-            continue;
+            if (
+                distance >=
+                bestDistance
+            )
+            {
+                continue;
+            }
+
+
+            bestDistance =
+                distance;
+
+
+            origin =
+                new Vector2Int(
+                    gridCell.X -
+                    pieceCell.x,
+
+                    gridCell.Y -
+                    pieceCell.y
+                );
+
+
+            foundCandidate =
+                true;
         }
 
 
-        bestDistance =
-            distance;
-
-
-        // Эта клетка фигуры должна попасть
-        // в найденную клетку Grid.
-        //
-        // Значит origin всей фигуры:
-        //
-        // GridCell - PieceCell
-
-        origin =
-            new Vector2Int(
-                gridCell.X -
-                pieceCell.x,
-
-                gridCell.Y -
-                pieceCell.y
-            );
-
-
-        foundCandidate =
-            true;
+        return foundCandidate;
     }
-
-
-    return foundCandidate;
-}
 
 
     // =====================================================
@@ -1755,17 +1925,22 @@ private bool TryGetPreviewOriginFromPieceOverlap(
 
 
         return
-            RectTransformUtility
-                .RectangleContainsScreenPoint(
-                    piecePanel,
-                    eventData.position,
-                    eventData.pressEventCamera
-                );
+            RectTransformUtility.RectangleContainsScreenPoint(
+                piecePanel,
+                eventData.position,
+                eventData.pressEventCamera
+            );
     }
 
 
     private void RestoreHomeTransform()
     {
+        if (homeParent == null)
+        {
+            return;
+        }
+
+
         transform.SetParent(
             homeParent,
             false
@@ -1773,15 +1948,21 @@ private bool TryGetPreviewOriginFromPieceOverlap(
 
 
         transform.SetSiblingIndex(
-            homeSiblingIndex
+            Mathf.Clamp(
+                homeSiblingIndex,
+                0,
+                transform.parent.childCount - 1
+            )
         );
 
 
         rectTransform.anchorMin =
             homeAnchorMin;
 
+
         rectTransform.anchorMax =
             homeAnchorMax;
+
 
         rectTransform.pivot =
             homePivot;
@@ -1805,24 +1986,30 @@ private bool TryGetPreviewOriginFromPieceOverlap(
     private void FinishSettling()
     {
         if (alphaFadeRoutine != null)
-{
-    StopCoroutine(
-        alphaFadeRoutine
-    );
+        {
+            StopCoroutine(
+                alphaFadeRoutine
+            );
 
-    alphaFadeRoutine =
-        null;
-}
 
-        gridManager
-            .ClearPlacementPreview();
+            alphaFadeRoutine =
+                null;
+        }
+
+
+        if (gridManager != null)
+        {
+            gridManager.ClearPlacementPreview();
+        }
 
 
         canvasGroup.alpha =
             homeAlpha;
 
+
         canvasGroup.interactable =
             true;
+
 
         canvasGroup.blocksRaycasts =
             true;
@@ -1831,158 +2018,111 @@ private bool TryGetPreviewOriginFromPieceOverlap(
         hasValidPlacement =
             false;
 
+
         wasPlacedAtDragStart =
             false;
+
 
         isSettling =
             false;
     }
 
+
+    // =====================================================
+    // ALPHA
+    // =====================================================
+
     private void StartAlphaFade(
-    float targetAlpha,
-    float duration
-)
-{
-    if (alphaFadeRoutine != null)
+        float targetAlpha,
+        float duration
+    )
     {
-        StopCoroutine(
-            alphaFadeRoutine
-        );
+        if (alphaFadeRoutine != null)
+        {
+            StopCoroutine(
+                alphaFadeRoutine
+            );
+        }
+
+
+        alphaFadeRoutine =
+            StartCoroutine(
+                FadeAlpha(
+                    targetAlpha,
+                    duration
+                )
+            );
     }
 
 
-    alphaFadeRoutine =
-        StartCoroutine(
-            FadeAlpha(
-                targetAlpha,
-                duration
-            )
-        );
-}
-
-
-private IEnumerator FadeAlpha(
-    float targetAlpha,
-    float duration
-)
-{
-    float startAlpha =
-        canvasGroup.alpha;
-
-
-    if (duration <= 0f)
+    private IEnumerator FadeAlpha(
+        float targetAlpha,
+        float duration
+    )
     {
+        float startAlpha =
+            canvasGroup.alpha;
+
+
+        if (duration <= 0f)
+        {
+            canvasGroup.alpha =
+                targetAlpha;
+
+
+            alphaFadeRoutine =
+                null;
+
+
+            yield break;
+        }
+
+
+        float elapsed =
+            0f;
+
+
+        while (
+            elapsed <
+            duration
+        )
+        {
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+
+            float t =
+                Mathf.Clamp01(
+                    elapsed /
+                    duration
+                );
+
+
+            t =
+                Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    t
+                );
+
+
+            canvasGroup.alpha =
+                Mathf.Lerp(
+                    startAlpha,
+                    targetAlpha,
+                    t
+                );
+
+
+            yield return null;
+        }
+
+
         canvasGroup.alpha =
             targetAlpha;
 
+
         alphaFadeRoutine =
             null;
-
-        yield break;
     }
-
-
-    float elapsed =
-        0f;
-
-
-    while (elapsed < duration)
-    {
-        elapsed +=
-            Time.unscaledDeltaTime;
-
-
-        float t =
-            Mathf.Clamp01(
-                elapsed /
-                duration
-            );
-
-
-        // Мягче линейного перехода.
-        t =
-            Mathf.SmoothStep(
-                0f,
-                1f,
-                t
-            );
-
-
-        canvasGroup.alpha =
-            Mathf.Lerp(
-                startAlpha,
-                targetAlpha,
-                t
-            );
-
-
-        yield return null;
-    }
-
-
-    canvasGroup.alpha =
-        targetAlpha;
-
-
-    alphaFadeRoutine =
-        null;
-}
-
-
-public void RefreshPanelHome()
-{
-    if (
-        isDragging ||
-        isSettling ||
-        isPlaced
-    )
-    {
-        return;
-    }
-
-
-    homeParent =
-        transform.parent;
-
-
-    homeSiblingIndex =
-        transform.GetSiblingIndex();
-
-
-    homeAnchoredPosition =
-        rectTransform.anchoredPosition;
-
-
-    homeAnchorMin =
-        rectTransform.anchorMin;
-
-
-    homeAnchorMax =
-        rectTransform.anchorMax;
-
-
-    homePivot =
-        rectTransform.pivot;
-
-
-    homeCellSize =
-        pieceView.CellSize;
-
-
-    homeSpacing =
-        pieceView.Spacing;
-
-
-    homeAlpha =
-        canvasGroup.alpha;
-
-
-    homeTopLeftWorld =
-        GetCurrentTopLeftWorld();
-
-
-    homeCaptured =
-        true;
-}
-
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
 public class PieceSpawner : MonoBehaviour
 {
     [Header("Prefab")]
@@ -160,24 +161,22 @@ public class PieceSpawner : MonoBehaviour
 
 
             PieceDragHandler dragHandler =
-                piece.GetComponent<
-                    PieceDragHandler
-                >();
+                piece.GetComponent<PieceDragHandler>();
 
 
             if (dragHandler != null)
-{
-    dragHandler.Configure(
-        gridManager,
-        dragLayer,
-        piecePanel
-    );
+            {
+                dragHandler.Configure(
+                    gridManager,
+                    dragLayer,
+                    piecePanel
+                );
 
 
-    dragHandler.SetPieceSpawner(
-        this
-    );
-}
+                dragHandler.SetPieceSpawner(
+                    this
+                );
+            }
             else
             {
                 Debug.LogError(
@@ -194,13 +193,12 @@ public class PieceSpawner : MonoBehaviour
 
         Canvas.ForceUpdateCanvases();
 
-
         RefreshLayout();
     }
 
 
     // =====================================================
-    // PUBLIC REFRESH
+    // REFRESH
     // =====================================================
 
     public void RefreshLayout()
@@ -238,8 +236,6 @@ public class PieceSpawner : MonoBehaviour
             maxPanelCellSize;
 
 
-        // Связываем размер фигур в панели
-        // с размером клеток игрового Grid.
         if (
             gridManager != null &&
             gridManager.CellSize > 0f
@@ -248,7 +244,6 @@ public class PieceSpawner : MonoBehaviour
             effectiveMaxCellSize =
                 Mathf.Min(
                     maxPanelCellSize,
-
                     gridManager.CellSize *
                     gridCellRatio
                 );
@@ -276,36 +271,37 @@ public class PieceSpawner : MonoBehaviour
 
 
         // =================================================
-        // APPLY SIZE TO PIECES
+        // APPLY SIZE
+        // Только фигурам, которые сейчас в PiecePanel.
         // =================================================
 
         foreach (
-    PieceView piece
-    in spawnedPieces
-)
-{
-    if (
-        piece == null ||
-        piece.transform.parent !=
-        piecesContainer
-    )
-    {
-        continue;
-    }
+            PieceView piece
+            in spawnedPieces
+        )
+        {
+            if (
+                piece == null ||
+                piece.transform.parent !=
+                piecesContainer
+            )
+            {
+                continue;
+            }
 
 
-    piece.SetLayout(
-        selectedCellSize,
-        selectedInternalSpacing
-    );
-}
+            piece.SetLayout(
+                selectedCellSize,
+                selectedInternalSpacing
+            );
+        }
 
 
         Canvas.ForceUpdateCanvases();
 
 
         // =================================================
-        // BUILD FINAL ROWS
+        // BUILD + LAYOUT
         // =================================================
 
         List<PieceRow> rows =
@@ -320,40 +316,40 @@ public class PieceSpawner : MonoBehaviour
             rows
         );
 
+
+        // После перераскладки обновляем
+        // домашнюю позицию каждой фигуры.
         foreach (
-    PieceRow row
-    in rows
-)
-{
-    foreach (
-        PieceView piece
-        in row.pieces
-    )
-    {
-        if (piece == null)
+            PieceRow row
+            in rows
+        )
         {
-            continue;
+            foreach (
+                PieceView piece
+                in row.pieces
+            )
+            {
+                if (piece == null)
+                {
+                    continue;
+                }
+
+
+                PieceDragHandler dragHandler =
+                    piece.GetComponent<PieceDragHandler>();
+
+
+                if (dragHandler != null)
+                {
+                    dragHandler.RefreshPanelHome();
+                }
+            }
         }
-
-
-        PieceDragHandler dragHandler =
-            piece.GetComponent<
-                PieceDragHandler
-            >();
-
-
-        if (dragHandler != null)
-        {
-            dragHandler
-                .RefreshPanelHome();
-        }
-    }
-}
     }
 
 
     // =====================================================
-    // FIND BEST CELL SIZE
+    // BEST CELL SIZE
     // =====================================================
 
     private float FindBestCellSize(
@@ -411,8 +407,7 @@ public class PieceSpawner : MonoBehaviour
         );
 
 
-        return
-            minPanelCellSize;
+        return minPanelCellSize;
     }
 
 
@@ -439,14 +434,18 @@ public class PieceSpawner : MonoBehaviour
             in spawnedPieces
         )
         {
+            // Фигуры, которые находятся на Grid/DragLayer,
+            // в раскладке PiecePanel не участвуют.
             if (
-    piece == null ||
-    piece.transform.parent !=
-    piecesContainer
-)
-{
-    continue;
-}
+                piece == null ||
+                piece.transform.parent !=
+                piecesContainer
+            )
+            {
+                continue;
+            }
+
+
             Vector2 pieceSize =
                 CalculatePieceSize(
                     piece,
@@ -465,8 +464,7 @@ public class PieceSpawner : MonoBehaviour
 
             if (
                 currentRow.pieces.Count > 0 &&
-                requiredWidth >
-                availableWidth
+                requiredWidth > availableWidth
             )
             {
                 rows.Add(
@@ -539,11 +537,8 @@ public class PieceSpawner : MonoBehaviour
         }
 
 
-        int maxX =
-            0;
-
-        int maxY =
-            0;
+        int maxX = 0;
+        int maxY = 0;
 
 
         foreach (
@@ -590,11 +585,10 @@ public class PieceSpawner : MonoBehaviour
             internalSpacing;
 
 
-        return
-            new Vector2(
-                width,
-                height
-            );
+        return new Vector2(
+            width,
+            height
+        );
     }
 
 
@@ -658,7 +652,6 @@ public class PieceSpawner : MonoBehaviour
             );
 
 
-        // Верх центрированного блока.
         float currentY =
             totalHeight *
             0.5f;
@@ -686,9 +679,7 @@ public class PieceSpawner : MonoBehaviour
             )
             {
                 RectTransform rect =
-                    piece.GetComponent<
-                        RectTransform
-                    >();
+                    piece.GetComponent<RectTransform>();
 
 
                 rect.anchorMin =

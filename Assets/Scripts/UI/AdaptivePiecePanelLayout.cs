@@ -2,8 +2,7 @@ using UnityEngine;
 
 
 [RequireComponent(typeof(RectTransform))]
-public class AdaptivePiecePanelLayout :
-    MonoBehaviour
+public class AdaptivePiecePanelLayout : MonoBehaviour
 {
     [Header("References")]
 
@@ -21,44 +20,37 @@ public class AdaptivePiecePanelLayout :
 
     [SerializeField]
     [Range(0.1f, 0.4f)]
-    private float heightRatio =
-        0.20f;
+    private float heightRatio = 0.20f;
 
     [SerializeField]
     [Min(1f)]
-    private float minHeight =
-        260f;
+    private float minHeight = 260f;
 
     [SerializeField]
     [Min(1f)]
-    private float maxHeight =
-        360f;
+    private float maxHeight = 360f;
 
 
     [Header("Outer Margins")]
 
     [SerializeField]
     [Min(0f)]
-    private float horizontalMargin =
-        40f;
+    private float horizontalMargin = 40f;
 
     [SerializeField]
     [Min(0f)]
-    private float bottomMargin =
-        40f;
+    private float bottomMargin = 40f;
 
 
     [Header("Inner Padding")]
 
     [SerializeField]
     [Min(0f)]
-    private float horizontalPadding =
-        28f;
+    private float horizontalPadding = 28f;
 
     [SerializeField]
     [Min(0f)]
-    private float verticalPadding =
-        24f;
+    private float verticalPadding = 24f;
 
 
     private RectTransform panelRect;
@@ -121,16 +113,14 @@ public class AdaptivePiecePanelLayout :
 
         float panelHeight =
             Mathf.Clamp(
-                safeHeight *
-                heightRatio,
-
+                safeHeight * heightRatio,
                 minHeight,
                 maxHeight
             );
 
 
         // =================================================
-        // PANEL
+        // PIECE PANEL
         // =================================================
 
         panelRect.anchorMin =
@@ -139,13 +129,11 @@ public class AdaptivePiecePanelLayout :
                 0f
             );
 
-
         panelRect.anchorMax =
             new Vector2(
                 0.5f,
                 0f
             );
-
 
         panelRect.pivot =
             new Vector2(
@@ -179,10 +167,8 @@ public class AdaptivePiecePanelLayout :
         piecesContainer.anchorMin =
             Vector2.zero;
 
-
         piecesContainer.anchorMax =
             Vector2.one;
-
 
         piecesContainer.pivot =
             new Vector2(

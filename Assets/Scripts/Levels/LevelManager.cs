@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
 public class LevelManager : MonoBehaviour
 {
     [Header("Fallback Level")]
@@ -33,10 +34,8 @@ public class LevelManager : MonoBehaviour
     [SerializeField]
     private PieceSpawner pieceSpawner;
 
-
     [SerializeField]
-private GameplayHintController
-    gameplayHintController;
+    private GameplayHintController gameplayHintController;
 
 
     [Header("UI")]
@@ -45,18 +44,19 @@ private GameplayHintController
     private TMP_Text levelTitle;
 
 
+    [Header("Rewards")]
+
+    [SerializeField]
+    [Min(0)]
+    private int coinsPerLevel = 100;
+
+
     private LevelData currentLevel;
 
 
     public LevelData CurrentLevel =>
         currentLevel;
 
-    [Header("Rewards")]
-
-    [SerializeField]
-    [Min(0)]
-    private int coinsPerLevel =
-    100;
 
     private void Start()
     {
@@ -64,11 +64,14 @@ private GameplayHintController
     }
 
 
+    // =====================================================
+    // LOAD
+    // =====================================================
+
     public void LoadCurrentLevel()
     {
         currentLevel =
-            LevelSelectionState
-                .SelectedLevel;
+            LevelSelectionState.SelectedLevel;
 
 
         if (currentLevel == null)
@@ -96,8 +99,8 @@ private GameplayHintController
         )
         {
             Debug.LogError(
-                $"LevelManager: Invalid LevelData. " +
-                $"{errorMessage}"
+                "LevelManager: Invalid LevelData. " +
+                errorMessage
             );
 
             return;
@@ -108,6 +111,16 @@ private GameplayHintController
         {
             Debug.LogError(
                 "LevelManager: AdaptiveBoardLayout is not assigned."
+            );
+
+            return;
+        }
+
+
+        if (adaptivePiecePanelLayout == null)
+        {
+            Debug.LogError(
+                "LevelManager: AdaptivePiecePanelLayout is not assigned."
             );
 
             return;
@@ -144,50 +157,69 @@ private GameplayHintController
         }
 
 
-        // =================================================
-        // 1. CANVAS
-        // =================================================
-
-       Canvas.ForceUpdateCanvases();
-
-
-// 1. Размер Board.
-adaptiveBoardLayout.ApplyLayout(
-    currentLevel.Columns,
-    currentLevel.Rows
-);
-
-
-gridManager.Initialize(
-    currentLevel.Columns,
-    currentLevel.Rows,
-    currentLevel.BlockedCells
-);
-
-
-adaptivePiecePanelLayout.ApplyLayout();
-
-
-hintManager.Initialize(
-    currentLevel
-);
-
-
-pieceSpawner.BuildPieces(
-    currentLevel.Pieces
-);
-
-
-if (gameplayHintController != null)
-{
-    gameplayHintController.Initialize(
-        currentLevel
-    );
-}
+        Canvas.ForceUpdateCanvases();
 
 
         // =================================================
-        // 6. TITLE
+        // 1. BOARD SIZE
+        // =================================================
+
+        adaptiveBoardLayout.ApplyLayout(
+            currentLevel.Columns,
+            currentLevel.Rows
+        );
+
+
+        // =================================================
+        // 2. GRID
+        // =================================================
+
+        gridManager.Initialize(
+            currentLevel.Columns,
+            currentLevel.Rows,
+            currentLevel.BlockedCells
+        );
+
+
+        // =================================================
+        // 3. PIECE PANEL
+        // =================================================
+
+        adaptivePiecePanelLayout.ApplyLayout();
+
+
+        // =================================================
+        // 4. ROW / COLUMN HINTS
+        // =================================================
+
+        hintManager.Initialize(
+            currentLevel
+        );
+
+
+        // =================================================
+        // 5. PIECES
+        // =================================================
+
+        pieceSpawner.BuildPieces(
+            currentLevel.Pieces
+        );
+
+
+        // =================================================
+        // 6. GAMEPLAY HINTS
+        // =================================================
+
+        if (gameplayHintController != null)
+        {
+            gameplayHintController.Initialize(
+                currentLevel
+            );
+        }
+
+
+        // =================================================
+        // 7. TITLE
         // =================================================
 
         if (levelTitle != null)
@@ -205,63 +237,71 @@ if (gameplayHintController != null)
     }
 
 
+    // =====================================================
+    // COMPLETE
+    // =====================================================
+
     public void CompleteCurrentLevel()
-{
-    if (currentLevel == null)
     {
-        return;
-    }
+        if (currentLevel == null)
+        {
+            return;
+        }
 
 
-    bool alreadyCompleted =
-        ProgressManager
-            .IsLevelCompleted(
+        bool alreadyCompleted =
+            ProgressManager.IsLevelCompleted(
                 currentLevel.LevelNumber
             );
 
 
-    ProgressManager.CompleteLevel(
-        currentLevel.LevelNumber
-    );
+        ProgressManager.CompleteLevel(
+            currentLevel.LevelNumber
+        );
 
 
-    // Награда и статистика выдаются
-    // только за первое прохождение.
-    PlayerStats
-    .RecordLevelCompletedToday();
+        // Для ежедневного задания считаем
+        // каждое успешное прохождение.
+        PlayerStats.RecordLevelCompletedToday();
 
 
-if (!alreadyCompleted)
-{
-    PlayerResources.AddCoins(
-        coinsPerLevel
-    );
+        // Монеты выдаём только
+        // за первое прохождение уровня.
+        if (!alreadyCompleted)
+        {
+            PlayerResources.AddCoins(
+                coinsPerLevel
+            );
 
 
-    Debug.Log(
-        $"Level reward: +{coinsPerLevel} coins."
-    );
-}
+            Debug.Log(
+                $"Level reward: +{coinsPerLevel} coins."
+            );
+        }
 
 
-    LevelData nextLevel =
-        GetNextLevel();
+        LevelData nextLevel =
+            GetNextLevel();
 
 
-    if (nextLevel != null)
-    {
-        ProgressManager.UnlockLevel(
-            nextLevel.LevelNumber
+        if (nextLevel != null)
+        {
+            ProgressManager.UnlockLevel(
+                nextLevel.LevelNumber
+            );
+        }
+
+
+        Debug.Log(
+            $"Completed level " +
+            $"{currentLevel.LevelNumber}"
         );
     }
 
 
-    Debug.Log(
-        $"Completed level " +
-        $"{currentLevel.LevelNumber}"
-    );
-}
-
+    // =====================================================
+    // NEXT LEVEL
+    // =====================================================
 
     public bool HasNextLevel()
     {
