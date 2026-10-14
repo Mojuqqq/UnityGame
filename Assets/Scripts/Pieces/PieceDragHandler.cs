@@ -24,6 +24,7 @@ public class PieceDragHandler :
 
     [SerializeField]
     private RectTransform piecePanel;
+    private PieceSpawner pieceSpawner;
 
 
     [Header("Drag Visuals")]
@@ -112,6 +113,7 @@ private float pickupFadeDuration = 0.08f;
 
     private bool isDragging;
     private bool isSettling;
+    private bool draggedSincePointerDown;
 
     private bool hasValidPlacement;
 
@@ -134,16 +136,6 @@ private float pickupFadeDuration = 0.08f;
             0.5f,
             0.5f
         );
-
-
-    private ActivePieceZoneController
-    activePieceZoneController;
-
-
-private float dragBaseCellSize;
-
-private float dragBaseSpacing;
-
 
 
     public bool IsCurrentlyDragging =>
@@ -179,33 +171,13 @@ private float dragBaseSpacing;
         }
     }
 
-    public void SetActivePieceZoneController(
-    ActivePieceZoneController controller
+    public void SetPieceSpawner(
+    PieceSpawner newPieceSpawner
 )
 {
-    activePieceZoneController =
-        controller;
+    pieceSpawner =
+        newPieceSpawner;
 }
-
-
-public void CaptureCurrentAsPanelHome()
-{
-    CaptureHomePosition();
-}
-
-
-    private void Awake()
-    {
-        pieceView =
-            GetComponent<PieceView>();
-
-        rectTransform =
-            GetComponent<RectTransform>();
-
-        canvasGroup =
-            GetComponent<CanvasGroup>();
-    }
-
 
     private void Start()
     {
@@ -327,6 +299,9 @@ public void CaptureCurrentAsPanelHome()
         return;
     }
 
+    draggedSincePointerDown =
+    false;
+
 
     CaptureHomePosition();
 
@@ -361,25 +336,31 @@ public void OnPointerClick(
 )
 {
     if (
+        draggedSincePointerDown ||
         isDragging ||
-        isSettling
+        isSettling ||
+        isPlaced
     )
     {
         return;
     }
 
 
-    if (activePieceZoneController == null)
+    if (pieceView == null)
     {
         return;
     }
 
 
-    activePieceZoneController
-        .HandlePieceClick(
-            this
-        );
+    pieceView.RotateClockwise();
+
+
+    if (pieceSpawner != null)
+    {
+        pieceSpawner.RefreshLayout();
+    }
 }
+
 
     public void OnBeginDrag(
         PointerEventData eventData
@@ -390,6 +371,7 @@ public void OnPointerClick(
             return;
         }
 
+draggedSincePointerDown = true;
 
         if (
             pieceView == null ||
@@ -428,38 +410,11 @@ public void OnPointerClick(
         lastEventCamera =
             eventData.pressEventCamera;
 
-            if (PieceRotationZone.Instance != null)
-{
-    PieceRotationZone.Instance
-        .BeginTracking(
-            this,
-            eventData.position,
-            eventData.pressEventCamera
-        );
-}
-
 
         wasPlacedAtDragStart =
             isPlaced;
 
-            if (wasPlacedAtDragStart)
-{
-    dragBaseCellSize =
-        homeCellSize;
-
-    dragBaseSpacing =
-        homeSpacing;
-}
-else
-{
-    dragBaseCellSize =
-        pieceView.CellSize;
-
-    dragBaseSpacing =
-        pieceView.Spacing;
-}
-
-
+            
         if (isPlaced)
         {
             previousOrigin =
@@ -552,16 +507,6 @@ else
         lastEventCamera =
             eventData.pressEventCamera;
 
-            if (PieceRotationZone.Instance != null)
-{
-    PieceRotationZone.Instance
-        .UpdateTrackingPointer(
-            this,
-            eventData.position,
-            eventData.pressEventCamera
-        );
-}
-
 
         UpdateDragVisualSize(
             eventData.position,
@@ -595,13 +540,6 @@ else
             return;
         }
 
-        if (PieceRotationZone.Instance != null)
-{
-    PieceRotationZone.Instance
-        .EndTracking(
-            this
-        );
-}
 
         isDragging =
             false;
@@ -635,44 +573,6 @@ else
 
         gridManager
             .ClearPlacementPreview();
-
-            if (
-    activePieceZoneController != null
-    &&
-    activePieceZoneController
-        .IsPointerOverZone(
-            eventData
-        )
-)
-{
-    activePieceZoneController
-        .AcceptDraggedPiece(
-            this
-        );
-
-    return;
-}
-
-if (
-    activePieceZoneController != null
-    &&
-    activePieceZoneController
-        .IsActivePiece(
-            this
-        )
-    &&
-    IsPointerOverPiecePanel(
-        eventData
-    )
-)
-{
-    activePieceZoneController
-        .ReturnActiveToPanelAndSelectNext(
-            this
-        );
-
-    return;
-}
 
 
         // -----------------------------------------------
@@ -811,13 +711,6 @@ if (!countedForPlacementAchievement)
         .RecordPiecePlaced();
 }
 
-if (activePieceZoneController != null)
-{
-    activePieceZoneController
-        .NotifyPiecePlacedOnGrid(
-            this
-        );
-}
 
 FinishSettling();
     }
@@ -1088,15 +981,15 @@ FinishSettling();
 
         float targetCellSize =
     Mathf.Lerp(
-        dragBaseCellSize,
+        homeCellSize,
         gridManager.CellSize,
         progress
     );
 
 
-        float targetSpacing =
+float targetSpacing =
     Mathf.Lerp(
-        dragBaseSpacing,
+        homeSpacing,
         gridManager.Spacing,
         progress
     );
@@ -1127,18 +1020,6 @@ FinishSettling();
             return 0f;
         }
 
-        if (
-    activePieceZoneController != null
-    &&
-    activePieceZoneController
-        .ContainsScreenPoint(
-            screenPosition,
-            eventCamera
-        )
-)
-{
-    return 0f;
-}
 
         if (
             gridRect != null &&
@@ -1917,105 +1798,6 @@ private bool TryGetPreviewOriginFromPieceOverlap(
     }
 
 
-public void MoveToActiveZone(
-    RectTransform targetParent,
-    float cellSize,
-    float spacing
-)
-{
-    if (
-        targetParent == null ||
-        pieceView == null ||
-        rectTransform == null
-    )
-    {
-        return;
-    }
-
-
-    gridManager
-        .ClearPlacementPreview();
-
-
-    transform.SetParent(
-        targetParent,
-        false
-    );
-
-
-    rectTransform.anchorMin =
-        new Vector2(
-            0.5f,
-            0.5f
-        );
-
-    rectTransform.anchorMax =
-        new Vector2(
-            0.5f,
-            0.5f
-        );
-
-    rectTransform.pivot =
-        new Vector2(
-            0.5f,
-            0.5f
-        );
-
-
-    pieceView.SetLayout(
-        cellSize,
-        spacing
-    );
-
-
-    rectTransform.anchoredPosition =
-        Vector2.zero;
-
-
-    placedCoordinates.Clear();
-
-    isPlaced =
-        false;
-
-
-    FinishSettling();
-}
-
-
-public void ReturnToPanelHomeImmediate()
-{
-    gridManager
-        .ClearPlacementPreview();
-
-
-    RestoreHomeTransform();
-
-
-    placedCoordinates.Clear();
-
-    isPlaced =
-        false;
-
-
-    FinishSettling();
-}
-
-
-public void RotateWhileResting()
-{
-    if (
-        isDragging ||
-        isSettling ||
-        pieceView == null
-    )
-    {
-        return;
-    }
-
-
-    pieceView.RotateClockwise();
-}
-
     // =====================================================
     // FINISH
     // =====================================================
@@ -2145,14 +1927,62 @@ private IEnumerator FadeAlpha(
     alphaFadeRoutine =
         null;
 }
-private void OnDisable()
+
+
+public void RefreshPanelHome()
 {
-    if (PieceRotationZone.Instance != null)
+    if (
+        isDragging ||
+        isSettling ||
+        isPlaced
+    )
     {
-        PieceRotationZone.Instance
-            .EndTracking(
-                this
-            );
+        return;
     }
+
+
+    homeParent =
+        transform.parent;
+
+
+    homeSiblingIndex =
+        transform.GetSiblingIndex();
+
+
+    homeAnchoredPosition =
+        rectTransform.anchoredPosition;
+
+
+    homeAnchorMin =
+        rectTransform.anchorMin;
+
+
+    homeAnchorMax =
+        rectTransform.anchorMax;
+
+
+    homePivot =
+        rectTransform.pivot;
+
+
+    homeCellSize =
+        pieceView.CellSize;
+
+
+    homeSpacing =
+        pieceView.Spacing;
+
+
+    homeAlpha =
+        canvasGroup.alpha;
+
+
+    homeTopLeftWorld =
+        GetCurrentTopLeftWorld();
+
+
+    homeCaptured =
+        true;
 }
+
 }

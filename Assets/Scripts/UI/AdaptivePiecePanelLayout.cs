@@ -14,16 +14,13 @@ public class AdaptivePiecePanelLayout :
     private RectTransform piecesContainer;
 
     [SerializeField]
-    private RectTransform activePieceZone;
-
-    [SerializeField]
     private PieceSpawner pieceSpawner;
 
 
-    [Header("Bottom Area Height")]
+    [Header("Panel Size")]
 
     [SerializeField]
-    [Range(0.1f, 0.35f)]
+    [Range(0.1f, 0.4f)]
     private float heightRatio =
         0.20f;
 
@@ -38,16 +35,11 @@ public class AdaptivePiecePanelLayout :
         360f;
 
 
-    [Header("Margins")]
+    [Header("Outer Margins")]
 
     [SerializeField]
     [Min(0f)]
-    private float leftMargin =
-        40f;
-
-    [SerializeField]
-    [Min(0f)]
-    private float rightMargin =
+    private float horizontalMargin =
         40f;
 
     [SerializeField]
@@ -55,31 +47,18 @@ public class AdaptivePiecePanelLayout :
     private float bottomMargin =
         40f;
 
-    [SerializeField]
-    [Min(0f)]
-    private float gap =
-        24f;
 
-
-    [Header("Active Piece Zone")]
-
-    [SerializeField]
-    [Min(100f)]
-    private float activeZoneWidth =
-        220f;
-
-
-    [Header("Piece Panel Padding")]
+    [Header("Inner Padding")]
 
     [SerializeField]
     [Min(0f)]
     private float horizontalPadding =
-        24f;
+        28f;
 
     [SerializeField]
     [Min(0f)]
     private float verticalPadding =
-        20f;
+        24f;
 
 
     private RectTransform panelRect;
@@ -132,6 +111,14 @@ public class AdaptivePiecePanelLayout :
             safeArea.rect.height;
 
 
+        float panelWidth =
+            Mathf.Max(
+                1f,
+                safeWidth -
+                horizontalMargin * 2f
+            );
+
+
         float panelHeight =
             Mathf.Clamp(
                 safeHeight *
@@ -142,52 +129,27 @@ public class AdaptivePiecePanelLayout :
             );
 
 
-        float zoneWidth =
-            Mathf.Clamp(
-                activeZoneWidth,
-                140f,
-                safeWidth * 0.32f
-            );
-
-
-        float panelWidth =
-            safeWidth
-            -
-            leftMargin
-            -
-            rightMargin
-            -
-            gap
-            -
-            zoneWidth;
-
-
-        panelWidth =
-            Mathf.Max(
-                1f,
-                panelWidth
-            );
-
-
         // =================================================
-        // PIECE PANEL
+        // PANEL
         // =================================================
 
         panelRect.anchorMin =
             new Vector2(
-                0f,
+                0.5f,
                 0f
             );
+
 
         panelRect.anchorMax =
             new Vector2(
-                0f,
+                0.5f,
                 0f
             );
 
+
         panelRect.pivot =
             new Vector2(
-                0f,
+                0.5f,
                 0f
             );
 
@@ -201,7 +163,7 @@ public class AdaptivePiecePanelLayout :
 
         panelRect.anchoredPosition =
             new Vector2(
-                leftMargin,
+                0f,
                 bottomMargin
             );
 
@@ -211,63 +173,16 @@ public class AdaptivePiecePanelLayout :
 
 
         // =================================================
-        // ACTIVE PIECE ZONE
-        // =================================================
-
-        if (activePieceZone != null)
-        {
-            activePieceZone.anchorMin =
-                new Vector2(
-                    0f,
-                    0f
-                );
-
-            activePieceZone.anchorMax =
-                new Vector2(
-                    0f,
-                    0f
-                );
-
-            activePieceZone.pivot =
-                new Vector2(
-                    0f,
-                    0f
-                );
-
-
-            activePieceZone.sizeDelta =
-                new Vector2(
-                    zoneWidth,
-                    panelHeight
-                );
-
-
-            activePieceZone.anchoredPosition =
-                new Vector2(
-                    leftMargin
-                    +
-                    panelWidth
-                    +
-                    gap,
-
-                    bottomMargin
-                );
-
-
-            activePieceZone.localScale =
-                Vector3.one;
-        }
-
-
-        // =================================================
         // PIECES CONTAINER
         // =================================================
 
         piecesContainer.anchorMin =
             Vector2.zero;
 
+
         piecesContainer.anchorMax =
             Vector2.one;
+
 
         piecesContainer.pivot =
             new Vector2(

@@ -71,13 +71,6 @@ public class PieceSpawner : MonoBehaviour
         spawnedPieces =
             new List<PieceView>();
 
-public IReadOnlyList<PieceView>
-    SpawnedPieces =>
-        spawnedPieces;
-
-
-public RectTransform PiecesContainer =>
-    piecesContainer;
 
     // =====================================================
     // INTERNAL ROW
@@ -173,13 +166,18 @@ public RectTransform PiecesContainer =>
 
 
             if (dragHandler != null)
-            {
-                dragHandler.Configure(
-                    gridManager,
-                    dragLayer,
-                    piecePanel
-                );
-            }
+{
+    dragHandler.Configure(
+        gridManager,
+        dragLayer,
+        piecePanel
+    );
+
+
+    dragHandler.SetPieceSpawner(
+        this
+    );
+}
             else
             {
                 Debug.LogError(
@@ -282,15 +280,25 @@ public RectTransform PiecesContainer =>
         // =================================================
 
         foreach (
-            PieceView piece
-            in spawnedPieces
-        )
-        {
-            piece.SetLayout(
-                selectedCellSize,
-                selectedInternalSpacing
-            );
-        }
+    PieceView piece
+    in spawnedPieces
+)
+{
+    if (
+        piece == null ||
+        piece.transform.parent !=
+        piecesContainer
+    )
+    {
+        continue;
+    }
+
+
+    piece.SetLayout(
+        selectedCellSize,
+        selectedInternalSpacing
+    );
+}
 
 
         Canvas.ForceUpdateCanvases();
@@ -311,6 +319,36 @@ public RectTransform PiecesContainer =>
         LayoutRows(
             rows
         );
+
+        foreach (
+    PieceRow row
+    in rows
+)
+{
+    foreach (
+        PieceView piece
+        in row.pieces
+    )
+    {
+        if (piece == null)
+        {
+            continue;
+        }
+
+
+        PieceDragHandler dragHandler =
+            piece.GetComponent<
+                PieceDragHandler
+            >();
+
+
+        if (dragHandler != null)
+        {
+            dragHandler
+                .RefreshPanelHome();
+        }
+    }
+}
     }
 
 
@@ -401,6 +439,14 @@ public RectTransform PiecesContainer =>
             in spawnedPieces
         )
         {
+            if (
+    piece == null ||
+    piece.transform.parent !=
+    piecesContainer
+)
+{
+    continue;
+}
             Vector2 pieceSize =
                 CalculatePieceSize(
                     piece,
