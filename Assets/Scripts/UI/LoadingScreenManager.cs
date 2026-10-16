@@ -42,12 +42,22 @@ public class LoadingScreenManager : MonoBehaviour
 
     [Tooltip(
         "Минимальное время показа загрузочного экрана. " +
-        "Полоса не заполнится быстрее этого времени."
+        "Полоса будет заполняться не быстрее этого времени."
     )]
     [SerializeField]
     [Min(0.1f)]
     private float minimumDisplayTime =
-        3f;
+        5f;
+
+
+    [Tooltip(
+        "Сколько времени показывать 100% " +
+        "перед переходом на следующую сцену."
+    )]
+    [SerializeField]
+    [Min(0f)]
+    private float completionHoldTime =
+        0.15f;
 
 
     // =====================================================
@@ -57,8 +67,8 @@ public class LoadingScreenManager : MonoBehaviour
     [Header("Test")]
 
     [Tooltip(
-        "Тестировать только анимацию полосы, " +
-        "не переходя на другую сцену."
+        "Тестировать только полосу загрузки " +
+        "без перехода на другую сцену."
     )]
     [SerializeField]
     private bool testMode =
@@ -66,7 +76,7 @@ public class LoadingScreenManager : MonoBehaviour
 
 
     [Tooltip(
-        "После достижения 100% повторять тест."
+        "Повторять тест полосы после 100%."
     )]
     [SerializeField]
     private bool loopTest =
@@ -125,7 +135,7 @@ public class LoadingScreenManager : MonoBehaviour
 
 
     // =====================================================
-    // BAR CONFIGURATION
+    // FILL SETUP
     // =====================================================
 
     private void ConfigureFill()
@@ -149,7 +159,9 @@ public class LoadingScreenManager : MonoBehaviour
             Image.FillMethod.Horizontal;
 
 
-        // 0 = заполнение слева направо.
+        // Horizontal:
+        // 0 = Left
+        // 1 = Right
         loadingFill.fillOrigin =
             0;
 
@@ -164,7 +176,7 @@ public class LoadingScreenManager : MonoBehaviour
 
 
     // =====================================================
-    // PROGRESS
+    // SET PROGRESS
     // =====================================================
 
     private void SetProgress(
@@ -177,12 +189,20 @@ public class LoadingScreenManager : MonoBehaviour
             );
 
 
+        // ---------------------------------------------
+        // BAR
+        // ---------------------------------------------
+
         if (loadingFill != null)
         {
             loadingFill.fillAmount =
                 value;
         }
 
+
+        // ---------------------------------------------
+        // TEXT
+        // ---------------------------------------------
 
         if (loadingText != null)
         {
@@ -231,7 +251,8 @@ public class LoadingScreenManager : MonoBehaviour
         }
 
 
-        // Не позволяем Unity переключить сцену сама.
+        // Сцену можно загрузить,
+        // но пока запрещаем Unity её активировать.
         operation.allowSceneActivation =
             false;
 
@@ -239,21 +260,7 @@ public class LoadingScreenManager : MonoBehaviour
         while (true)
         {
             // -----------------------------------------
-            // 1. Реальный прогресс Unity
-            // -----------------------------------------
-
-            // LoadSceneAsync доходит примерно до 0.9,
-            // пока allowSceneActivation = false.
-
-            float realProgress =
-                Mathf.Clamp01(
-                    operation.progress /
-                    0.9f
-                );
-
-
-            // -----------------------------------------
-            // 2. Прогресс минимального времени
+            // TIMER
             // -----------------------------------------
 
             float elapsed =
@@ -269,18 +276,41 @@ public class LoadingScreenManager : MonoBehaviour
 
 
             // -----------------------------------------
-            // 3. Что показываем игроку
+            // UNITY SCENE STATE
             // -----------------------------------------
 
-            // Полоса не может:
-            // - обогнать реальную загрузку;
-            // - заполниться быстрее minimumDisplayTime.
+            bool sceneReady =
+                operation.progress >=
+                0.9f;
 
-            float displayedProgress =
-                Mathf.Min(
-                    realProgress,
-                    timeProgress
-                );
+
+            // -----------------------------------------
+            // VISUAL PROGRESS
+            // -----------------------------------------
+
+            float displayedProgress;
+
+
+            if (sceneReady)
+            {
+                // Сцена уже готова.
+                // Просто продолжаем красивую анимацию
+                // по таймеру.
+                displayedProgress =
+                    timeProgress;
+            }
+            else
+            {
+                // Если наши минимальные секунды
+                // уже закончились, но Unity ещё
+                // не загрузила сцену,
+                // держимся на 99%.
+                displayedProgress =
+                    Mathf.Min(
+                        timeProgress,
+                        0.99f
+                    );
+            }
 
 
             SetProgress(
@@ -289,22 +319,17 @@ public class LoadingScreenManager : MonoBehaviour
 
 
             // -----------------------------------------
-            // 4. Можно ли открыть следующую сцену?
+            // FINISH
             // -----------------------------------------
 
-            bool sceneLoaded =
-                operation.progress >=
-                0.9f;
-
-
-            bool minimumTimeFinished =
+            bool timerFinished =
                 timeProgress >=
                 1f;
 
 
             if (
-                sceneLoaded &&
-                minimumTimeFinished
+                sceneReady &&
+                timerFinished
             )
             {
                 break;
@@ -315,22 +340,37 @@ public class LoadingScreenManager : MonoBehaviour
         }
 
 
-        // Показываем полноценные 100%.
+        // =================================================
+        // 100%
+        // =================================================
+
         SetProgress(
             1f
         );
 
 
-        // Оставляем 100% хотя бы на один кадр,
-        // чтобы он реально успел отрисоваться.
-        yield return null;
+        Debug.Log(
+            "LoadingScreenManager: " +
+            $"loading screen displayed for " +
+            $"{Time.unscaledTime - startTime:F2} seconds."
+        );
 
 
+        // Дадим игроку увидеть заполненную полосу.
+        if (completionHoldTime > 0f)
+        {
+            yield return
+                new WaitForSecondsRealtime(
+                    completionHoldTime
+                );
+        }
+
+
+        // Теперь разрешаем переключить сцену.
         operation.allowSceneActivation =
             true;
 
 
-        // Ждём фактической активации сцены.
         while (!operation.isDone)
         {
             yield return null;
@@ -339,7 +379,7 @@ public class LoadingScreenManager : MonoBehaviour
 
 
     // =====================================================
-    // TEST MODE
+    // TEST
     // =====================================================
 
     private IEnumerator RunTest()
