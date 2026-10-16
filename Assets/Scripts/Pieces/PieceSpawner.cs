@@ -48,13 +48,11 @@ public class PieceSpawner : MonoBehaviour
     private float gridCellRatio = 0.38f;
 
 
-    [Tooltip(
-        "Отступ между клетками внутри фигуры " +
-        "относительно размера клетки."
-    )]
-    [SerializeField]
-    [Range(0f, 0.3f)]
-    private float internalSpacingRatio = 0.10f;
+    [Header("Cell Spacing")]
+
+[SerializeField]
+[Min(0f)]
+private float internalCellSpacing = 4f;
 
 
     [Header("Piece Spacing")]
@@ -258,16 +256,34 @@ public class PieceSpawner : MonoBehaviour
 
 
         float selectedCellSize =
-            FindBestCellSize(
-                availableWidth,
-                availableHeight,
-                effectiveMaxCellSize
-            );
+    FindBestCellSize(
+        availableWidth,
+        availableHeight,
+        effectiveMaxCellSize
+    );
 
 
-        float selectedInternalSpacing =
-            selectedCellSize *
-            internalSpacingRatio;
+// Используем целые значения,
+// чтобы Unity не округлял разные промежутки
+// в разные стороны.
+selectedCellSize =
+    Mathf.Round(
+        selectedCellSize
+    );
+
+
+float selectedInternalSpacing =
+    Mathf.Round(
+        internalCellSpacing
+    );
+
+
+// Не даём отступу случайно стать меньше 1.
+selectedInternalSpacing =
+    Mathf.Max(
+        1f,
+        selectedInternalSpacing
+    );
 
 
         // =================================================
@@ -368,8 +384,7 @@ public class PieceSpawner : MonoBehaviour
         )
         {
             float internalSpacing =
-                candidate *
-                internalSpacingRatio;
+    internalCellSpacing;
 
 
             List<PieceRow> rows =
