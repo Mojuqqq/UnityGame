@@ -3,14 +3,21 @@ using UnityEngine;
 using UnityEngine.UI;
 
 
-public class HintShopController :
-    MonoBehaviour
+public class HintShopController : MonoBehaviour
 {
+    // =====================================================
+    // POPUP
+    // =====================================================
+
     [Header("Popup")]
 
     [SerializeField]
     private GameObject shopPopup;
 
+
+    // =====================================================
+    // SELECTED HINT
+    // =====================================================
 
     [Header("Selected Hint")]
 
@@ -21,7 +28,11 @@ public class HintShopController :
     private TMP_Text ownedText;
 
 
-    [Header("Slider")]
+    // =====================================================
+    // QUANTITY
+    // =====================================================
+
+    [Header("Quantity")]
 
     [SerializeField]
     private Slider quantitySlider;
@@ -32,12 +43,26 @@ public class HintShopController :
     [SerializeField]
     private TMP_Text costText;
 
+    [SerializeField]
+    private Button minusButton;
+
+    [SerializeField]
+    private Button plusButton;
+
+
+    // =====================================================
+    // PURCHASE BUTTONS
+    // =====================================================
 
     [Header("Buttons")]
 
     [SerializeField]
     private Button buyButton;
 
+
+    // =====================================================
+    // MAIN MENU COUNTERS
+    // =====================================================
 
     [Header("Main Menu Counters")]
 
@@ -51,6 +76,10 @@ public class HintShopController :
     private TMP_Text coinsText;
 
 
+    // =====================================================
+    // ICONS
+    // =====================================================
+
     [Header("Icons")]
 
     [SerializeField]
@@ -59,6 +88,10 @@ public class HintShopController :
     [SerializeField]
     private Sprite emptyCellsIcon;
 
+
+    // =====================================================
+    // PRICES
+    // =====================================================
 
     [Header("Prices")]
 
@@ -73,6 +106,10 @@ public class HintShopController :
         30;
 
 
+    // =====================================================
+    // PURCHASE
+    // =====================================================
+
     [Header("Purchase")]
 
     [SerializeField]
@@ -80,6 +117,10 @@ public class HintShopController :
     private int maxPurchaseAmount =
         10;
 
+
+    // =====================================================
+    // REWARDED AD
+    // =====================================================
 
     [Header("Rewarded Ad")]
 
@@ -98,36 +139,21 @@ public class HintShopController :
         true;
 
 
+    // =====================================================
+    // STATE
+    // =====================================================
+
     private HintType selectedType =
         HintType.RevealPiece;
 
 
+    // =====================================================
+    // UNITY
+    // =====================================================
+
     private void Start()
     {
-        if (quantitySlider != null)
-        {
-            quantitySlider.minValue =
-                1;
-
-
-            quantitySlider.maxValue =
-                maxPurchaseAmount;
-
-
-            quantitySlider.wholeNumbers =
-                true;
-
-
-            quantitySlider.value =
-                1;
-
-
-            quantitySlider.onValueChanged
-                .AddListener(
-                    OnQuantityChanged
-                );
-        }
-
+        ConfigureSlider();
 
         CloseShop();
 
@@ -136,7 +162,42 @@ public class HintShopController :
 
 
     // =====================================================
-    // OPEN
+    // SLIDER SETUP
+    // =====================================================
+
+    private void ConfigureSlider()
+    {
+        if (quantitySlider == null)
+        {
+            return;
+        }
+
+
+        quantitySlider.minValue =
+            1;
+
+
+        quantitySlider.maxValue =
+            maxPurchaseAmount;
+
+
+        quantitySlider.wholeNumbers =
+            true;
+
+
+        quantitySlider.value =
+            1;
+
+
+        quantitySlider.onValueChanged
+            .AddListener(
+                OnQuantityChanged
+            );
+    }
+
+
+    // =====================================================
+    // OPEN SHOP
     // =====================================================
 
     public void OpenRevealPieceShop()
@@ -194,7 +255,7 @@ public class HintShopController :
 
 
     // =====================================================
-    // SLIDER
+    // QUANTITY
     // =====================================================
 
     public void OnQuantityChanged(
@@ -202,6 +263,38 @@ public class HintShopController :
     )
     {
         RefreshPopup();
+    }
+
+
+    public void IncreaseQuantity()
+    {
+        if (quantitySlider == null)
+        {
+            return;
+        }
+
+
+        quantitySlider.value =
+            Mathf.Min(
+                quantitySlider.value + 1f,
+                quantitySlider.maxValue
+            );
+    }
+
+
+    public void DecreaseQuantity()
+    {
+        if (quantitySlider == null)
+        {
+            return;
+        }
+
+
+        quantitySlider.value =
+            Mathf.Max(
+                quantitySlider.value - 1f,
+                quantitySlider.minValue
+            );
     }
 
 
@@ -276,11 +369,6 @@ public class HintShopController :
         }
 
 
-        // ВРЕМЕННАЯ ЗАГЛУШКА.
-        //
-        // Когда подключим реальную рекламу,
-        // этот вызов должен происходить
-        // только после успешного просмотра.
         GrantAdReward();
     }
 
@@ -362,6 +450,10 @@ public class HintShopController :
                 );
 
 
+        // ---------------------------------------------
+        // ICON
+        // ---------------------------------------------
+
         if (selectedHintIcon != null)
         {
             selectedHintIcon.sprite =
@@ -370,11 +462,14 @@ public class HintShopController :
                 );
 
 
-            selectedHintIcon
-                .preserveAspect =
+            selectedHintIcon.preserveAspect =
                 true;
         }
 
+
+        // ---------------------------------------------
+        // OWNED
+        // ---------------------------------------------
 
         if (ownedText != null)
         {
@@ -383,19 +478,61 @@ public class HintShopController :
         }
 
 
+        // ---------------------------------------------
+        // QUANTITY
+        // ---------------------------------------------
+
         if (quantityText != null)
         {
             quantityText.text =
-                $"Количество: {quantity}";
+                quantity.ToString();
         }
 
+
+        // ---------------------------------------------
+        // PRICE
+        // ---------------------------------------------
 
         if (costText != null)
         {
             costText.text =
-                $"Цена: {totalPrice}";
+                $"Стоимость: {totalPrice}";
         }
 
+
+        // ---------------------------------------------
+        // MINUS
+        // ---------------------------------------------
+
+        if (
+            minusButton != null &&
+            quantitySlider != null
+        )
+        {
+            minusButton.interactable =
+                quantitySlider.value >
+                quantitySlider.minValue;
+        }
+
+
+        // ---------------------------------------------
+        // PLUS
+        // ---------------------------------------------
+
+        if (
+            plusButton != null &&
+            quantitySlider != null
+        )
+        {
+            plusButton.interactable =
+                quantitySlider.value <
+                quantitySlider.maxValue;
+        }
+
+
+        // ---------------------------------------------
+        // BUY
+        // ---------------------------------------------
 
         if (buyButton != null)
         {
@@ -407,6 +544,10 @@ public class HintShopController :
         }
 
 
+        // ---------------------------------------------
+        // COINS
+        // ---------------------------------------------
+
         if (coinsText != null)
         {
             coinsText.text =
@@ -416,6 +557,10 @@ public class HintShopController :
         }
     }
 
+
+    // =====================================================
+    // PRICE
+    // =====================================================
 
     private int GetUnitPrice(
         HintType type
@@ -439,6 +584,10 @@ public class HintShopController :
         return 0;
     }
 
+
+    // =====================================================
+    // ICON
+    // =====================================================
 
     private Sprite GetHintIcon(
         HintType type
