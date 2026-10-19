@@ -4,6 +4,10 @@ using UnityEngine;
 
 public static class PlayerStats
 {
+    // =====================================================
+    // GENERAL STATS
+    // =====================================================
+
     private const string TotalPiecesPlacedKey =
         "Puzzle_Stats_TotalPiecesPlaced";
 
@@ -11,6 +15,10 @@ public static class PlayerStats
     private const string TotalHintsUsedKey =
         "Puzzle_Stats_TotalHintsUsed";
 
+
+    // =====================================================
+    // DAILY STATS
+    // =====================================================
 
     private const string DailyDateKey =
         "Puzzle_Stats_DailyDate";
@@ -25,31 +33,15 @@ public static class PlayerStats
 
 
     // =====================================================
-    // DAILY REWARD CLAIMS
+    // TASK REWARD CLAIMS
     // =====================================================
 
-    private const string DailyReward1ClaimedKey =
-        "Puzzle_Daily_Reward_1_Claimed";
-
-    private const string DailyReward2ClaimedKey =
-        "Puzzle_Daily_Reward_2_Claimed";
-
-    private const string DailyReward3ClaimedKey =
-        "Puzzle_Daily_Reward_3_Claimed";
+    private const string AchievementClaimsKey =
+        "Puzzle_Task_AchievementClaims";
 
 
-    // =====================================================
-    // ACHIEVEMENT REWARD CLAIMS
-    // =====================================================
-
-    private const string AchievementReward1ClaimedKey =
-        "Puzzle_Achievement_Reward_1_Claimed";
-
-    private const string AchievementReward2ClaimedKey =
-        "Puzzle_Achievement_Reward_2_Claimed";
-
-    private const string AchievementReward3ClaimedKey =
-        "Puzzle_Achievement_Reward_3_Claimed";
+    private const string DailyClaimsKey =
+        "Puzzle_Task_DailyClaims";
 
 
     // =====================================================
@@ -95,21 +87,11 @@ public static class PlayerStats
         );
 
 
-        // Новый день:
-        // дневные награды снова можно получить.
-        PlayerPrefs.SetInt(
-            DailyReward1ClaimedKey,
-            0
-        );
-
-        PlayerPrefs.SetInt(
-            DailyReward2ClaimedKey,
-            0
-        );
-
-        PlayerPrefs.SetInt(
-            DailyReward3ClaimedKey,
-            0
+        // Все награды Daily снова становятся
+        // доступными в новом дне.
+        PlayerPrefs.SetString(
+            DailyClaimsKey,
+            ""
         );
 
 
@@ -123,13 +105,9 @@ public static class PlayerStats
 
     public static void RecordPiecePlaced()
     {
-        int current =
-            GetTotalPiecesPlaced();
-
-
         PlayerPrefs.SetInt(
             TotalPiecesPlacedKey,
-            current + 1
+            GetTotalPiecesPlaced() + 1
         );
 
 
@@ -155,13 +133,9 @@ public static class PlayerStats
         EnsureDailyReset();
 
 
-        int current =
-            GetDailyLevelsCompleted();
-
-
         PlayerPrefs.SetInt(
             DailyLevelsKey,
-            current + 1
+            GetDailyLevelsCompleted() + 1
         );
 
 
@@ -228,85 +202,100 @@ public static class PlayerStats
 
 
     // =====================================================
-    // DAILY TASK STATE
+    // TASK REWARD CLAIMS
     // =====================================================
 
-    public static int GetCompletedDailyTaskCount()
-    {
-        int completed =
-            0;
-
-
-        int levels =
-            GetDailyLevelsCompleted();
-
-
-        int hints =
-            GetDailyHintsUsed();
-
-
-        if (levels >= 1)
-        {
-            completed++;
-        }
-
-
-        if (levels >= 3)
-        {
-            completed++;
-        }
-
-
-        if (hints >= 1)
-        {
-            completed++;
-        }
-
-
-        return completed;
-    }
-
-
-    // =====================================================
-    // DAILY REWARD CLAIM STATE
-    // =====================================================
-
-    public static bool IsDailyRewardClaimed(
-        int index
+    public static bool IsTaskRewardClaimed(
+        string taskId,
+        TaskCategory category
     )
     {
-        EnsureDailyReset();
+        if (category == TaskCategory.Daily)
+        {
+            EnsureDailyReset();
+        }
 
 
-        return PlayerPrefs.GetInt(
-            GetDailyRewardKey(index),
-            0
-        ) == 1;
-    }
+        if (string.IsNullOrWhiteSpace(taskId))
+        {
+            return false;
+        }
 
 
-    public static void MarkDailyRewardClaimed(
-        int index
-    )
-    {
-        EnsureDailyReset();
-
-
-        string key =
-            GetDailyRewardKey(
-                index
+        string storageKey =
+            GetClaimsStorageKey(
+                category
             );
 
 
-        if (string.IsNullOrEmpty(key))
+        string savedClaims =
+            PlayerPrefs.GetString(
+                storageKey,
+                ""
+            );
+
+
+        string token =
+            BuildClaimToken(
+                taskId
+            );
+
+
+        return savedClaims.Contains(
+            token
+        );
+    }
+
+
+    public static void MarkTaskRewardClaimed(
+        string taskId,
+        TaskCategory category
+    )
+    {
+        if (category == TaskCategory.Daily)
+        {
+            EnsureDailyReset();
+        }
+
+
+        if (string.IsNullOrWhiteSpace(taskId))
         {
             return;
         }
 
 
-        PlayerPrefs.SetInt(
-            key,
-            1
+        string storageKey =
+            GetClaimsStorageKey(
+                category
+            );
+
+
+        string savedClaims =
+            PlayerPrefs.GetString(
+                storageKey,
+                ""
+            );
+
+
+        string token =
+            BuildClaimToken(
+                taskId
+            );
+
+
+        if (savedClaims.Contains(token))
+        {
+            return;
+        }
+
+
+        savedClaims +=
+            token;
+
+
+        PlayerPrefs.SetString(
+            storageKey,
+            savedClaims
         );
 
 
@@ -314,86 +303,36 @@ public static class PlayerStats
     }
 
 
-    private static string GetDailyRewardKey(
-        int index
+    private static string GetClaimsStorageKey(
+        TaskCategory category
     )
     {
-        switch (index)
+        switch (category)
         {
-            case 0:
-                return DailyReward1ClaimedKey;
+            case TaskCategory.Daily:
 
-            case 1:
-                return DailyReward2ClaimedKey;
+                return
+                    DailyClaimsKey;
 
-            case 2:
-                return DailyReward3ClaimedKey;
+
+            case TaskCategory.Achievement:
+
+                return
+                    AchievementClaimsKey;
         }
 
 
-        return "";
+        return
+            AchievementClaimsKey;
     }
 
 
-    // =====================================================
-    // ACHIEVEMENT REWARD CLAIM STATE
-    // =====================================================
-
-    public static bool IsAchievementRewardClaimed(
-        int index
+    private static string BuildClaimToken(
+        string taskId
     )
     {
-        return PlayerPrefs.GetInt(
-            GetAchievementRewardKey(index),
-            0
-        ) == 1;
-    }
-
-
-    public static void MarkAchievementRewardClaimed(
-        int index
-    )
-    {
-        string key =
-            GetAchievementRewardKey(
-                index
-            );
-
-
-        if (string.IsNullOrEmpty(key))
-        {
-            return;
-        }
-
-
-        PlayerPrefs.SetInt(
-            key,
-            1
-        );
-
-
-        PlayerPrefs.Save();
-    }
-
-
-    private static string GetAchievementRewardKey(
-        int index
-    )
-    {
-        switch (index)
-        {
-            case 0:
-                return AchievementReward1ClaimedKey;
-
-            case 1:
-                return AchievementReward2ClaimedKey;
-
-            case 2:
-                return AchievementReward3ClaimedKey;
-        }
-
-
-        return "";
+        return
+            $"|{taskId.Trim()}|";
     }
 
 
@@ -429,28 +368,40 @@ public static class PlayerStats
 
 
         PlayerPrefs.DeleteKey(
-            DailyReward1ClaimedKey
-        );
-
-        PlayerPrefs.DeleteKey(
-            DailyReward2ClaimedKey
-        );
-
-        PlayerPrefs.DeleteKey(
-            DailyReward3ClaimedKey
+            AchievementClaimsKey
         );
 
 
         PlayerPrefs.DeleteKey(
-            AchievementReward1ClaimedKey
+            DailyClaimsKey
+        );
+
+
+        // Старые ключи от предыдущей
+        // версии системы наград.
+        PlayerPrefs.DeleteKey(
+            "Puzzle_Daily_Reward_1_Claimed"
         );
 
         PlayerPrefs.DeleteKey(
-            AchievementReward2ClaimedKey
+            "Puzzle_Daily_Reward_2_Claimed"
         );
 
         PlayerPrefs.DeleteKey(
-            AchievementReward3ClaimedKey
+            "Puzzle_Daily_Reward_3_Claimed"
+        );
+
+
+        PlayerPrefs.DeleteKey(
+            "Puzzle_Achievement_Reward_1_Claimed"
+        );
+
+        PlayerPrefs.DeleteKey(
+            "Puzzle_Achievement_Reward_2_Claimed"
+        );
+
+        PlayerPrefs.DeleteKey(
+            "Puzzle_Achievement_Reward_3_Claimed"
         );
 
 
