@@ -7,11 +7,19 @@ using UnityEngine.UI;
 public class LevelSelectManager :
     MonoBehaviour
 {
+    // =====================================================
+    // LEVELS
+    // =====================================================
+
     [Header("Levels")]
 
     [SerializeField]
     private LevelDatabase levelDatabase;
 
+
+    // =====================================================
+    // CURRENT LEVEL
+    // =====================================================
 
     [Header("Current Level UI")]
 
@@ -22,6 +30,10 @@ public class LevelSelectManager :
     private TMP_Text progressText;
 
 
+    // =====================================================
+    // PLAY
+    // =====================================================
+
     [Header("Play")]
 
     [SerializeField]
@@ -31,13 +43,60 @@ public class LevelSelectManager :
     private TMP_Text playButtonText;
 
 
-    [Header("Achievements")]
+    // =====================================================
+    // ACHIEVEMENTS POPUP
+    // =====================================================
+
+    [Header("Achievements Popup")]
 
     [SerializeField]
     private GameObject achievementsPopup;
 
+
+    // Achievement 1
+
     [SerializeField]
-    private TMP_Text achievementsBodyText;
+    private TMP_Text achievement1ProgressText;
+
+    [SerializeField]
+    private TMP_Text achievement1RewardText;
+
+    [SerializeField]
+    private Button achievement1ClaimButton;
+
+    [SerializeField]
+    private TMP_Text achievement1ClaimButtonText;
+
+
+    // Achievement 2
+
+    [SerializeField]
+    private TMP_Text achievement2ProgressText;
+
+    [SerializeField]
+    private TMP_Text achievement2RewardText;
+
+    [SerializeField]
+    private Button achievement2ClaimButton;
+
+    [SerializeField]
+    private TMP_Text achievement2ClaimButtonText;
+
+
+    // Achievement 3
+
+    [SerializeField]
+    private TMP_Text achievement3ProgressText;
+
+    [SerializeField]
+    private TMP_Text achievement3RewardText;
+
+    [SerializeField]
+    private Button achievement3ClaimButton;
+
+    [SerializeField]
+    private TMP_Text achievement3ClaimButtonText;
+
 
     [SerializeField]
     private GameObject achievementsBadge;
@@ -46,13 +105,60 @@ public class LevelSelectManager :
     private TMP_Text achievementsBadgeText;
 
 
-    [Header("Daily Tasks")]
+    // =====================================================
+    // DAILY TASKS POPUP
+    // =====================================================
+
+    [Header("Daily Tasks Popup")]
 
     [SerializeField]
     private GameObject dailyTasksPopup;
 
+
+    // Daily 1
+
     [SerializeField]
-    private TMP_Text dailyTasksBodyText;
+    private TMP_Text daily1ProgressText;
+
+    [SerializeField]
+    private TMP_Text daily1RewardText;
+
+    [SerializeField]
+    private Button daily1ClaimButton;
+
+    [SerializeField]
+    private TMP_Text daily1ClaimButtonText;
+
+
+    // Daily 2
+
+    [SerializeField]
+    private TMP_Text daily2ProgressText;
+
+    [SerializeField]
+    private TMP_Text daily2RewardText;
+
+    [SerializeField]
+    private Button daily2ClaimButton;
+
+    [SerializeField]
+    private TMP_Text daily2ClaimButtonText;
+
+
+    // Daily 3
+
+    [SerializeField]
+    private TMP_Text daily3ProgressText;
+
+    [SerializeField]
+    private TMP_Text daily3RewardText;
+
+    [SerializeField]
+    private Button daily3ClaimButton;
+
+    [SerializeField]
+    private TMP_Text daily3ClaimButtonText;
+
 
     [SerializeField]
     private GameObject dailyTasksBadge;
@@ -60,6 +166,50 @@ public class LevelSelectManager :
     [SerializeField]
     private TMP_Text dailyTasksBadgeText;
 
+
+    // =====================================================
+    // REWARDS
+    // =====================================================
+
+    [Header("Daily Rewards")]
+
+    [SerializeField]
+    [Min(0)]
+    private int dailyReward1 =
+        25;
+
+    [SerializeField]
+    [Min(0)]
+    private int dailyReward2 =
+        50;
+
+    [SerializeField]
+    [Min(0)]
+    private int dailyReward3 =
+        25;
+
+
+    [Header("Achievement Rewards")]
+
+    [SerializeField]
+    [Min(0)]
+    private int achievementReward1 =
+        100;
+
+    [SerializeField]
+    [Min(0)]
+    private int achievementReward2 =
+        150;
+
+    [SerializeField]
+    [Min(0)]
+    private int achievementReward3 =
+        100;
+
+
+    // =====================================================
+    // SCENE
+    // =====================================================
 
     [Header("Scenes")]
 
@@ -268,12 +418,6 @@ public class LevelSelectManager :
 
     private void RefreshAchievements()
     {
-        if (achievementsBodyText == null)
-        {
-            return;
-        }
-
-
         int piecesPlaced =
             PlayerStats
                 .GetTotalPiecesPlaced();
@@ -291,71 +435,122 @@ public class LevelSelectManager :
                 .GetTotalHintsUsed();
 
 
-        achievementsBodyText.text =
-            BuildProgressLine(
-                "Выставить 5 фигур",
-                piecesPlaced,
-                5
-            )
-            +
-            "\n\n"
-            +
-            BuildProgressLine(
-                "Пройти 3 уровня",
-                levelsCompleted,
-                3
-            )
-            +
-            "\n\n"
-            +
-            BuildProgressLine(
-                "Использовать 3 подсказки",
-                hintsUsed,
-                3
-            );
+        RefreshRewardTask(
+            piecesPlaced,
+            5,
+            achievementReward1,
+            PlayerStats
+                .IsAchievementRewardClaimed(0),
+            achievement1ProgressText,
+            achievement1RewardText,
+            achievement1ClaimButton,
+            achievement1ClaimButtonText
+        );
+
+
+        RefreshRewardTask(
+            levelsCompleted,
+            3,
+            achievementReward2,
+            PlayerStats
+                .IsAchievementRewardClaimed(1),
+            achievement2ProgressText,
+            achievement2RewardText,
+            achievement2ClaimButton,
+            achievement2ClaimButtonText
+        );
+
+
+        RefreshRewardTask(
+            hintsUsed,
+            3,
+            achievementReward3,
+            PlayerStats
+                .IsAchievementRewardClaimed(2),
+            achievement3ProgressText,
+            achievement3RewardText,
+            achievement3ClaimButton,
+            achievement3ClaimButtonText
+        );
     }
 
 
-    private int GetCompletedAchievementCount()
+    // =====================================================
+    // ACHIEVEMENT CLAIM
+    // =====================================================
+
+    public void ClaimAchievement1()
     {
-        int completed =
-            0;
+        TryClaimAchievement(
+            0,
+            PlayerStats.GetTotalPiecesPlaced(),
+            5,
+            achievementReward1
+        );
+    }
 
 
-        if (
-            PlayerStats.GetTotalPiecesPlaced()
-            >=
-            5
-        )
-        {
-            completed++;
-        }
-
-
-        if (
+    public void ClaimAchievement2()
+    {
+        TryClaimAchievement(
+            1,
             ProgressManager
                 .GetCompletedLevelCount(
                     levelDatabase
-                )
-            >=
-            3
-        )
+                ),
+            3,
+            achievementReward2
+        );
+    }
+
+
+    public void ClaimAchievement3()
+    {
+        TryClaimAchievement(
+            2,
+            PlayerStats.GetTotalHintsUsed(),
+            3,
+            achievementReward3
+        );
+    }
+
+
+    private void TryClaimAchievement(
+        int index,
+        int current,
+        int target,
+        int reward
+    )
+    {
+        if (current < target)
         {
-            completed++;
+            return;
         }
 
 
         if (
-            PlayerStats.GetTotalHintsUsed()
-            >=
-            3
+            PlayerStats
+                .IsAchievementRewardClaimed(
+                    index
+                )
         )
         {
-            completed++;
+            return;
         }
 
 
-        return completed;
+        PlayerStats
+            .MarkAchievementRewardClaimed(
+                index
+            );
+
+
+        PlayerResources.AddCoins(
+            reward
+        );
+
+
+        RefreshMenu();
     }
 
 
@@ -383,58 +578,154 @@ public class LevelSelectManager :
 
     private void RefreshDailyTasks()
     {
-        if (dailyTasksBodyText == null)
+        PlayerStats.EnsureDailyReset();
+
+
+        int levels =
+            PlayerStats
+                .GetDailyLevelsCompleted();
+
+
+        int hints =
+            PlayerStats
+                .GetDailyHintsUsed();
+
+
+        RefreshRewardTask(
+            levels,
+            1,
+            dailyReward1,
+            PlayerStats
+                .IsDailyRewardClaimed(0),
+            daily1ProgressText,
+            daily1RewardText,
+            daily1ClaimButton,
+            daily1ClaimButtonText
+        );
+
+
+        RefreshRewardTask(
+            levels,
+            3,
+            dailyReward2,
+            PlayerStats
+                .IsDailyRewardClaimed(1),
+            daily2ProgressText,
+            daily2RewardText,
+            daily2ClaimButton,
+            daily2ClaimButtonText
+        );
+
+
+        RefreshRewardTask(
+            hints,
+            1,
+            dailyReward3,
+            PlayerStats
+                .IsDailyRewardClaimed(2),
+            daily3ProgressText,
+            daily3RewardText,
+            daily3ClaimButton,
+            daily3ClaimButtonText
+        );
+    }
+
+
+    // =====================================================
+    // DAILY CLAIM
+    // =====================================================
+
+    public void ClaimDaily1()
+    {
+        TryClaimDaily(
+            0,
+            PlayerStats
+                .GetDailyLevelsCompleted(),
+            1,
+            dailyReward1
+        );
+    }
+
+
+    public void ClaimDaily2()
+    {
+        TryClaimDaily(
+            1,
+            PlayerStats
+                .GetDailyLevelsCompleted(),
+            3,
+            dailyReward2
+        );
+    }
+
+
+    public void ClaimDaily3()
+    {
+        TryClaimDaily(
+            2,
+            PlayerStats
+                .GetDailyHintsUsed(),
+            1,
+            dailyReward3
+        );
+    }
+
+
+    private void TryClaimDaily(
+        int index,
+        int current,
+        int target,
+        int reward
+    )
+    {
+        PlayerStats.EnsureDailyReset();
+
+
+        if (current < target)
         {
             return;
         }
 
 
-        PlayerStats.EnsureDailyReset();
-
-
-        int levelsToday =
+        if (
             PlayerStats
-                .GetDailyLevelsCompleted();
+                .IsDailyRewardClaimed(
+                    index
+                )
+        )
+        {
+            return;
+        }
 
 
-        int hintsToday =
-            PlayerStats
-                .GetDailyHintsUsed();
-
-
-        dailyTasksBodyText.text =
-            BuildProgressLine(
-                "Пройти 1 уровень",
-                levelsToday,
-                1
-            )
-            +
-            "\n\n"
-            +
-            BuildProgressLine(
-                "Пройти 3 уровня",
-                levelsToday,
-                3
-            )
-            +
-            "\n\n"
-            +
-            BuildProgressLine(
-                "Использовать 1 подсказку",
-                hintsToday,
-                1
+        PlayerStats
+            .MarkDailyRewardClaimed(
+                index
             );
+
+
+        PlayerResources.AddCoins(
+            reward
+        );
+
+
+        RefreshMenu();
     }
 
 
     // =====================================================
-    // PROGRESS TEXT
+    // TASK UI
     // =====================================================
 
-    private string BuildProgressLine(
-        string title,
+    private void RefreshRewardTask(
         int current,
-        int target
+        int target,
+        int reward,
+        bool claimed,
+        TMP_Text progress,
+        TMP_Text rewardText,
+        Button claimButton,
+        TMP_Text claimButtonText
     )
     {
         int visibleCurrent =
@@ -449,15 +740,69 @@ public class LevelSelectManager :
             target;
 
 
-        string state =
-            completed
-                ? "✓"
-                : "○";
+        if (progress != null)
+        {
+            progress.text =
+                $"{visibleCurrent} / {target}";
+        }
 
 
-        return
-            $"{state} {title}\n" +
-            $"{visibleCurrent} / {target}";
+        if (rewardText != null)
+        {
+            rewardText.text =
+                $"+{reward}";
+        }
+
+
+        if (claimButton == null)
+        {
+            return;
+        }
+
+
+        if (claimed)
+        {
+            claimButton.interactable =
+                false;
+
+
+            if (claimButtonText != null)
+            {
+                claimButtonText.text =
+                    "ПОЛУЧЕНО";
+            }
+
+
+            return;
+        }
+
+
+        if (completed)
+        {
+            claimButton.interactable =
+                true;
+
+
+            if (claimButtonText != null)
+            {
+                claimButtonText.text =
+                    "ПОЛУЧИТЬ";
+            }
+
+
+            return;
+        }
+
+
+        claimButton.interactable =
+            false;
+
+
+        if (claimButtonText != null)
+        {
+            claimButtonText.text =
+                "НЕ ГОТОВО";
+        }
     }
 
 
@@ -467,27 +812,126 @@ public class LevelSelectManager :
 
     private void RefreshBadges()
     {
-        int completedAchievements =
-            GetCompletedAchievementCount();
-
-
-        int completedDailyTasks =
-            PlayerStats
-                .GetCompletedDailyTaskCount();
-
-
         SetBadge(
             achievementsBadge,
             achievementsBadgeText,
-            completedAchievements
+            GetClaimableAchievementCount()
         );
 
 
         SetBadge(
             dailyTasksBadge,
             dailyTasksBadgeText,
-            completedDailyTasks
+            GetClaimableDailyRewardCount()
         );
+    }
+
+
+    private int GetClaimableAchievementCount()
+    {
+        int count =
+            0;
+
+
+        if (
+            PlayerStats.GetTotalPiecesPlaced()
+            >=
+            5
+            &&
+            !PlayerStats
+                .IsAchievementRewardClaimed(0)
+        )
+        {
+            count++;
+        }
+
+
+        if (
+            ProgressManager
+                .GetCompletedLevelCount(
+                    levelDatabase
+                )
+            >=
+            3
+            &&
+            !PlayerStats
+                .IsAchievementRewardClaimed(1)
+        )
+        {
+            count++;
+        }
+
+
+        if (
+            PlayerStats.GetTotalHintsUsed()
+            >=
+            3
+            &&
+            !PlayerStats
+                .IsAchievementRewardClaimed(2)
+        )
+        {
+            count++;
+        }
+
+
+        return count;
+    }
+
+
+    private int GetClaimableDailyRewardCount()
+    {
+        PlayerStats.EnsureDailyReset();
+
+
+        int count =
+            0;
+
+
+        int levels =
+            PlayerStats
+                .GetDailyLevelsCompleted();
+
+
+        int hints =
+            PlayerStats
+                .GetDailyHintsUsed();
+
+
+        if (
+            levels >= 1
+            &&
+            !PlayerStats
+                .IsDailyRewardClaimed(0)
+        )
+        {
+            count++;
+        }
+
+
+        if (
+            levels >= 3
+            &&
+            !PlayerStats
+                .IsDailyRewardClaimed(1)
+        )
+        {
+            count++;
+        }
+
+
+        if (
+            hints >= 1
+            &&
+            !PlayerStats
+                .IsDailyRewardClaimed(2)
+        )
+        {
+            count++;
+        }
+
+
+        return count;
     }
 
 

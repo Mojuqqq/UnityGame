@@ -25,6 +25,34 @@ public static class PlayerStats
 
 
     // =====================================================
+    // DAILY REWARD CLAIMS
+    // =====================================================
+
+    private const string DailyReward1ClaimedKey =
+        "Puzzle_Daily_Reward_1_Claimed";
+
+    private const string DailyReward2ClaimedKey =
+        "Puzzle_Daily_Reward_2_Claimed";
+
+    private const string DailyReward3ClaimedKey =
+        "Puzzle_Daily_Reward_3_Claimed";
+
+
+    // =====================================================
+    // ACHIEVEMENT REWARD CLAIMS
+    // =====================================================
+
+    private const string AchievementReward1ClaimedKey =
+        "Puzzle_Achievement_Reward_1_Claimed";
+
+    private const string AchievementReward2ClaimedKey =
+        "Puzzle_Achievement_Reward_2_Claimed";
+
+    private const string AchievementReward3ClaimedKey =
+        "Puzzle_Achievement_Reward_3_Claimed";
+
+
+    // =====================================================
     // DAILY RESET
     // =====================================================
 
@@ -63,6 +91,24 @@ public static class PlayerStats
 
         PlayerPrefs.SetInt(
             DailyHintsKey,
+            0
+        );
+
+
+        // Новый день:
+        // дневные награды снова можно получить.
+        PlayerPrefs.SetInt(
+            DailyReward1ClaimedKey,
+            0
+        );
+
+        PlayerPrefs.SetInt(
+            DailyReward2ClaimedKey,
+            0
+        );
+
+        PlayerPrefs.SetInt(
+            DailyReward3ClaimedKey,
             0
         );
 
@@ -222,6 +268,136 @@ public static class PlayerStats
 
 
     // =====================================================
+    // DAILY REWARD CLAIM STATE
+    // =====================================================
+
+    public static bool IsDailyRewardClaimed(
+        int index
+    )
+    {
+        EnsureDailyReset();
+
+
+        return PlayerPrefs.GetInt(
+            GetDailyRewardKey(index),
+            0
+        ) == 1;
+    }
+
+
+    public static void MarkDailyRewardClaimed(
+        int index
+    )
+    {
+        EnsureDailyReset();
+
+
+        string key =
+            GetDailyRewardKey(
+                index
+            );
+
+
+        if (string.IsNullOrEmpty(key))
+        {
+            return;
+        }
+
+
+        PlayerPrefs.SetInt(
+            key,
+            1
+        );
+
+
+        PlayerPrefs.Save();
+    }
+
+
+    private static string GetDailyRewardKey(
+        int index
+    )
+    {
+        switch (index)
+        {
+            case 0:
+                return DailyReward1ClaimedKey;
+
+            case 1:
+                return DailyReward2ClaimedKey;
+
+            case 2:
+                return DailyReward3ClaimedKey;
+        }
+
+
+        return "";
+    }
+
+
+    // =====================================================
+    // ACHIEVEMENT REWARD CLAIM STATE
+    // =====================================================
+
+    public static bool IsAchievementRewardClaimed(
+        int index
+    )
+    {
+        return PlayerPrefs.GetInt(
+            GetAchievementRewardKey(index),
+            0
+        ) == 1;
+    }
+
+
+    public static void MarkAchievementRewardClaimed(
+        int index
+    )
+    {
+        string key =
+            GetAchievementRewardKey(
+                index
+            );
+
+
+        if (string.IsNullOrEmpty(key))
+        {
+            return;
+        }
+
+
+        PlayerPrefs.SetInt(
+            key,
+            1
+        );
+
+
+        PlayerPrefs.Save();
+    }
+
+
+    private static string GetAchievementRewardKey(
+        int index
+    )
+    {
+        switch (index)
+        {
+            case 0:
+                return AchievementReward1ClaimedKey;
+
+            case 1:
+                return AchievementReward2ClaimedKey;
+
+            case 2:
+                return AchievementReward3ClaimedKey;
+        }
+
+
+        return "";
+    }
+
+
+    // =====================================================
     // RESET
     // =====================================================
 
@@ -249,6 +425,32 @@ public static class PlayerStats
 
         PlayerPrefs.DeleteKey(
             DailyHintsKey
+        );
+
+
+        PlayerPrefs.DeleteKey(
+            DailyReward1ClaimedKey
+        );
+
+        PlayerPrefs.DeleteKey(
+            DailyReward2ClaimedKey
+        );
+
+        PlayerPrefs.DeleteKey(
+            DailyReward3ClaimedKey
+        );
+
+
+        PlayerPrefs.DeleteKey(
+            AchievementReward1ClaimedKey
+        );
+
+        PlayerPrefs.DeleteKey(
+            AchievementReward2ClaimedKey
+        );
+
+        PlayerPrefs.DeleteKey(
+            AchievementReward3ClaimedKey
         );
 
 
