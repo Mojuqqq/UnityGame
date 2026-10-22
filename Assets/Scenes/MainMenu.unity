@@ -927,7 +927,7 @@ MonoBehaviour:
   loadingText: {fileID: 1603532446}
   versionText: {fileID: 785395460}
   homeSceneName: LevelSelect
-  minimumDisplayTime: 15
+  minimumDisplayTime: 3
   completionHoldTime: 0.15
   testMode: 0
   loopTest: 0

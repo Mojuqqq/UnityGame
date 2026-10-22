@@ -31,6 +31,12 @@ MonoBehaviour:
     condition: 2
     target: 3
     rewardCoins: 100
+  - id: daily_level_1
+    title: "\u041F\u0440\u043E\u0439\u0442\u0438 1 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"
+    category: 1
+    condition: 3
+    target: 1
+    rewardCoins: 25
   - id: daily_level_3
     title: "\u041F\u0440\u043E\u0439\u0442\u0438 3 \u0443\u0440\u043E\u0432\u043D\u044F"
     category: 1
@@ -40,12 +46,6 @@ MonoBehaviour:
   - id: daily_hint_1
     title: "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C 1 \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0443"
     category: 1
-    condition: 4
-    target: 1
-    rewardCoins: 25
-  - id: daily_hint_1
-    title: "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C 1 \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0443"
-    category: 0
     condition: 4
     target: 1
     rewardCoins: 25
