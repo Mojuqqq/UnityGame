@@ -3,8 +3,13 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 
-public class LevelManager : MonoBehaviour
+public class LevelManager :
+    MonoBehaviour
 {
+    // =====================================================
+    // LEVEL
+    // =====================================================
+
     [Header("Fallback Level")]
 
     [SerializeField]
@@ -17,26 +22,42 @@ public class LevelManager : MonoBehaviour
     private LevelDatabase levelDatabase;
 
 
+    // =====================================================
+    // GAMEPLAY
+    // =====================================================
+
     [Header("Gameplay")]
 
     [SerializeField]
-    private AdaptivePiecePanelLayout adaptivePiecePanelLayout;
+    private AdaptivePiecePanelLayout
+        adaptivePiecePanelLayout;
+
 
     [SerializeField]
-    private AdaptiveBoardLayout adaptiveBoardLayout;
+    private AdaptiveBoardLayout
+        adaptiveBoardLayout;
+
 
     [SerializeField]
     private GridManager gridManager;
 
+
     [SerializeField]
     private HintManager hintManager;
+
 
     [SerializeField]
     private PieceSpawner pieceSpawner;
 
-    [SerializeField]
-    private GameplayHintController gameplayHintController;
 
+    [SerializeField]
+    private GameplayHintController
+        gameplayHintController;
+
+
+    // =====================================================
+    // UI
+    // =====================================================
 
     [Header("UI")]
 
@@ -44,19 +65,68 @@ public class LevelManager : MonoBehaviour
     private TMP_Text levelTitle;
 
 
-    [Header("Rewards")]
+    // =====================================================
+    // REWARD
+    // =====================================================
+
+    [Header("Level Reward")]
 
     [SerializeField]
     [Min(0)]
-    private int coinsPerLevel = 100;
+    private int completionRewardCoins =
+        25;
 
+
+    // =====================================================
+    // SCENES
+    // =====================================================
+
+    [Header("Scenes")]
+
+    [SerializeField]
+    private string homeSceneName =
+        "LevelSelect";
+
+
+    // =====================================================
+    // STATE
+    // =====================================================
 
     private LevelData currentLevel;
 
 
+    private bool
+        baseRewardGrantedThisRun;
+
+
+    // =====================================================
+    // PUBLIC
+    // =====================================================
+
     public LevelData CurrentLevel =>
         currentLevel;
 
+
+    public int CompletionRewardCoins =>
+        Mathf.Max(
+            0,
+            completionRewardCoins
+        );
+
+
+    public int TripleRewardTotalCoins =>
+        CompletionRewardCoins *
+        3;
+
+
+    public int TripleRewardBonusCoins =>
+        CompletionRewardCoins *
+        2;
+
+
+    // =====================================================
+    // START
+    // =====================================================
 
     private void Start()
     {
@@ -70,8 +140,13 @@ public class LevelManager : MonoBehaviour
 
     public void LoadCurrentLevel()
     {
+        baseRewardGrantedThisRun =
+            false;
+
+
         currentLevel =
-            LevelSelectionState.SelectedLevel;
+            LevelSelectionState
+                .SelectedLevel;
 
 
         if (currentLevel == null)
@@ -110,7 +185,8 @@ public class LevelManager : MonoBehaviour
         if (adaptiveBoardLayout == null)
         {
             Debug.LogError(
-                "LevelManager: AdaptiveBoardLayout is not assigned."
+                "LevelManager: AdaptiveBoardLayout " +
+                "is not assigned."
             );
 
             return;
@@ -120,7 +196,8 @@ public class LevelManager : MonoBehaviour
         if (adaptivePiecePanelLayout == null)
         {
             Debug.LogError(
-                "LevelManager: AdaptivePiecePanelLayout is not assigned."
+                "LevelManager: AdaptivePiecePanelLayout " +
+                "is not assigned."
             );
 
             return;
@@ -130,7 +207,8 @@ public class LevelManager : MonoBehaviour
         if (gridManager == null)
         {
             Debug.LogError(
-                "LevelManager: GridManager is not assigned."
+                "LevelManager: GridManager " +
+                "is not assigned."
             );
 
             return;
@@ -140,7 +218,8 @@ public class LevelManager : MonoBehaviour
         if (hintManager == null)
         {
             Debug.LogError(
-                "LevelManager: HintManager is not assigned."
+                "LevelManager: HintManager " +
+                "is not assigned."
             );
 
             return;
@@ -150,7 +229,8 @@ public class LevelManager : MonoBehaviour
         if (pieceSpawner == null)
         {
             Debug.LogError(
-                "LevelManager: PieceSpawner is not assigned."
+                "LevelManager: PieceSpawner " +
+                "is not assigned."
             );
 
             return;
@@ -160,19 +240,11 @@ public class LevelManager : MonoBehaviour
         Canvas.ForceUpdateCanvases();
 
 
-        // =================================================
-        // 1. BOARD SIZE
-        // =================================================
-
         adaptiveBoardLayout.ApplyLayout(
             currentLevel.Columns,
             currentLevel.Rows
         );
 
-
-        // =================================================
-        // 2. GRID
-        // =================================================
 
         gridManager.Initialize(
             currentLevel.Columns,
@@ -181,46 +253,31 @@ public class LevelManager : MonoBehaviour
         );
 
 
-        // =================================================
-        // 3. PIECE PANEL
-        // =================================================
+        adaptivePiecePanelLayout
+            .ApplyLayout();
 
-        adaptivePiecePanelLayout.ApplyLayout();
-
-
-        // =================================================
-        // 4. ROW / COLUMN HINTS
-        // =================================================
 
         hintManager.Initialize(
             currentLevel
         );
 
 
-        // =================================================
-        // 5. PIECES
-        // =================================================
-
         pieceSpawner.BuildPieces(
             currentLevel.Pieces
         );
 
 
-        // =================================================
-        // 6. GAMEPLAY HINTS
-        // =================================================
-
-        if (gameplayHintController != null)
+        if (
+            gameplayHintController !=
+            null
+        )
         {
-            gameplayHintController.Initialize(
-                currentLevel
-            );
+            gameplayHintController
+                .Initialize(
+                    currentLevel
+                );
         }
 
-
-        // =================================================
-        // 7. TITLE
-        // =================================================
 
         if (levelTitle != null)
         {
@@ -241,18 +298,19 @@ public class LevelManager : MonoBehaviour
     // COMPLETE
     // =====================================================
 
-    public void CompleteCurrentLevel()
+    public int CompleteCurrentLevel()
     {
         if (currentLevel == null)
         {
-            return;
+            return 0;
         }
 
 
         bool alreadyCompleted =
-            ProgressManager.IsLevelCompleted(
-                currentLevel.LevelNumber
-            );
+            ProgressManager
+                .IsLevelCompleted(
+                    currentLevel.LevelNumber
+                );
 
 
         ProgressManager.CompleteLevel(
@@ -260,22 +318,39 @@ public class LevelManager : MonoBehaviour
         );
 
 
-        // Для ежедневного задания считаем
-        // каждое успешное прохождение.
-        PlayerStats.RecordLevelCompletedToday();
+        // Дневное задание:
+        // успешное прохождение уровня.
+        PlayerStats
+            .RecordLevelCompletedToday();
 
 
-        // Монеты выдаём только
-        // за первое прохождение уровня.
+        int rewardGranted =
+            0;
+
+
+        // Базовая награда выдаётся
+        // только за первое прохождение.
         if (!alreadyCompleted)
         {
-            PlayerResources.AddCoins(
-                coinsPerLevel
-            );
+            rewardGranted =
+                CompletionRewardCoins;
+
+
+            if (rewardGranted > 0)
+            {
+                PlayerResources.AddCoins(
+                    rewardGranted
+                );
+
+
+                baseRewardGrantedThisRun =
+                    true;
+            }
 
 
             Debug.Log(
-                $"Level reward: +{coinsPerLevel} coins."
+                $"Level reward: " +
+                $"+{rewardGranted} coins."
             );
         }
 
@@ -295,6 +370,94 @@ public class LevelManager : MonoBehaviour
         Debug.Log(
             $"Completed level " +
             $"{currentLevel.LevelNumber}"
+        );
+
+
+        return rewardGranted;
+    }
+
+
+    // =====================================================
+    // TRIPLE REWARD
+    // =====================================================
+
+    public bool CanClaimTripleReward()
+    {
+        if (
+            currentLevel == null ||
+            !baseRewardGrantedThisRun
+        )
+        {
+            return false;
+        }
+
+
+        return
+            !ProgressManager
+                .IsTripleRewardClaimed(
+                    currentLevel.LevelNumber
+                );
+    }
+
+
+    public bool TryGrantTripleRewardBonus()
+    {
+        if (!CanClaimTripleReward())
+        {
+            return false;
+        }
+
+
+        int bonus =
+            TripleRewardBonusCoins;
+
+
+        if (bonus > 0)
+        {
+            PlayerResources.AddCoins(
+                bonus
+            );
+        }
+
+
+        ProgressManager
+            .MarkTripleRewardClaimed(
+                currentLevel.LevelNumber
+            );
+
+
+        Debug.Log(
+            $"Triple reward bonus: " +
+            $"+{bonus} coins. " +
+            $"Total level reward: " +
+            $"{TripleRewardTotalCoins}."
+        );
+
+
+        return true;
+    }
+
+
+    // =====================================================
+    // CONTINUE
+    // =====================================================
+
+    public void ContinueAfterCompletion()
+    {
+        if (HasNextLevel())
+        {
+            LoadNextLevel();
+
+            return;
+        }
+
+
+        LevelSelectionState
+            .ClearSelection();
+
+
+        SceneManager.LoadScene(
+            homeSceneName
         );
     }
 
@@ -333,7 +496,8 @@ public class LevelManager : MonoBehaviour
 
 
         Scene currentScene =
-            SceneManager.GetActiveScene();
+            SceneManager
+                .GetActiveScene();
 
 
         SceneManager.LoadScene(

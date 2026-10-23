@@ -1,12 +1,18 @@
 using UnityEngine;
 
+
 public static class ProgressManager
 {
     private const string UnlockedPrefix =
         "Puzzle_Level_Unlocked_";
 
+
     private const string CompletedPrefix =
         "Puzzle_Level_Completed_";
+
+
+    private const string TripleRewardClaimedPrefix =
+        "Puzzle_Level_TripleRewardClaimed_";
 
 
     // =====================================================
@@ -33,6 +39,25 @@ public static class ProgressManager
         return
             PlayerPrefs.GetInt(
                 CompletedPrefix +
+                levelNumber,
+                0
+            ) == 1;
+    }
+
+
+    public static bool IsTripleRewardClaimed(
+        int levelNumber
+    )
+    {
+        if (levelNumber <= 0)
+        {
+            return false;
+        }
+
+
+        return
+            PlayerPrefs.GetInt(
+                TripleRewardClaimedPrefix +
                 levelNumber,
                 0
             ) == 1;
@@ -85,6 +110,27 @@ public static class ProgressManager
     }
 
 
+    public static void MarkTripleRewardClaimed(
+        int levelNumber
+    )
+    {
+        if (levelNumber <= 0)
+        {
+            return;
+        }
+
+
+        PlayerPrefs.SetInt(
+            TripleRewardClaimedPrefix +
+            levelNumber,
+            1
+        );
+
+
+        PlayerPrefs.Save();
+    }
+
+
     // =====================================================
     // CURRENT PLAYABLE LEVEL
     // =====================================================
@@ -102,8 +148,6 @@ public static class ProgressManager
         }
 
 
-        // Первый непройденный уровень
-        // становится текущим.
         foreach (
             LevelData level
             in database.Levels
@@ -121,9 +165,6 @@ public static class ProgressManager
                 )
             )
             {
-                // Поддерживаем старую систему unlocked,
-                // хотя выбирать уровни через UI
-                // теперь больше нельзя.
                 UnlockLevel(
                     level.LevelNumber
                 );
@@ -134,7 +175,6 @@ public static class ProgressManager
         }
 
 
-        // null = все уровни пройдены.
         return null;
     }
 
@@ -156,7 +196,8 @@ public static class ProgressManager
         }
 
 
-        int count = 0;
+        int count =
+            0;
 
 
         foreach (
@@ -243,6 +284,12 @@ public static class ProgressManager
 
             PlayerPrefs.DeleteKey(
                 CompletedPrefix +
+                level.LevelNumber
+            );
+
+
+            PlayerPrefs.DeleteKey(
+                TripleRewardClaimedPrefix +
                 level.LevelNumber
             );
         }
