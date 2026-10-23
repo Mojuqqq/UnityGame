@@ -26,7 +26,7 @@ public class MoneyShopController :
 
 
     // =====================================================
-    // DATABASE
+    // PRODUCTS
     // =====================================================
 
     [Header("Products")]
@@ -34,13 +34,11 @@ public class MoneyShopController :
     [SerializeField]
     private MoneyShopDatabase database;
 
-
     [SerializeField]
     private MoneyShopItemView itemPrefab;
 
-
     [SerializeField]
-    private Transform productsContent;
+    private RectTransform productsContent;
 
 
     // =====================================================
@@ -52,10 +50,8 @@ public class MoneyShopController :
     [SerializeField]
     private Button removeAdsButton;
 
-
     [SerializeField]
     private TMP_Text removeAdsButtonText;
-
 
     [SerializeField]
     private TMP_Text removeAdsPriceText;
@@ -70,36 +66,33 @@ public class MoneyShopController :
     [SerializeField]
     private TMP_Text coinsText;
 
-
     [SerializeField]
     private TMP_Text revealPieceCountText;
-
 
     [SerializeField]
     private TMP_Text emptyCellsCountText;
 
 
     // =====================================================
-    // PURCHASE MODE
+    // TESTING
     // =====================================================
 
     [Header("Testing")]
 
     [Tooltip(
-        "ON = покупка сразу выдаётся без настоящего магазина. " +
-        "Использовать только для тестов."
+        "ON = покупка сразу выдаётся без настоящего магазина."
     )]
     [SerializeField]
     private bool simulatePurchases =
         true;
 
 
+    // =====================================================
+    // REAL PURCHASE
+    // =====================================================
+
     [Header("Real Purchase")]
 
-    [Tooltip(
-        "Позже сюда подключим Unity IAP. " +
-        "Событие передаёт Store Product ID."
-    )]
     [SerializeField]
     private StringUnityEvent
         purchaseRequested;
@@ -142,15 +135,23 @@ public class MoneyShopController :
 
 
     // =====================================================
-    // OPEN / CLOSE
+    // OPEN
     // =====================================================
 
     public void OpenShop()
     {
-        if (!ValidateDatabase())
+        if (!ValidateReferences())
         {
             return;
         }
+
+
+        // Сначала включаем popup,
+        // чтобы Unity Layout работал
+        // уже на активных объектах.
+        shopPopup.SetActive(
+            true
+        );
 
 
         BuildProducts();
@@ -160,14 +161,26 @@ public class MoneyShopController :
         RefreshRemoveAdsButton();
 
 
-        if (shopPopup != null)
-        {
-            shopPopup.SetActive(
-                true
+        Canvas.ForceUpdateCanvases();
+
+
+        LayoutRebuilder
+            .ForceRebuildLayoutImmediate(
+                productsContent
             );
-        }
+
+
+        Debug.Log(
+            $"MoneyShop: built " +
+            $"{productsContent.childCount} " +
+            $"product cards."
+        );
     }
 
+
+    // =====================================================
+    // CLOSE
+    // =====================================================
 
     public void CloseShop()
     {
@@ -184,8 +197,19 @@ public class MoneyShopController :
     // VALIDATION
     // =====================================================
 
-    private bool ValidateDatabase()
+    private bool ValidateReferences()
     {
+        if (shopPopup == null)
+        {
+            Debug.LogError(
+                "MoneyShopController: " +
+                "Shop Popup is not assigned."
+            );
+
+            return false;
+        }
+
+
         if (database == null)
         {
             Debug.LogError(
@@ -239,7 +263,7 @@ public class MoneyShopController :
 
 
     // =====================================================
-    // BUILD
+    // BUILD PRODUCTS
     // =====================================================
 
     private void BuildProducts()
@@ -249,6 +273,10 @@ public class MoneyShopController :
 
         removeAdsProduct =
             null;
+
+
+        int builtCount =
+            0;
 
 
         foreach (
@@ -287,18 +315,25 @@ public class MoneyShopController :
                 product.FallbackPriceText,
                 RequestPurchase
             );
+
+
+            builtCount++;
         }
+
+
+        Debug.Log(
+            $"MoneyShop: created " +
+            $"{builtCount} grid products."
+        );
     }
 
 
+    // =====================================================
+    // CLEAR PRODUCTS
+    // =====================================================
+
     private void ClearProducts()
     {
-        if (productsContent == null)
-        {
-            return;
-        }
-
-
         for (
             int i =
                 productsContent.childCount - 1;
@@ -327,7 +362,7 @@ public class MoneyShopController :
 
 
     // =====================================================
-    // PRODUCT PURCHASE
+    // PURCHASE
     // =====================================================
 
     private void RequestPurchase(
@@ -343,8 +378,8 @@ public class MoneyShopController :
         if (simulatePurchases)
         {
             Debug.Log(
-                "SIMULATED PURCHASE: " +
-                product.StoreProductId
+                $"SIMULATED PURCHASE: " +
+                $"{product.StoreProductId}"
             );
 
 
@@ -365,7 +400,7 @@ public class MoneyShopController :
 
 
     // =====================================================
-    // REMOVE ADS PURCHASE
+    // REMOVE ADS
     // =====================================================
 
     public void BuyRemoveAds()
@@ -391,36 +426,31 @@ public class MoneyShopController :
     }
 
 
-    // =====================================================
-    // REMOVE ADS UI
-    // =====================================================
-
     private void RefreshRemoveAdsButton()
     {
+        if (removeAdsButton == null)
+        {
+            return;
+        }
+
+
         if (removeAdsProduct == null)
         {
-            if (removeAdsButton != null)
-            {
-                removeAdsButton
-                    .gameObject
-                    .SetActive(
-                        false
-                    );
-            }
-
+            removeAdsButton
+                .gameObject
+                .SetActive(
+                    false
+                );
 
             return;
         }
 
 
-        if (removeAdsButton != null)
-        {
-            removeAdsButton
-                .gameObject
-                .SetActive(
-                    true
-                );
-        }
+        removeAdsButton
+            .gameObject
+            .SetActive(
+                true
+            );
 
 
         bool owned =
@@ -428,11 +458,8 @@ public class MoneyShopController :
                 .AreAdsRemoved();
 
 
-        if (removeAdsButton != null)
-        {
-            removeAdsButton.interactable =
-                !owned;
-        }
+        removeAdsButton.interactable =
+            !owned;
 
 
         if (removeAdsButtonText != null)

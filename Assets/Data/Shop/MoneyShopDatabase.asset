@@ -17,7 +17,7 @@ MonoBehaviour:
     storeProductId: com.puzzle.coins1000
     title: "1000 \u0417\u0412\u0401\u0417\u0414"
     description: "\u0412\u0410\u041B\u042E\u0422\u0410"
-    icon: {fileID: 0}
+    icon: {fileID: 461939252480258482, guid: 392344cde5e30ce44befb540e9fff269, type: 3}
     fallbackPriceText: $2.99
     storeProductType: 0
     placement: 0
@@ -29,7 +29,7 @@ MonoBehaviour:
     storeProductId: com.puzzle.reveal10
     title: "10 \u041F\u041E\u0414\u0421\u041A\u0410\u0417\u041E\u041A"
     description: "\u041F\u041E\u041A\u0410\u0417\u0410\u0422\u042C \u0424\u0418\u0413\u0423\u0420\u0423"
-    icon: {fileID: 0}
+    icon: {fileID: 21300000, guid: 241ee31088c103f40963c39488d02ef0, type: 3}
     fallbackPriceText: $1.99
     storeProductType: 0
     placement: 0
@@ -41,7 +41,7 @@ MonoBehaviour:
     storeProductId: com.puzzle.empty10
     title: "10 \u041F\u041E\u0414\u0421\u041A\u0410\u0417\u041E\u041A"
     description: "\u041F\u0423\u0421\u0422\u042B\u0415 \u041A\u041B\u0415\u0422\u041A\u0418"
-    icon: {fileID: 0}
+    icon: {fileID: 21300000, guid: d3c3e9920bcc0274dabeef917beea423, type: 3}
     fallbackPriceText: $1.99
     storeProductType: 0
     placement: 0
@@ -53,7 +53,7 @@ MonoBehaviour:
     storeProductId: com.puzzle.starterbundle
     title: "\u0421\u0422\u0410\u0420\u0422\u041E\u0412\u042B\u0419 \u041D\u0410\u0411\u041E\u0420"
     description: "1500 \u2B50 + \u041F\u041E\u0414\u0421\u041A\u0410\u0417\u041A\u0418"
-    icon: {fileID: 0}
+    icon: {fileID: -8000726425553896944, guid: 80b2138d903f2ca46822a170c70073c2, type: 3}
     fallbackPriceText: $4.99
     storeProductType: 0
     placement: 0
@@ -65,7 +65,7 @@ MonoBehaviour:
     storeProductId: com.puzzle.coins3000
     title: "3000 \u0417\u0412\u0401\u0417\u0414"
     description: "\u0412\u0410\u041B\u042E\u0422\u0410"
-    icon: {fileID: 0}
+    icon: {fileID: 461939252480258482, guid: 392344cde5e30ce44befb540e9fff269, type: 3}
     fallbackPriceText: $6.99
     storeProductType: 0
     placement: 0
