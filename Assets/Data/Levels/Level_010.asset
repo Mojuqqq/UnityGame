@@ -17,19 +17,19 @@ MonoBehaviour:
   columns: 4
   rows: 4
   pieces:
-  - {fileID: 11400000, guid: ba4c3c151b49a3343997e4ba1d028767, type: 2}
   - {fileID: 11400000, guid: 5317e700113cbf34b993703a603cbf57, type: 2}
   - {fileID: 11400000, guid: ba4c3c151b49a3343997e4ba1d028767, type: 2}
-  rowTargets: 03000000020000000400000003000000i
-  columnTargets: 01000000030000000400000004000000i
+  - {fileID: 11400000, guid: ba4c3c151b49a3343997e4ba1d028767, type: 2}
+  rowTargets: 03000000040000000200000003000000i
+  columnTargets: 04000000040000000300000001000000i
   blockedCells: []
   solution:
   - pieceIndex: 0
-    origin: {x: 0, y: 2}
-    rotationSteps: 0
+    origin: {x: 0, y: 0}
+    rotationSteps: 2
   - pieceIndex: 1
-    origin: {x: 2, y: 1}
-    rotationSteps: 0
-  - pieceIndex: 2
     origin: {x: 1, y: 0}
-    rotationSteps: 0
+    rotationSteps: 2
+  - pieceIndex: 2
+    origin: {x: 0, y: 2}
+    rotationSteps: 2

@@ -14,22 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   levelNumber: 3
   displayName: "\u0423\u0420\u041E\u0412\u0415\u041D\u042C 3"
-  columns: 4
-  rows: 4
+  columns: 3
+  rows: 3
   pieces:
   - {fileID: 11400000, guid: 08665c862b051f94da3dfa0aad4e2e0b, type: 2}
-  - {fileID: 11400000, guid: ba4c3c151b49a3343997e4ba1d028767, type: 2}
-  rowTargets: 02000000030000000200000001000000i
-  columnTargets: 01000000030000000400000000000000i
-  blockedCells:
-  - {x: 3, y: 0}
-  - {x: 3, y: 3}
-  - {x: 0, y: 3}
-  - {x: 0, y: 0}
+  rowTargets: 010000000200000001000000i
+  columnTargets: 000000000200000002000000i
+  blockedCells: []
   solution:
   - pieceIndex: 0
-    origin: {x: 0, y: 0}
-    rotationSteps: 0
-  - pieceIndex: 1
-    origin: {x: 1, y: 1}
+    origin: {x: 1, y: 0}
     rotationSteps: 1
