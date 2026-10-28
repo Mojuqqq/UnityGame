@@ -23,6 +23,7 @@ MonoBehaviour:
   columnTargets: 01000000040000000200000001000000i
   blockedCells:
   - {x: 3, y: 1}
+  - {x: 3, y: 0}
   solution:
   - pieceIndex: 0
     origin: {x: 0, y: 0}
