@@ -439,40 +439,78 @@ public class LevelBuilderManager :
             spacing;
 
 
-        ConfigureBoardContainer(
-            gridCellsContainer,
-            gridWidth,
-            gridHeight,
-            0f,
-            0f
-        );
+        float gridLeft =
+    -gridWidth * 0.5f;
 
 
-        ConfigureBoardContainer(
-            placedPiecesContainer,
-            gridWidth,
-            gridHeight,
-            0f,
-            0f
-        );
+float gridTop =
+    gridHeight * 0.5f;
 
 
-        ConfigureBoardContainer(
-            columnHintsContainer,
-            gridWidth,
-            45f,
-            0f,
-            55f
-        );
+float hintSize =
+    45f;
 
 
-        ConfigureBoardContainer(
-            rowHintsContainer,
-            45f,
-            gridHeight,
-            -55f,
-            0f
-        );
+float hintGap =
+    16f;
+
+
+// =================================================
+// GRID
+// =================================================
+
+ConfigureTopLeftContainer(
+    gridCellsContainer,
+    gridWidth,
+    gridHeight,
+    gridLeft,
+    gridTop
+);
+
+
+ConfigureTopLeftContainer(
+    placedPiecesContainer,
+    gridWidth,
+    gridHeight,
+    gridLeft,
+    gridTop
+);
+
+
+// =================================================
+// COLUMN HINTS
+// Над сеткой
+// =================================================
+
+ConfigureTopLeftContainer(
+    columnHintsContainer,
+    gridWidth,
+    hintSize,
+
+    gridLeft,
+
+    gridTop +
+    hintGap +
+    hintSize
+);
+
+
+// =================================================
+// ROW HINTS
+// Слева от сетки
+// =================================================
+
+ConfigureTopLeftContainer(
+    rowHintsContainer,
+    hintSize,
+    gridHeight,
+
+    gridLeft -
+    hintGap -
+    hintSize,
+
+    gridTop
+);
 
 
         float step =
@@ -652,57 +690,54 @@ public class LevelBuilderManager :
     }
 
 
-    private void ConfigureBoardContainer(
-        RectTransform rect,
-        float width,
-        float height,
-        float offsetX,
-        float offsetY
-    )
+    private void ConfigureTopLeftContainer(
+    RectTransform rect,
+    float width,
+    float height,
+    float x,
+    float y
+)
+{
+    if (rect == null)
     {
-        if (rect == null)
-        {
-            return;
-        }
-
-
-        rect.anchorMin =
-            new Vector2(
-                0.5f,
-                0.5f
-            );
-
-
-        rect.anchorMax =
-            new Vector2(
-                0.5f,
-                0.5f
-            );
-
-
-        rect.pivot =
-            new Vector2(
-                0f,
-                1f
-            );
-
-
-        rect.sizeDelta =
-            new Vector2(
-                width,
-                height
-            );
-
-
-        rect.anchoredPosition =
-            new Vector2(
-                -width * 0.5f +
-                offsetX,
-
-                height * 0.5f +
-                offsetY
-            );
+        return;
     }
+
+
+    rect.anchorMin =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    rect.anchorMax =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    rect.pivot =
+        new Vector2(
+            0f,
+            1f
+        );
+
+
+    rect.sizeDelta =
+        new Vector2(
+            width,
+            height
+        );
+
+
+    rect.anchoredPosition =
+        new Vector2(
+            x,
+            y
+        );
+}
 
 
     private void SetupTopLeftChild(

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84233217c9ce7604d899878bd021eb0d, type: 3}
+  m_Name: Level_005
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  levelNumber: 5
+  displayName: "\u0423\u0420\u041E\u0412\u0415\u041D\u042C 5"
+  columns: 4
+  rows: 4
+  pieces:
+  - {fileID: 11400000, guid: 50a2206d921cd5d42a01cd149867f7cc, type: 2}
+  - {fileID: 11400000, guid: 5317e700113cbf34b993703a603cbf57, type: 2}
+  - {fileID: 11400000, guid: 1cec0e8b1cccc75438ce3f87d4b4333b, type: 2}
+  rowTargets: 03000000030000000400000002000000i
+  columnTargets: 03000000040000000200000003000000i
+  blockedCells:
+  - {x: 0, y: 1}
+  solution:
+  - pieceIndex: 0
+    origin: {x: 0, y: 0}
+    rotationSteps: 0
+  - pieceIndex: 1
+    origin: {x: 2, y: 0}
+    rotationSteps: 0
+  - pieceIndex: 2
+    origin: {x: 0, y: 2}
+    rotationSteps: 0
