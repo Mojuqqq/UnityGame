@@ -13,6 +13,8 @@ public static class LevelSolver
     {
         public Vector2Int[] Cells;
 
+        // Канонический набор абсолютных клеток
+        // этого конкретного размещения.
         public string Key;
     }
 
@@ -68,7 +70,7 @@ public static class LevelSolver
 
 
         // =================================================
-        // GENERATE ALL POSSIBLE PLACEMENTS
+        // ALL POSSIBLE PLACEMENTS FOR EACH PIECE
         // =================================================
 
         List<Placement>[] placements =
@@ -92,6 +94,9 @@ public static class LevelSolver
                 );
 
 
+            // Если хотя бы одну фигуру
+            // невозможно поставить вообще,
+            // решений быть не может.
             if (
                 placements[pieceIndex].Count
                 ==
@@ -104,7 +109,7 @@ public static class LevelSolver
 
 
         // =================================================
-        // CHOOSE SEARCH ORDER
+        // SEARCH ORDER
         // =================================================
 
         List<int> pieceOrder =
@@ -123,18 +128,40 @@ public static class LevelSolver
         }
 
 
-        // Фигуры с меньшим количеством
-        // возможных размещений проверяем раньше.
+        // Сначала рассматриваем фигуры,
+        // у которых меньше вариантов размещения.
+        // Это сильно ускоряет перебор.
+        //
+        // При одинаковом количестве вариантов
+        // используем Piece Index,
+        // чтобы порядок был стабильным.
         pieceOrder.Sort(
             (a, b) =>
-                placements[a].Count.CompareTo(
-                    placements[b].Count
-                )
+            {
+                int placementComparison =
+                    placements[a]
+                        .Count
+                        .CompareTo(
+                            placements[b].Count
+                        );
+
+
+                if (placementComparison != 0)
+                {
+                    return placementComparison;
+                }
+
+
+                return
+                    a.CompareTo(
+                        b
+                    );
+            }
         );
 
 
         // =================================================
-        // SEARCH STATE
+        // CURRENT BOARD STATE
         // =================================================
 
         bool[,] occupied =
@@ -145,24 +172,56 @@ public static class LevelSolver
 
 
         int[] rowCounts =
-            new int[rows];
+            new int[
+                rows
+            ];
 
 
         int[] columnCounts =
-            new int[columns];
+            new int[
+                columns
+            ];
 
 
-        HashSet<string> uniqueBoards =
+        // Здесь храним конкретное размещение
+        // каждого Piece Index для текущей ветки поиска.
+        Placement[] selectedPlacements =
+            new Placement[
+                level.Pieces.Length
+            ];
+
+
+        // =================================================
+        // UNIQUE SOLUTIONS
+        // =================================================
+
+        HashSet<string> uniqueSolutions =
             new HashSet<string>();
 
 
+        // =================================================
+        // IDENTICAL PIECES
+        // =================================================
+
+        // Для одинаковых PieceDefinition вводим
+        // канонический порядок размещений.
+        //
+        // Например:
+        //
+        // L1 = A, L2 = B
+        //
+        // и
+        //
+        // L1 = B, L2 = A
+        //
+        // не будут перебраны как два разных решения.
         Dictionary<
             PieceDefinition,
-            int
-        > lastPlacementByPieceType =
+            string
+        > lastPlacementKeyByPieceType =
             new Dictionary<
                 PieceDefinition,
-                int
+                string
             >();
 
 
@@ -175,8 +234,9 @@ public static class LevelSolver
             rowCounts,
             columnCounts,
             blocked,
-            uniqueBoards,
-            lastPlacementByPieceType,
+            uniqueSolutions,
+            selectedPlacements,
+            lastPlacementKeyByPieceType,
             Mathf.Max(
                 1,
                 maxSolutions
@@ -184,7 +244,7 @@ public static class LevelSolver
         );
 
 
-        return uniqueBoards.Count;
+        return uniqueSolutions.Count;
     }
 
 
@@ -202,10 +262,11 @@ public static class LevelSolver
         int[] columnCounts,
         HashSet<Vector2Int> blocked,
         HashSet<string> solutions,
+        Placement[] selectedPlacements,
         Dictionary<
             PieceDefinition,
-            int
-        > lastPlacementByPieceType,
+            string
+        > lastPlacementKeyByPieceType,
         int maxSolutions
     )
     {
@@ -239,21 +300,45 @@ public static class LevelSolver
             }
 
 
-            solutions.Add(
-                BuildBoardKey(
-                    occupied,
-                    level.Columns,
-                    level.Rows
+            // ВАЖНО:
+            //
+            // раньше здесь был BuildBoardKey(),
+            // который смотрел только на итоговую
+            // занятость поля.
+            //
+            // Теперь ключ содержит реальные
+            // размещения каждой фигуры.
+            string solutionKey =
+                BuildSolutionKey(
+                    level,
+                    selectedPlacements
+                );
+
+
+            if (
+                !string.IsNullOrEmpty(
+                    solutionKey
                 )
-            );
+            )
+            {
+                solutions.Add(
+                    solutionKey
+                );
+            }
 
 
             return;
         }
 
 
+        // =================================================
+        // CURRENT PIECE
+        // =================================================
+
         int pieceIndex =
-            pieceOrder[depth];
+            pieceOrder[
+                depth
+            ];
 
 
         PieceDefinition piece =
@@ -262,48 +347,67 @@ public static class LevelSolver
             ];
 
 
-        List<Placement>
-            currentPlacements =
-                placements[
-                    pieceIndex
-                ];
+        List<Placement> currentPlacements =
+            placements[
+                pieceIndex
+            ];
 
 
-        int minimumPlacementIndex =
-            0;
+        // =================================================
+        // IDENTICAL PIECE SYMMETRY
+        // =================================================
+
+        string minimumPlacementKey =
+            null;
 
 
-        // Если используются одинаковые PieceDefinition,
-        // не перебираем их перестановки как разные решения.
-        if (
-            piece != null &&
-            lastPlacementByPieceType
+        if (piece != null)
+        {
+            lastPlacementKeyByPieceType
                 .TryGetValue(
                     piece,
-                    out int previousPlacement
-                )
-        )
-        {
-            minimumPlacementIndex =
-                previousPlacement + 1;
+                    out minimumPlacementKey
+                );
         }
 
 
-        for (
-            int placementIndex =
-                minimumPlacementIndex;
+        // =================================================
+        // TRY PLACEMENTS
+        // =================================================
 
-            placementIndex <
-                currentPlacements.Count;
-
-            placementIndex++
+        foreach (
+            Placement placement
+            in currentPlacements
         )
         {
-            Placement placement =
-                currentPlacements[
-                    placementIndex
-                ];
+            // ---------------------------------------------
+            // IDENTICAL PIECES
+            // ---------------------------------------------
+            //
+            // Для одинаковых фигур разрешаем
+            // только возрастающий порядок ключей.
+            //
+            // Благодаря этому перестановка
+            // одинаковых экземпляров не создаёт
+            // отдельную ветку решения.
 
+            if (
+                minimumPlacementKey != null &&
+                string.CompareOrdinal(
+                    placement.Key,
+                    minimumPlacementKey
+                )
+                <=
+                0
+            )
+            {
+                continue;
+            }
+
+
+            // ---------------------------------------------
+            // COLLISION / TARGET LIMIT
+            // ---------------------------------------------
 
             if (
                 !CanPlace(
@@ -332,29 +436,39 @@ public static class LevelSolver
             );
 
 
-            int savedPrevious =
-    -1;
+            selectedPlacements[
+                pieceIndex
+            ] =
+                placement;
 
 
-bool hadPrevious =
-    false;
+            // ---------------------------------------------
+            // SAVE IDENTICAL-PIECE STATE
+            // ---------------------------------------------
+
+            string previousPlacementKey =
+                null;
 
 
-if (piece != null)
-{
-    hadPrevious =
-        lastPlacementByPieceType
-            .TryGetValue(
-                piece,
-                out savedPrevious
-            );
+            bool hadPreviousPlacement =
+                false;
 
 
-    lastPlacementByPieceType[
-        piece
-    ] =
-        placementIndex;
-}
+            if (piece != null)
+            {
+                hadPreviousPlacement =
+                    lastPlacementKeyByPieceType
+                        .TryGetValue(
+                            piece,
+                            out previousPlacementKey
+                        );
+
+
+                lastPlacementKeyByPieceType[
+                    piece
+                ] =
+                    placement.Key;
+            }
 
 
             // ---------------------------------------------
@@ -381,28 +495,29 @@ if (piece != null)
                     columnCounts,
                     blocked,
                     solutions,
-                    lastPlacementByPieceType,
+                    selectedPlacements,
+                    lastPlacementKeyByPieceType,
                     maxSolutions
                 );
             }
 
 
             // ---------------------------------------------
-            // RESTORE SAME-PIECE STATE
+            // RESTORE IDENTICAL-PIECE STATE
             // ---------------------------------------------
 
             if (piece != null)
             {
-                if (hadPrevious)
+                if (hadPreviousPlacement)
                 {
-                    lastPlacementByPieceType[
+                    lastPlacementKeyByPieceType[
                         piece
                     ] =
-                        savedPrevious;
+                        previousPlacementKey;
                 }
                 else
                 {
-                    lastPlacementByPieceType
+                    lastPlacementKeyByPieceType
                         .Remove(
                             piece
                         );
@@ -411,7 +526,17 @@ if (piece != null)
 
 
             // ---------------------------------------------
-            // REMOVE
+            // RESTORE SELECTED PLACEMENT
+            // ---------------------------------------------
+
+            selectedPlacements[
+                pieceIndex
+            ] =
+                null;
+
+
+            // ---------------------------------------------
+            // REMOVE FROM BOARD
             // ---------------------------------------------
 
             ApplyPlacement(
@@ -435,7 +560,7 @@ if (piece != null)
 
 
     // =====================================================
-    // GENERATE PLACEMENTS
+    // GENERATE ALL PLACEMENTS
     // =====================================================
 
     private static List<Placement>
@@ -449,7 +574,21 @@ if (piece != null)
             new List<Placement>();
 
 
-        HashSet<string> unique =
+        // Разные Rotation Steps иногда дают
+        // одинаковую форму:
+        //
+        // O: 0°, 90°, 180°, 270°
+        // визуально всё равно один квадрат.
+        //
+        // Поэтому одинаковые формы
+        // не генерируем повторно.
+        HashSet<string> uniqueRotations =
+            new HashSet<string>();
+
+
+        // А это защищает уже от одинаковых
+        // абсолютных размещений на поле.
+        HashSet<string> uniquePlacements =
             new HashSet<string>();
 
 
@@ -481,11 +620,8 @@ if (piece != null)
                 );
 
 
-            // Например квадрат O после поворота
-            // остаётся тем же квадратом.
             if (
-                !unique.Add(
-                    "ROT_" +
+                !uniqueRotations.Add(
                     shapeKey
                 )
             )
@@ -493,6 +629,10 @@ if (piece != null)
                 continue;
             }
 
+
+            // ---------------------------------------------
+            // SHAPE SIZE
+            // ---------------------------------------------
 
             int width =
                 0;
@@ -522,17 +662,23 @@ if (piece != null)
             }
 
 
+            // ---------------------------------------------
+            // ALL ORIGINS
+            // ---------------------------------------------
+
             for (
                 int y = 0;
                 y <=
-                    level.Rows - height;
+                    level.Rows -
+                    height;
                 y++
             )
             {
                 for (
                     int x = 0;
                     x <=
-                        level.Columns - width;
+                        level.Columns -
+                        width;
                     x++
                 )
                 {
@@ -586,17 +732,15 @@ if (piece != null)
                     }
 
 
-                    string key =
+                    string placementKey =
                         BuildShapeKey(
                             cells
                         );
 
 
                     if (
-                        result.Exists(
-                            placement =>
-                                placement.Key ==
-                                key
+                        !uniquePlacements.Add(
+                            placementKey
                         )
                     )
                     {
@@ -611,7 +755,7 @@ if (piece != null)
                                 cells,
 
                             Key =
-                                key
+                                placementKey
                         }
                     );
                 }
@@ -619,6 +763,9 @@ if (piece != null)
         }
 
 
+        // Очень важно для одинаковых фигур:
+        // одинаковый набор placements должен
+        // иметь один и тот же стабильный порядок.
         result.Sort(
             (a, b) =>
                 string.CompareOrdinal(
@@ -644,14 +791,12 @@ if (piece != null)
         int[] columnCounts
     )
     {
-        Dictionary<int, int>
-            addedRows =
-                new Dictionary<int, int>();
+        Dictionary<int, int> addedRows =
+            new Dictionary<int, int>();
 
 
-        Dictionary<int, int>
-            addedColumns =
-                new Dictionary<int, int>();
+        Dictionary<int, int> addedColumns =
+            new Dictionary<int, int>();
 
 
         foreach (
@@ -659,6 +804,10 @@ if (piece != null)
             in placement.Cells
         )
         {
+            // ---------------------------------------------
+            // COLLISION
+            // ---------------------------------------------
+
             if (
                 occupied[
                     cell.x,
@@ -669,6 +818,10 @@ if (piece != null)
                 return false;
             }
 
+
+            // ---------------------------------------------
+            // ROW ADDITIONS
+            // ---------------------------------------------
 
             if (
                 !addedRows.ContainsKey(
@@ -687,6 +840,10 @@ if (piece != null)
                 cell.y
             ]++;
 
+
+            // ---------------------------------------------
+            // COLUMN ADDITIONS
+            // ---------------------------------------------
 
             if (
                 !addedColumns.ContainsKey(
@@ -707,9 +864,12 @@ if (piece != null)
         }
 
 
+        // ---------------------------------------------
+        // ROW TARGET LIMIT
+        // ---------------------------------------------
+
         foreach (
-            KeyValuePair<int, int>
-            row
+            KeyValuePair<int, int> row
             in addedRows
         )
         {
@@ -730,9 +890,12 @@ if (piece != null)
         }
 
 
+        // ---------------------------------------------
+        // COLUMN TARGET LIMIT
+        // ---------------------------------------------
+
         foreach (
-            KeyValuePair<int, int>
-            column
+            KeyValuePair<int, int> column
             in addedColumns
         )
         {
@@ -813,9 +976,9 @@ if (piece != null)
         HashSet<Vector2Int> blocked
     )
     {
-        // ---------------------------------------------
+        // =================================================
         // ROWS
-        // ---------------------------------------------
+        // =================================================
 
         for (
             int y = 0;
@@ -824,9 +987,13 @@ if (piece != null)
         )
         {
             int needed =
-                level.RowTargets[y]
+                level.RowTargets[
+                    y
+                ]
                 -
-                rowCounts[y];
+                rowCounts[
+                    y
+                ];
 
 
             if (needed < 0)
@@ -853,8 +1020,14 @@ if (piece != null)
 
 
                 if (
-                    occupied[x, y] ||
-                    blocked.Contains(cell)
+                    occupied[
+                        x,
+                        y
+                    ]
+                    ||
+                    blocked.Contains(
+                        cell
+                    )
                 )
                 {
                     continue;
@@ -872,9 +1045,9 @@ if (piece != null)
         }
 
 
-        // ---------------------------------------------
+        // =================================================
         // COLUMNS
-        // ---------------------------------------------
+        // =================================================
 
         for (
             int x = 0;
@@ -883,9 +1056,13 @@ if (piece != null)
         )
         {
             int needed =
-                level.ColumnTargets[x]
+                level.ColumnTargets[
+                    x
+                ]
                 -
-                columnCounts[x];
+                columnCounts[
+                    x
+                ];
 
 
             if (needed < 0)
@@ -912,8 +1089,14 @@ if (piece != null)
 
 
                 if (
-                    occupied[x, y] ||
-                    blocked.Contains(cell)
+                    occupied[
+                        x,
+                        y
+                    ]
+                    ||
+                    blocked.Contains(
+                        cell
+                    )
                 )
                 {
                     continue;
@@ -936,7 +1119,7 @@ if (piece != null)
 
 
     // =====================================================
-    // TARGET MATCH
+    // FINAL TARGET CHECK
     // =====================================================
 
     private static bool TargetsMatch(
@@ -952,8 +1135,13 @@ if (piece != null)
         )
         {
             if (
-                rowCounts[y] !=
-                level.RowTargets[y]
+                rowCounts[
+                    y
+                ]
+                !=
+                level.RowTargets[
+                    y
+                ]
             )
             {
                 return false;
@@ -968,8 +1156,13 @@ if (piece != null)
         )
         {
             if (
-                columnCounts[x] !=
-                level.ColumnTargets[x]
+                columnCounts[
+                    x
+                ]
+                !=
+                level.ColumnTargets[
+                    x
+                ]
             )
             {
                 return false;
@@ -982,7 +1175,204 @@ if (piece != null)
 
 
     // =====================================================
-    // KEYS
+    // SOLUTION KEY
+    // =====================================================
+
+    private static string BuildSolutionKey(
+        LevelData level,
+        Placement[] selectedPlacements
+    )
+    {
+        if (
+            level == null ||
+            level.Pieces == null ||
+            selectedPlacements == null ||
+            selectedPlacements.Length !=
+                level.Pieces.Length
+        )
+        {
+            return "";
+        }
+
+
+        // =================================================
+        // GROUP BY PIECE TYPE
+        // =================================================
+        //
+        // Пример:
+        //
+        // Pieces:
+        // L, T, L, L
+        //
+        // превратятся в:
+        //
+        // L -> [placement A,
+        //       placement B,
+        //       placement C]
+        //
+        // T -> [placement D]
+        //
+        // Размещения одинаковых L потом
+        // сортируются.
+        //
+        // Поэтому перестановка L1/L2/L3
+        // не меняет ключ решения.
+
+        Dictionary<
+            PieceDefinition,
+            List<string>
+        > placementsByType =
+            new Dictionary<
+                PieceDefinition,
+                List<string>
+            >();
+
+
+        List<PieceDefinition> typeOrder =
+            new List<PieceDefinition>();
+
+
+        for (
+            int pieceIndex = 0;
+            pieceIndex <
+                level.Pieces.Length;
+            pieceIndex++
+        )
+        {
+            PieceDefinition definition =
+                level.Pieces[
+                    pieceIndex
+                ];
+
+
+            Placement placement =
+                selectedPlacements[
+                    pieceIndex
+                ];
+
+
+            if (
+                definition == null ||
+                placement == null
+            )
+            {
+                return "";
+            }
+
+
+            if (
+                !placementsByType
+                    .TryGetValue(
+                        definition,
+                        out List<string>
+                            typePlacements
+                    )
+            )
+            {
+                typePlacements =
+                    new List<string>();
+
+
+                placementsByType[
+                    definition
+                ] =
+                    typePlacements;
+
+
+                // Порядок типов определяется
+                // первым появлением в Pieces.
+                // Он стабилен для данного уровня.
+                typeOrder.Add(
+                    definition
+                );
+            }
+
+
+            typePlacements.Add(
+                placement.Key
+            );
+        }
+
+
+        // =================================================
+        // BUILD CANONICAL KEY
+        // =================================================
+
+        StringBuilder builder =
+            new StringBuilder();
+
+
+        for (
+            int typeIndex = 0;
+            typeIndex <
+                typeOrder.Count;
+            typeIndex++
+        )
+        {
+            PieceDefinition definition =
+                typeOrder[
+                    typeIndex
+                ];
+
+
+            List<string> typePlacements =
+                placementsByType[
+                    definition
+                ];
+
+
+            // Самый важный момент:
+            //
+            // одинаковые экземпляры фигуры
+            // становятся неразличимыми.
+            typePlacements.Sort(
+                System.StringComparer
+                    .Ordinal
+            );
+
+
+            builder
+                .Append(
+                    "TYPE_"
+                )
+                .Append(
+                    typeIndex
+                )
+                .Append(
+                    "{"
+                );
+
+
+            foreach (
+                string placementKey
+                in typePlacements
+            )
+            {
+                builder
+                    .Append(
+                        "["
+                    )
+                    .Append(
+                        placementKey
+                    )
+                    .Append(
+                        "]"
+                    );
+            }
+
+
+            builder.Append(
+                "}"
+            );
+        }
+
+
+        return builder.ToString();
+    }
+
+
+    // =====================================================
+    // CELL SET KEY
     // =====================================================
 
     private static string BuildShapeKey(
@@ -998,15 +1388,15 @@ if (piece != null)
         sorted.Sort(
             (a, b) =>
             {
-                int y =
+                int yComparison =
                     a.y.CompareTo(
                         b.y
                     );
 
 
-                if (y != 0)
+                if (yComparison != 0)
                 {
-                    return y;
+                    return yComparison;
                 }
 
 
@@ -1040,44 +1430,6 @@ if (piece != null)
                 .Append(
                     ";"
                 );
-        }
-
-
-        return builder.ToString();
-    }
-
-
-    private static string BuildBoardKey(
-        bool[,] occupied,
-        int columns,
-        int rows
-    )
-    {
-        StringBuilder builder =
-            new StringBuilder(
-                columns *
-                rows
-            );
-
-
-        for (
-            int y = 0;
-            y < rows;
-            y++
-        )
-        {
-            for (
-                int x = 0;
-                x < columns;
-                x++
-            )
-            {
-                builder.Append(
-                    occupied[x, y]
-                        ? "1"
-                        : "0"
-                );
-            }
         }
 
 
