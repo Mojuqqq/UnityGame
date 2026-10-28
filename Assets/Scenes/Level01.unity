@@ -2994,7 +2994,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 803377e3a36e6324d990ed2f51bde96f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelManager
-  fallbackLevel: {fileID: 11400000, guid: 2f9a21a8f0dd04b4880d6c24a4858e9b, type: 2}
+  fallbackLevel: {fileID: 11400000, guid: 9e6a738801f8e1648a614e470db122c2, type: 2}
   levelDatabase: {fileID: 11400000, guid: 9b2a93a76df6e09448dce961df1e71fd, type: 2}
   adaptivePiecePanelLayout: {fileID: 216110420}
   adaptiveBoardLayout: {fileID: 1914694059}
@@ -3548,7 +3548,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2135218267
 RectTransform:
   m_ObjectHideFlags: 0

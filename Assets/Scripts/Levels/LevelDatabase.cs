@@ -1,5 +1,6 @@
 using UnityEngine;
 
+
 [CreateAssetMenu(
     fileName = "LevelDatabase",
     menuName = "Puzzle/Level Database"
@@ -15,19 +16,15 @@ public class LevelDatabase :
         levels;
 
 
-    public int Count
-    {
-        get
-        {
-            if (levels == null)
-            {
-                return 0;
-            }
+    public int Count =>
+        levels == null
+            ? 0
+            : levels.Length;
 
-            return levels.Length;
-        }
-    }
 
+    // =====================================================
+    // GET
+    // =====================================================
 
     public LevelData GetLevel(
         int index
@@ -42,29 +39,23 @@ public class LevelDatabase :
             return null;
         }
 
+
         return levels[index];
     }
 
 
     public LevelData GetFirstLevel()
     {
-        if (levels == null)
+        if (
+            levels == null ||
+            levels.Length == 0
+        )
         {
             return null;
         }
 
-        foreach (
-            LevelData level
-            in levels
-        )
-        {
-            if (level != null)
-            {
-                return level;
-            }
-        }
 
-        return null;
+        return levels[0];
     }
 
 
@@ -76,6 +67,7 @@ public class LevelDatabase :
         {
             return null;
         }
+
 
         foreach (
             LevelData level
@@ -92,9 +84,14 @@ public class LevelDatabase :
             }
         }
 
+
         return null;
     }
 
+
+    // =====================================================
+    // NEXT
+    // =====================================================
 
     public LevelData GetNextLevel(
         LevelData currentLevel
@@ -107,6 +104,7 @@ public class LevelDatabase :
         {
             return null;
         }
+
 
         for (
             int i = 0;
@@ -122,100 +120,107 @@ public class LevelDatabase :
                 continue;
             }
 
-            for (
-                int nextIndex = i + 1;
-                nextIndex < levels.Length;
-                nextIndex++
+
+            int nextIndex =
+                i + 1;
+
+
+            if (
+                nextIndex >=
+                levels.Length
             )
             {
-                if (
-                    levels[nextIndex] !=
-                    null
-                )
-                {
-                    return
-                        levels[nextIndex];
-                }
+                return null;
             }
 
-            return null;
+
+            return
+                levels[
+                    nextIndex
+                ];
         }
+
 
         return null;
     }
 
+
+    // =====================================================
+    // VALIDATION
+    // =====================================================
+
     public bool IsValid(
-    out string errorMessage
-)
-{
-    if (
-        levels == null ||
-        levels.Length == 0
+        out string errorMessage
     )
     {
-        errorMessage =
-            "Level Database is empty.";
-
-        return false;
-    }
-
-
-    for (
-        int i = 0;
-        i < levels.Length;
-        i++
-    )
-    {
-        LevelData level =
-            levels[i];
-
-
-        if (level == null)
-        {
-            errorMessage =
-                $"Level element {i} is empty.";
-
-            return false;
-        }
-
-
         if (
-            !level.IsValid(
-                out string levelError
-            )
+            levels == null ||
+            levels.Length == 0
         )
         {
             errorMessage =
-                $"{level.name}: {levelError}";
+                "Level Database is empty.";
 
             return false;
         }
 
 
         for (
-            int j = i + 1;
-            j < levels.Length;
-            j++
+            int i = 0;
+            i < levels.Length;
+            i++
         )
         {
+            LevelData level =
+                levels[i];
+
+
+            if (level == null)
+            {
+                errorMessage =
+                    $"Level element {i} is empty.";
+
+                return false;
+            }
+
+
+            int expectedNumber =
+                i + 1;
+
+
             if (
-                levels[j] != null &&
-                levels[j].LevelNumber ==
-                level.LevelNumber
+                level.LevelNumber !=
+                expectedNumber
             )
             {
                 errorMessage =
-                    $"Duplicate Level Number: " +
+                    $"Element {i} must be " +
+                    $"Level {expectedNumber}, " +
+                    $"but contains Level " +
                     $"{level.LevelNumber}.";
 
                 return false;
             }
+
+
+            if (
+                !level.IsValid(
+                    out string levelError
+                )
+            )
+            {
+                errorMessage =
+                    $"{level.name}: " +
+                    levelError;
+
+                return false;
+            }
         }
+
+
+        errorMessage =
+            "";
+
+        return true;
     }
-
-
-    errorMessage = "";
-
-    return true;
-}
 }
