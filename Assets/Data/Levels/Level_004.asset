@@ -17,17 +17,15 @@ MonoBehaviour:
   columns: 4
   rows: 4
   pieces:
-  - {fileID: 11400000, guid: ba4c3c151b49a3343997e4ba1d028767, type: 2}
-  - {fileID: 11400000, guid: 2085f7f4b4d5ac54abff9b5498957e41, type: 2}
-  rowTargets: 03000000010000000300000001000000i
-  columnTargets: 01000000040000000200000001000000i
-  blockedCells:
-  - {x: 3, y: 1}
-  - {x: 3, y: 0}
+  - {fileID: 11400000, guid: 08665c862b051f94da3dfa0aad4e2e0b, type: 2}
+  - {fileID: 11400000, guid: 08665c862b051f94da3dfa0aad4e2e0b, type: 2}
+  rowTargets: 02000000030000000200000001000000i
+  columnTargets: 02000000030000000200000001000000i
+  blockedCells: []
   solution:
   - pieceIndex: 0
-    origin: {x: 0, y: 0}
-    rotationSteps: 0
-  - pieceIndex: 1
-    origin: {x: 1, y: 2}
+    origin: {x: 0, y: 1}
     rotationSteps: 1
+  - pieceIndex: 1
+    origin: {x: 1, y: 0}
+    rotationSteps: 0

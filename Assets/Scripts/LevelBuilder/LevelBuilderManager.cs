@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-
+using System.Collections;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -211,13 +211,19 @@ public class LevelBuilderManager :
     // START
     // =====================================================
 
-    private void Start()
-    {
-        BuildPalette();
+    private IEnumerator Start()
+{
+    yield return null;
 
 
-        BuildNewGrid();
-    }
+    Canvas.ForceUpdateCanvases();
+
+
+    BuildNewGrid();
+
+
+    BuildPalette();
+}
 
 
     // =====================================================

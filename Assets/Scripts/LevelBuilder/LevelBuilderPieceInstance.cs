@@ -6,6 +6,9 @@ using UnityEngine.InputSystem;
 [RequireComponent(
     typeof(CanvasGroup)
 )]
+[RequireComponent(
+    typeof(PieceView)
+)]
 public class LevelBuilderPieceInstance :
     MonoBehaviour,
     IBeginDragHandler,
@@ -13,9 +16,7 @@ public class LevelBuilderPieceInstance :
     IEndDragHandler,
     IPointerClickHandler
 {
-    [Header("Visual")]
-
-    [SerializeField]
+    
     private PieceView pieceView;
 
 
@@ -85,14 +86,27 @@ public class LevelBuilderPieceInstance :
     // =====================================================
 
     private void Awake()
+{
+    rectTransform =
+        GetComponent<RectTransform>();
+
+
+    canvasGroup =
+        GetComponent<CanvasGroup>();
+
+
+    pieceView =
+        GetComponent<PieceView>();
+
+
+    if (pieceView == null)
     {
-        rectTransform =
-            GetComponent<RectTransform>();
-
-
-        canvasGroup =
-            GetComponent<CanvasGroup>();
+        Debug.LogError(
+            "LevelBuilderPieceInstance: " +
+            "PieceView component is missing."
+        );
     }
+}
 
 
     private void Update()
@@ -130,30 +144,53 @@ public class LevelBuilderPieceInstance :
     // =====================================================
 
     public void Initialize(
-        LevelBuilderManager newManager,
-        PieceDefinition definition
-    )
+    LevelBuilderManager newManager,
+    PieceDefinition definition
+)
+{
+    manager =
+        newManager;
+
+
+    if (pieceView == null)
     {
-        manager =
-            newManager;
+        pieceView =
+            GetComponent<PieceView>();
+    }
 
 
-        if (pieceView == null)
-        {
-            pieceView =
-                GetComponent<PieceView>();
-        }
-
-
-        pieceView.Initialize(
-            definition
+    if (pieceView == null)
+    {
+        Debug.LogError(
+            "LevelBuilderPieceInstance: " +
+            "PieceView is missing."
         );
 
+        return;
+    }
 
-        manager.RefreshPieceLayout(
+
+    if (definition == null)
+    {
+        Debug.LogError(
+            "LevelBuilderPieceInstance: " +
+            "PieceDefinition is null."
+        );
+
+        return;
+    }
+
+
+    pieceView.Initialize(
+        definition
+    );
+
+
+    manager?
+        .RefreshPieceLayout(
             this
         );
-    }
+}
 
 
     // =====================================================

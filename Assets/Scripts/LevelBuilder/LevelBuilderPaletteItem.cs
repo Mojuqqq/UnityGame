@@ -45,18 +45,36 @@ public class LevelBuilderPaletteItem :
             newDefinition;
 
 
-        if (preview != null)
-        {
-            preview.Initialize(
-                definition
-            );
+        if (preview == null)
+{
+    preview =
+        GetComponentInChildren<
+            PieceView
+        >(
+            true
+        );
+}
 
 
-            preview.SetLayout(
-                30f,
-                3f
-            );
-        }
+if (preview == null)
+{
+    Debug.LogError(
+        "LevelBuilderPaletteItem: " +
+        "Preview PieceView is missing."
+    );
+}
+else
+{
+    preview.Initialize(
+        definition
+    );
+
+
+    preview.SetLayout(
+        28f,
+        3f
+    );
+}
 
 
         if (nameText != null)

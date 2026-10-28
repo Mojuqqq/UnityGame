@@ -37,7 +37,7 @@ RectTransform:
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_Pivot: {x: 0, y: 1}
 --- !u!225 &7039074312002075047
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -78,4 +78,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 070f42b533bcdb348b96a9f30dfdcc71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelBuilderPieceInstance
-  pieceView: {fileID: 777352124759498926, guid: 82696c80749bf4c47adb5ab5021de582, type: 3}
