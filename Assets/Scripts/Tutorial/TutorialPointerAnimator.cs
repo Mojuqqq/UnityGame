@@ -180,49 +180,51 @@ public class TutorialPointerAnimator :
 
 
     public void HidePointer()
-    {
-        StopAllCoroutines();
-
-        animationRoutine =
-            null;
+{
+    StopAllCoroutines();
 
 
-        HideImmediate();
-    }
+    animationRoutine =
+        null;
 
+
+    HideImmediate();
+}
 
     // =====================================================
     // START ANIMATION
     // =====================================================
 
     private void RestartAnimation(
-        IEnumerator animation
-    )
+    IEnumerator animation
+)
+{
+    StopAllCoroutines();
+
+
+    if (pointerCanvasGroup != null)
     {
-        StopAllCoroutines();
+        pointerCanvasGroup.alpha =
+            1f;
 
 
-        gameObject.SetActive(
-            true
-        );
+        pointerCanvasGroup.interactable =
+            false;
 
 
-        if (pointerCanvasGroup != null)
-        {
-            pointerCanvasGroup.alpha =
-                1f;
-        }
-
-
-        HideRing();
-
-
-        animationRoutine =
-            StartCoroutine(
-                animation
-            );
+        pointerCanvasGroup.blocksRaycasts =
+            false;
     }
 
+
+    HideRing();
+
+
+    animationRoutine =
+        StartCoroutine(
+            animation
+        );
+}
 
     // =====================================================
     // TAP
@@ -679,26 +681,29 @@ public class TutorialPointerAnimator :
     // =====================================================
 
     private void HideImmediate()
+{
+    HideRing();
+
+
+    if (pointerCanvasGroup != null)
     {
-        HideRing();
+        pointerCanvasGroup.alpha =
+            0f;
 
 
-        if (pointerCanvasGroup != null)
-        {
-            pointerCanvasGroup.alpha =
-                0f;
-        }
+        pointerCanvasGroup.interactable =
+            false;
 
 
-        if (pointerRect != null)
-        {
-            pointerRect.localScale =
-                Vector3.one;
-        }
-
-
-        gameObject.SetActive(
-            false
-        );
+        pointerCanvasGroup.blocksRaycasts =
+            false;
     }
+
+
+    if (pointerRect != null)
+    {
+        pointerRect.localScale =
+            Vector3.one;
+    }
+}
 }
