@@ -379,51 +379,50 @@ private RectTransform dimmerRight;
     // LEVEL 2
     // =====================================================
 
-    private void BeginHintsTutorial(
-        int subStep
-    )
-
-    if (pointerAnimator != null)
+   private void BeginHintsTutorial(
+    int subStep
+)
 {
-    pointerAnimator.HidePointer();
-}
-
+    if (pointerAnimator != null)
     {
-        currentStep =
-            TutorialStep.ReadHints;
-
-
-        hintsSubStep =
-            subStep;
-
-
-        if (hintsSubStep == 0)
-        {
-            ShowTutorial(
-                "ПОДСКАЗКИ",
-                "Подсказки над полем показывают, " +
-                "сколько клеток должно быть занято " +
-                "в каждой колонке.",
-                topHintsContainer,
-                true,
-                "ДАЛЕЕ"
-            );
-
-            return;
-        }
-
-
-        ShowTutorial(
-            "ПОДСКАЗКИ",
-            "Подсказки сбоку показывают, " +
-            "сколько клеток должно быть занято " +
-            "в каждой строке.",
-            rowHintsContainer,
-            true,
-            "ПОНЯТНО"
-        );
+        pointerAnimator.HidePointer();
     }
 
+
+    currentStep =
+        TutorialStep.ReadHints;
+
+
+    hintsSubStep =
+        subStep;
+
+
+    if (hintsSubStep == 0)
+    {
+        ShowTutorial(
+            "ПОДСКАЗКИ",
+            "Подсказки над полем показывают, " +
+            "сколько клеток должно быть занято " +
+            "в каждой колонке.",
+            topHintsContainer,
+            true,
+            "ДАЛЕЕ"
+        );
+
+        return;
+    }
+
+
+    ShowTutorial(
+        "ПОДСКАЗКИ",
+        "Подсказки сбоку показывают, " +
+        "сколько клеток должно быть занято " +
+        "в каждой строке.",
+        rowHintsContainer,
+        true,
+        "ПОНЯТНО"
+    );
+}
 
     // =====================================================
     // LEVEL 3
@@ -463,30 +462,30 @@ private RectTransform dimmerRight;
     // =====================================================
 
     private void BeginBlockedCellTutorial()
-
-    if (pointerAnimator != null)
 {
-    pointerAnimator.HidePointer();
-}
-
+    if (pointerAnimator != null)
     {
-        currentStep =
-            TutorialStep.BlockedCell;
-
-
-        RectTransform blockedCell =
-            GetFirstBlockedCell();
-
-
-        ShowTutorial(
-            "ЗАБЛОКИРОВАННАЯ КЛЕТКА",
-            "На эту клетку нельзя ставить фигуры. " +
-            "Учитывай препятствия при поиске решения.",
-            blockedCell,
-            true,
-            "ПОНЯТНО"
-        );
+        pointerAnimator.HidePointer();
     }
+
+
+    currentStep =
+        TutorialStep.BlockedCell;
+
+
+    RectTransform blockedCell =
+        GetFirstBlockedCell();
+
+
+    ShowTutorial(
+        "ЗАБЛОКИРОВАННАЯ КЛЕТКА",
+        "На эту клетку нельзя ставить фигуры. " +
+        "Учитывай препятствия при поиске решения.",
+        blockedCell,
+        true,
+        "ПОНЯТНО"
+    );
+}
 
 
     // =====================================================
@@ -494,29 +493,28 @@ private RectTransform dimmerRight;
     // =====================================================
 
     private void BeginHintButtonsTutorial()
-
-    if (pointerAnimator != null)
 {
-    pointerAnimator.HidePointer();
-}
-
+    if (pointerAnimator != null)
     {
-        currentStep =
-            TutorialStep.HintButtons;
-
-
-        ShowTutorial(
-            "ПОДСКАЗКИ",
-            "Если застряла, можно воспользоваться " +
-            "подсказкой. Первая показывает положение " +
-            "одной фигуры, вторая отмечает клетки, " +
-            "которые должны остаться пустыми.",
-            hintButtons,
-            true,
-            "ПОНЯТНО"
-        );
+        pointerAnimator.HidePointer();
     }
 
+
+    currentStep =
+        TutorialStep.HintButtons;
+
+
+    ShowTutorial(
+        "ПОДСКАЗКИ",
+        "Если застряла, можно воспользоваться " +
+        "подсказкой. Первая показывает положение " +
+        "одной фигуры, вторая отмечает клетки, " +
+        "которые должны остаться пустыми.",
+        hintButtons,
+        true,
+        "ПОНЯТНО"
+    );
+}
 
     // =====================================================
     // CONTINUE BUTTON
@@ -720,7 +718,6 @@ private RectTransform dimmerRight;
     }
 }
 
-
     // =====================================================
     // FOCUS
     // =====================================================
@@ -828,24 +825,25 @@ private RectTransform dimmerRight;
                 0.5f
             );
 
+    focusFrame.anchoredPosition =
+    center;
 
-        focusFrame.anchoredPosition =
-            center;
+
+focusFrame.sizeDelta =
+    size +
+    focusPadding;
 
 
-        focusFrame.sizeDelta =
-            size +
-            focusPadding;
-
-            UpdateDimmerHole(
+UpdateDimmerHole(
     center,
     size + focusPadding
 );
 
 
-        PositionMessagePanel(
-            center.y
-        );
+PositionMessagePanel(
+    center.y
+);
+
     }
 
 
