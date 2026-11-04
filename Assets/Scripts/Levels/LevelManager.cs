@@ -32,6 +32,9 @@ public class LevelManager :
     private AdaptivePiecePanelLayout
         adaptivePiecePanelLayout;
 
+    [SerializeField]
+private AdaptiveGameplayLayout
+    adaptiveGameplayLayout;
 
     [SerializeField]
     private AdaptiveBoardLayout
@@ -203,6 +206,16 @@ public class LevelManager :
             return;
         }
 
+        if (adaptiveGameplayLayout == null)
+{
+    Debug.LogError(
+        "LevelManager: AdaptiveGameplayLayout " +
+        "is not assigned."
+    );
+
+    return;
+}
+
 
         if (gridManager == null)
         {
@@ -240,27 +253,57 @@ public class LevelManager :
         Canvas.ForceUpdateCanvases();
 
 
-        adaptiveBoardLayout.ApplyLayout(
-            currentLevel.Columns,
-            currentLevel.Rows
-        );
+// =====================================================
+// 1. Сначала определяем реальный PiecePanel.
+// =====================================================
+
+adaptivePiecePanelLayout
+    .ApplyLayout();
 
 
-        gridManager.Initialize(
-            currentLevel.Columns,
-            currentLevel.Rows,
-            currentLevel.BlockedCells
-        );
+Canvas.ForceUpdateCanvases();
 
 
-        adaptivePiecePanelLayout
-            .ApplyLayout();
+// =====================================================
+// 2. Теперь знаем, где заканчивается PiecePanel,
+//    и можем выделить место GameplayArea.
+// =====================================================
+
+adaptiveGameplayLayout
+    .ApplyLayout();
 
 
-        hintManager.Initialize(
-            currentLevel
-        );
+Canvas.ForceUpdateCanvases();
 
+
+// =====================================================
+// 3. И только теперь вписываем Grid + Hints
+//    в реально доступный BoardArea.
+// =====================================================
+
+adaptiveBoardLayout.ApplyLayout(
+    currentLevel.Columns,
+    currentLevel.Rows
+);
+
+
+Canvas.ForceUpdateCanvases();
+
+
+// =====================================================
+// 4. Создаём Grid уже с правильным размером клетки.
+// =====================================================
+
+gridManager.Initialize(
+    currentLevel.Columns,
+    currentLevel.Rows,
+    currentLevel.BlockedCells
+);
+
+
+hintManager.Initialize(
+    currentLevel
+);
 
         pieceSpawner.BuildPieces(
             currentLevel.Pieces

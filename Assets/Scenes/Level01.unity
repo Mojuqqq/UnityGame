@@ -2919,6 +2919,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1294841340}
+  - component: {fileID: 1294841341}
   m_Layer: 5
   m_Name: GameplayArea
   m_TagString: Untagged
@@ -2947,6 +2948,28 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 50}
   m_SizeDelta: {x: -48, y: -360}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1294841341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1294841339}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bbbc72edd365aa47957d28045264fd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AdaptiveGameplayLayout
+  safeArea: {fileID: 1342905633}
+  headerPanel: {fileID: 2093189192}
+  piecePanel: {fileID: 216110417}
+  boardArea: {fileID: 1914694058}
+  hintButtonsArea: {fileID: 233213296}
+  horizontalMargin: 24
+  gapBelowHeader: 16
+  gapAbovePiecePanel: 16
+  hintButtonsHeight: 120
+  boardToHintButtonsGap: 12
 --- !u!1 &1342905632
 GameObject:
   m_ObjectHideFlags: 0
@@ -4441,6 +4464,7 @@ MonoBehaviour:
   fallbackLevel: {fileID: 11400000, guid: 2f9a21a8f0dd04b4880d6c24a4858e9b, type: 2}
   levelDatabase: {fileID: 11400000, guid: 9b2a93a76df6e09448dce961df1e71fd, type: 2}
   adaptivePiecePanelLayout: {fileID: 216110420}
+  adaptiveGameplayLayout: {fileID: 1294841341}
   adaptiveBoardLayout: {fileID: 1914694059}
   gridManager: {fileID: 1715468750}
   hintManager: {fileID: 1768200760}
