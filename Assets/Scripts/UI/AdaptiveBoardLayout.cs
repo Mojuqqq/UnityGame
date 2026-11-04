@@ -1,70 +1,168 @@
 using UnityEngine;
 
-[RequireComponent(typeof(RectTransform))]
-public class AdaptiveBoardLayout : MonoBehaviour
+
+[RequireComponent(
+    typeof(RectTransform)
+)]
+public class AdaptiveBoardLayout :
+    MonoBehaviour
 {
-    [Header("References")]
+    // =====================================================
+    // ROW HINTS SIDE
+    // =====================================================
+
+    public enum RowHintsSide
+    {
+        Left,
+        Right
+    }
+
+
+    // =====================================================
+    // REFERENCES
+    // =====================================================
+
+    [Header("Layout Area")]
+
+    [Tooltip(
+        "BoardRoot внутри BoardArea. " +
+        "Если BoardRoot не используется, " +
+        "можно оставить пустым."
+    )]
+    [SerializeField]
+    private RectTransform layoutRoot;
+
+
+    [Header("Board Containers")]
 
     [SerializeField]
     private RectTransform gridContainer;
 
+
     [SerializeField]
     private RectTransform topHintsContainer;
+
 
     [SerializeField]
     private RectTransform rowHintsContainer;
 
+
+    [Header("Managers")]
+
     [SerializeField]
     private GridManager gridManager;
+
 
     [SerializeField]
     private HintManager hintManager;
 
 
+    // =====================================================
+    // GRID
+    // =====================================================
+
     [Header("Grid")]
 
     [SerializeField]
     [Min(1f)]
-    private float maxCellSize = 200f;
+    private float maxCellSize =
+        200f;
+
+
+    [SerializeField]
+    [Min(1f)]
+    private float minCellSize =
+        20f;
+
 
     [SerializeField]
     [Min(0f)]
-    private float cellSpacing = 8f;
+    private float cellSpacing =
+        8f;
 
+
+    // =====================================================
+    // HINTS
+    // =====================================================
 
     [Header("Hints")]
 
     [SerializeField]
     [Min(1f)]
-    private float topHintHeight = 110f;
+    private float topHintHeight =
+        90f;
+
 
     [SerializeField]
     [Min(1f)]
-    private float rowHintWidth = 130f;
+    private float rowHintWidth =
+        90f;
+
 
     [SerializeField]
     [Min(0f)]
-    private float hintGap = 12f;
+    private float hintGap =
+        12f;
 
 
-    [Header("Board Padding")]
+    [SerializeField]
+    private RowHintsSide rowHintsSide =
+        RowHintsSide.Right;
+
+
+    // =====================================================
+    // BOARD AREA
+    // =====================================================
+
+    [Header("Board Area Padding")]
 
     [SerializeField]
     [Min(0f)]
-    private float horizontalPadding = 20f;
+    private float horizontalPadding =
+        20f;
+
 
     [SerializeField]
     [Min(0f)]
-    private float verticalPadding = 20f;
+    private float verticalPadding =
+        20f;
 
+
+    [Header("Composition Position")]
+
+    [Tooltip(
+        "Дополнительный сдвиг всей композиции " +
+        "Grid + Hints внутри BoardArea."
+    )]
+    [SerializeField]
+    private Vector2 compositionOffset =
+        Vector2.zero;
+
+
+    // =====================================================
+    // STATE
+    // =====================================================
 
     private RectTransform boardRect;
 
-    private int currentColumns;
-    private int currentRows;
+
+    private int currentColumns =
+        1;
+
+
+    private int currentRows =
+        1;
+
 
     private bool initialized;
 
+
+    private bool layoutDirty;
+
+
+    // =====================================================
+    // PUBLIC
+    // =====================================================
 
     public float CellSize
     {
@@ -72,20 +170,49 @@ public class AdaptiveBoardLayout : MonoBehaviour
         private set;
     }
 
+
     public float CellSpacing =>
         cellSpacing;
 
+
     public float TopHintHeight =>
         topHintHeight;
+
 
     public float RowHintWidth =>
         rowHintWidth;
 
 
+    // =====================================================
+    // UNITY
+    // =====================================================
+
     private void Awake()
     {
         boardRect =
             GetComponent<RectTransform>();
+
+
+        PrepareLayoutRoot();
+    }
+
+
+    private void LateUpdate()
+    {
+        if (
+            !initialized ||
+            !layoutDirty
+        )
+        {
+            return;
+        }
+
+
+        layoutDirty =
+            false;
+
+
+        RebuildLayout();
     }
 
 
@@ -104,6 +231,7 @@ public class AdaptiveBoardLayout : MonoBehaviour
                 columns
             );
 
+
         currentRows =
             Mathf.Max(
                 1,
@@ -115,6 +243,9 @@ public class AdaptiveBoardLayout : MonoBehaviour
             true;
 
 
+        PrepareLayoutRoot();
+
+
         Canvas.ForceUpdateCanvases();
 
 
@@ -123,7 +254,7 @@ public class AdaptiveBoardLayout : MonoBehaviour
 
 
     // =====================================================
-    // RESPONSIVE UPDATE
+    // RESPONSIVE
     // =====================================================
 
     private void OnRectTransformDimensionsChange()
@@ -137,7 +268,78 @@ public class AdaptiveBoardLayout : MonoBehaviour
         }
 
 
-        RebuildLayout();
+        // Не пересчитываем layout прямо внутри
+        // OnRectTransformDimensionsChange,
+        // чтобы не получить цепочку повторных вызовов.
+        layoutDirty =
+            true;
+    }
+
+
+    // =====================================================
+    // LAYOUT ROOT
+    // =====================================================
+
+    private void PrepareLayoutRoot()
+    {
+        if (boardRect == null)
+        {
+            boardRect =
+                GetComponent<RectTransform>();
+        }
+
+
+        // Если BoardRoot не используется,
+        // сам BoardArea становится layout root.
+        if (layoutRoot == null)
+        {
+            layoutRoot =
+                boardRect;
+
+            return;
+        }
+
+
+        if (layoutRoot == boardRect)
+        {
+            return;
+        }
+
+
+        // Если BoardRoot является прямым ребёнком
+        // BoardArea — автоматически растягиваем
+        // его на всю доступную область.
+        if (
+            layoutRoot.parent ==
+            boardRect
+        )
+        {
+            layoutRoot.anchorMin =
+                Vector2.zero;
+
+
+            layoutRoot.anchorMax =
+                Vector2.one;
+
+
+            layoutRoot.pivot =
+                new Vector2(
+                    0.5f,
+                    0.5f
+                );
+
+
+            layoutRoot.offsetMin =
+                Vector2.zero;
+
+
+            layoutRoot.offsetMax =
+                Vector2.zero;
+
+
+            layoutRoot.localScale =
+                Vector3.one;
+        }
     }
 
 
@@ -154,7 +356,11 @@ public class AdaptiveBoardLayout : MonoBehaviour
         }
 
 
+        PrepareLayoutRoot();
+
+
         if (
+            layoutRoot == null ||
             gridContainer == null ||
             topHintsContainer == null ||
             rowHintsContainer == null
@@ -162,24 +368,51 @@ public class AdaptiveBoardLayout : MonoBehaviour
         {
             Debug.LogError(
                 "AdaptiveBoardLayout: " +
-                "Grid/Hint containers are not assigned."
+                "Layout Root, GridContainer, " +
+                "TopHintsContainer или " +
+                "RowHintsContainer не назначены."
             );
 
             return;
         }
 
 
+        // Контейнеры должны жить
+        // в одной системе координат.
+        if (
+            gridContainer.parent !=
+                layoutRoot ||
+            topHintsContainer.parent !=
+                layoutRoot ||
+            rowHintsContainer.parent !=
+                layoutRoot
+        )
+        {
+            Debug.LogError(
+                "AdaptiveBoardLayout: " +
+                "GridContainer, TopHintsContainer " +
+                "и RowHintsContainer должны быть " +
+                "прямыми детьми Layout Root."
+            );
+
+            return;
+        }
+
+
+        Canvas.ForceUpdateCanvases();
+
+
         float boardWidth =
-            boardRect.rect.width;
+            layoutRoot.rect.width;
 
 
         float boardHeight =
-            boardRect.rect.height;
+            layoutRoot.rect.height;
 
 
         if (
-            boardWidth <= 0f ||
-            boardHeight <= 0f
+            boardWidth <= 1f ||
+            boardHeight <= 1f
         )
         {
             return;
@@ -187,29 +420,44 @@ public class AdaptiveBoardLayout : MonoBehaviour
 
 
         // =================================================
-        // AVAILABLE GRID AREA
+        // AVAILABLE SPACE
         //
-        // Из общей BoardArea вычитаем:
+        // В BoardArea должны поместиться:
         //
-        // справа:
-        // RowHints + gap
+        //        TopHints
+        //          gap
+        // Grid + gap + RowHints
         //
-        // сверху:
-        // TopHints + gap
+        // HintButtons и PiecePanel здесь
+        // вообще не учитываются.
         // =================================================
 
-        float availableGridWidth =
+        float availableWidth =
             boardWidth
-            - horizontalPadding * 2f
-            - rowHintWidth
-            - hintGap;
+            -
+            horizontalPadding * 2f;
+
+
+        float availableHeight =
+            boardHeight
+            -
+            verticalPadding * 2f;
+
+
+        float availableGridWidth =
+            availableWidth
+            -
+            rowHintWidth
+            -
+            hintGap;
 
 
         float availableGridHeight =
-            boardHeight
-            - verticalPadding * 2f
-            - topHintHeight
-            - hintGap;
+            availableHeight
+            -
+            topHintHeight
+            -
+            hintGap;
 
 
         availableGridWidth =
@@ -227,22 +475,33 @@ public class AdaptiveBoardLayout : MonoBehaviour
 
 
         // =================================================
-        // CELL SIZE
+        // SPACING
         // =================================================
 
         float horizontalSpacingTotal =
             cellSpacing *
-            (currentColumns - 1);
+            Mathf.Max(
+                0,
+                currentColumns - 1
+            );
 
 
         float verticalSpacingTotal =
             cellSpacing *
-            (currentRows - 1);
+            Mathf.Max(
+                0,
+                currentRows - 1
+            );
 
+
+        // =================================================
+        // CELL SIZE
+        // =================================================
 
         float cellByWidth =
             (
-                availableGridWidth -
+                availableGridWidth
+                -
                 horizontalSpacingTotal
             )
             /
@@ -251,22 +510,51 @@ public class AdaptiveBoardLayout : MonoBehaviour
 
         float cellByHeight =
             (
-                availableGridHeight -
+                availableGridHeight
+                -
                 verticalSpacingTotal
             )
             /
             currentRows;
 
 
+        float calculatedCellSize =
+            Mathf.Min(
+                maxCellSize,
+                cellByWidth,
+                cellByHeight
+            );
+
+
+        // Целое значение даёт более стабильную
+        // UI-геометрию и меньше размытия.
+        calculatedCellSize =
+            Mathf.Floor(
+                calculatedCellSize
+            );
+
+
         CellSize =
             Mathf.Max(
                 1f,
-                Mathf.Min(
-                    maxCellSize,
-                    cellByWidth,
-                    cellByHeight
-                )
+                calculatedCellSize
             );
+
+
+        if (
+            CellSize <
+            minCellSize
+        )
+        {
+            Debug.LogWarning(
+                $"AdaptiveBoardLayout: " +
+                $"CellSize получился " +
+                $"{CellSize}px. " +
+                $"BoardArea слишком маленький " +
+                $"для сетки " +
+                $"{currentColumns}x{currentRows}."
+            );
+        }
 
 
         // =================================================
@@ -288,22 +576,15 @@ public class AdaptiveBoardLayout : MonoBehaviour
 
 
         // =================================================
-        // FULL COMPOSITION SIZE
-        //
-        //        TopHints
-        //
-        //        Grid | RowHints
-        //
-        // Центрируем ВСЮ композицию,
-        // а не только Grid.
+        // COMPLETE COMPOSITION
         // =================================================
 
         float compositionWidth =
-            gridWidth
+            rowHintWidth
             +
             hintGap
             +
-            rowHintWidth;
+            gridWidth;
 
 
         float compositionHeight =
@@ -314,26 +595,52 @@ public class AdaptiveBoardLayout : MonoBehaviour
             gridHeight;
 
 
-        float left =
-            -compositionWidth * 0.5f;
+        float compositionLeft =
+            -compositionWidth * 0.5f
+            +
+            compositionOffset.x;
 
 
-        float bottom =
-            -compositionHeight * 0.5f;
+        float compositionBottom =
+            -compositionHeight * 0.5f
+            +
+            compositionOffset.y;
 
 
         // =================================================
-        // GRID
+        // GRID POSITION
         // =================================================
 
-        Vector2 gridPosition =
-            new Vector2(
-                left +
-                gridWidth * 0.5f,
+        float gridX;
 
-                bottom +
-                gridHeight * 0.5f
-            );
+
+        if (
+            rowHintsSide ==
+            RowHintsSide.Left
+        )
+        {
+            gridX =
+                compositionLeft
+                +
+                rowHintWidth
+                +
+                hintGap
+                +
+                gridWidth * 0.5f;
+        }
+        else
+        {
+            gridX =
+                compositionLeft
+                +
+                gridWidth * 0.5f;
+        }
+
+
+        float gridY =
+            compositionBottom
+            +
+            gridHeight * 0.5f;
 
 
         ConfigureRect(
@@ -342,28 +649,25 @@ public class AdaptiveBoardLayout : MonoBehaviour
                 gridWidth,
                 gridHeight
             ),
-            gridPosition
+            new Vector2(
+                gridX,
+                gridY
+            )
         );
 
 
         // =================================================
         // TOP HINTS
-        //
-        // Ровно над фактическим Grid.
         // =================================================
 
-        Vector2 topHintsPosition =
-            new Vector2(
-                gridPosition.x,
-
-                bottom
-                +
-                gridHeight
-                +
-                hintGap
-                +
-                topHintHeight * 0.5f
-            );
+        float topHintsY =
+            compositionBottom
+            +
+            gridHeight
+            +
+            hintGap
+            +
+            topHintHeight * 0.5f;
 
 
         ConfigureRect(
@@ -372,28 +676,41 @@ public class AdaptiveBoardLayout : MonoBehaviour
                 gridWidth,
                 topHintHeight
             ),
-            topHintsPosition
+            new Vector2(
+                gridX,
+                topHintsY
+            )
         );
 
 
         // =================================================
         // ROW HINTS
-        //
-        // Ровно справа от фактического Grid.
         // =================================================
 
-        Vector2 rowHintsPosition =
-            new Vector2(
-                left
+        float rowHintsX;
+
+
+        if (
+            rowHintsSide ==
+            RowHintsSide.Left
+        )
+        {
+            rowHintsX =
+                compositionLeft
+                +
+                rowHintWidth * 0.5f;
+        }
+        else
+        {
+            rowHintsX =
+                compositionLeft
                 +
                 gridWidth
                 +
                 hintGap
                 +
-                rowHintWidth * 0.5f,
-
-                gridPosition.y
-            );
+                rowHintWidth * 0.5f;
+        }
 
 
         ConfigureRect(
@@ -402,32 +719,45 @@ public class AdaptiveBoardLayout : MonoBehaviour
                 rowHintWidth,
                 gridHeight
             ),
-            rowHintsPosition
+            new Vector2(
+                rowHintsX,
+                gridY
+            )
         );
 
 
         // =================================================
-        // INFORM OTHER SYSTEMS
+        // GRID MANAGER
         // =================================================
 
         if (gridManager != null)
         {
-            gridManager.SetLayoutMetrics(
-                CellSize,
-                cellSpacing
-            );
+            gridManager
+                .SetLayoutMetrics(
+                    CellSize,
+                    cellSpacing
+                );
         }
 
 
         Canvas.ForceUpdateCanvases();
 
 
+        // =================================================
+        // HINT MANAGER
+        // =================================================
+
         if (hintManager != null)
         {
-            hintManager.RefreshLayout();
+            hintManager
+                .RefreshLayout();
         }
     }
 
+
+    // =====================================================
+    // RECT
+    // =====================================================
 
     private void ConfigureRect(
         RectTransform target,
@@ -435,6 +765,12 @@ public class AdaptiveBoardLayout : MonoBehaviour
         Vector2 position
     )
     {
+        if (target == null)
+        {
+            return;
+        }
+
+
         target.anchorMin =
             new Vector2(
                 0.5f,
