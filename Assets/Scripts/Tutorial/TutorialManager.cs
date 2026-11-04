@@ -65,6 +65,10 @@ public class TutorialManager :
     private RectTransform focusFrame;
 
     [SerializeField]
+private TutorialPointerAnimator
+    pointerAnimator;
+
+    [SerializeField]
 private RectTransform dimmerTop;
 
 
@@ -337,25 +341,38 @@ private RectTransform dimmerRight;
     // LEVEL 1
     // =====================================================
 
-    private void BeginDragTutorial()
+   private void BeginDragTutorial()
+{
+    currentStep =
+        TutorialStep.DragPiece;
+
+
+    RectTransform piece =
+        GetFirstPiece();
+
+
+    RectTransform destination =
+        GetFirstSolutionTargetCell();
+
+
+    ShowTutorial(
+        "ПЕРЕМЕЩЕНИЕ",
+        "Перетащи фигуру с нижней панели " +
+        "на игровое поле.",
+        piece,
+        false,
+        ""
+    );
+
+
+    if (pointerAnimator != null)
     {
-        currentStep =
-            TutorialStep.DragPiece;
-
-
-        RectTransform piece =
-            GetFirstPiece();
-
-
-        ShowTutorial(
-            "ПЕРЕМЕЩЕНИЕ",
-            "Перетащи фигуру с нижней панели " +
-            "на игровое поле.",
+        pointerAnimator.ShowDrag(
             piece,
-            false,
-            ""
+            destination
         );
     }
+}
 
 
     // =====================================================
@@ -365,6 +382,12 @@ private RectTransform dimmerRight;
     private void BeginHintsTutorial(
         int subStep
     )
+
+    if (pointerAnimator != null)
+{
+    pointerAnimator.HidePointer();
+}
+
     {
         currentStep =
             TutorialStep.ReadHints;
@@ -406,25 +429,33 @@ private RectTransform dimmerRight;
     // LEVEL 3
     // =====================================================
 
-    private void BeginRotationTutorial()
+   private void BeginRotationTutorial()
+{
+    currentStep =
+        TutorialStep.RotatePiece;
+
+
+    RectTransform piece =
+        GetFirstPiece();
+
+
+    ShowTutorial(
+        "ПОВОРОТ",
+        "Нажми на фигуру в нижней панели, " +
+        "чтобы повернуть её на 90°.",
+        piece,
+        false,
+        ""
+    );
+
+
+    if (pointerAnimator != null)
     {
-        currentStep =
-            TutorialStep.RotatePiece;
-
-
-        RectTransform piece =
-            GetFirstPiece();
-
-
-        ShowTutorial(
-            "ПОВОРОТ",
-            "Нажми на фигуру в нижней панели, " +
-            "чтобы повернуть её на 90°.",
-            piece,
-            false,
-            ""
+        pointerAnimator.ShowTap(
+            piece
         );
     }
+}
 
 
     // =====================================================
@@ -432,6 +463,12 @@ private RectTransform dimmerRight;
     // =====================================================
 
     private void BeginBlockedCellTutorial()
+
+    if (pointerAnimator != null)
+{
+    pointerAnimator.HidePointer();
+}
+
     {
         currentStep =
             TutorialStep.BlockedCell;
@@ -457,6 +494,12 @@ private RectTransform dimmerRight;
     // =====================================================
 
     private void BeginHintButtonsTutorial()
+
+    if (pointerAnimator != null)
+{
+    pointerAnimator.HidePointer();
+}
+
     {
         currentStep =
             TutorialStep.HintButtons;
@@ -658,18 +701,24 @@ private RectTransform dimmerRight;
     // =====================================================
 
     private void HideTutorial()
+{
+    tutorialActive =
+        false;
+
+
+    if (pointerAnimator != null)
     {
-        tutorialActive =
-            false;
-
-
-        if (tutorialRoot != null)
-        {
-            tutorialRoot.SetActive(
-                false
-            );
-        }
+        pointerAnimator.HidePointer();
     }
+
+
+    if (tutorialRoot != null)
+    {
+        tutorialRoot.SetActive(
+            false
+        );
+    }
+}
 
 
     // =====================================================
@@ -1188,6 +1237,91 @@ private void SetDimmerRect(
             >();
     }
 
+
+private RectTransform
+    GetFirstSolutionTargetCell()
+{
+    if (
+        levelManager == null ||
+        levelManager.CurrentLevel == null ||
+        gridManager == null
+    )
+    {
+        return
+            gridContainer;
+    }
+
+
+    LevelData level =
+        levelManager
+            .CurrentLevel;
+
+
+    if (
+        level.Pieces == null ||
+        level.Pieces.Length == 0
+    )
+    {
+        return
+            gridContainer;
+    }
+
+
+    LevelSolutionEntry entry =
+        level
+            .GetSolutionEntryByPieceIndex(
+                0
+            );
+
+
+    if (entry == null)
+    {
+        return
+            gridContainer;
+    }
+
+
+    Vector2Int[] solutionCells =
+        level.GetSolutionCells(
+            entry
+        );
+
+
+    if (
+        solutionCells == null ||
+        solutionCells.Length == 0
+    )
+    {
+        return
+            gridContainer;
+    }
+
+
+    // Берём первую клетку,
+    // которую должна занять первая фигура.
+    Vector2Int coordinate =
+        solutionCells[0];
+
+
+    GridCell cell =
+        gridManager.GetCell(
+            coordinate.x,
+            coordinate.y
+        );
+
+
+    if (cell == null)
+    {
+        return
+            gridContainer;
+    }
+
+
+    return
+        cell.GetComponent<
+            RectTransform
+        >();
+}
 
     // =====================================================
     // TESTING
