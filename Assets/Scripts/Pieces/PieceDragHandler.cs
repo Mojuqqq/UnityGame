@@ -1645,32 +1645,34 @@ public class PieceDragHandler :
 
 
     private void RotatePiece()
+{
+    if (pieceView == null)
     {
-        if (pieceView == null)
-        {
-            return;
-        }
-
-        TutorialEvents
-    .ReportPieceRotated();
-
-        pieceView.RotateClockwise();
-
-
-        UpdateDragVisualSize(
-            lastPointerPosition,
-            lastEventCamera
-        );
-
-
-        MoveGrabbedCellToPointer(
-            lastPointerPosition,
-            lastEventCamera
-        );
-
-
-        UpdatePlacementPreview();
+        return;
     }
+
+
+    pieceView.RotateClockwise();
+
+
+    TutorialEvents
+        .ReportPieceRotated();
+
+
+    UpdateDragVisualSize(
+        lastPointerPosition,
+        lastEventCamera
+    );
+
+
+    MoveGrabbedCellToPointer(
+        lastPointerPosition,
+        lastEventCamera
+    );
+
+
+    UpdatePlacementPreview();
+}
 
 
     // =====================================================

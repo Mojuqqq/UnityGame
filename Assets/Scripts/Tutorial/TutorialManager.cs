@@ -64,6 +64,21 @@ public class TutorialManager :
     [SerializeField]
     private RectTransform focusFrame;
 
+    [SerializeField]
+private RectTransform dimmerTop;
+
+
+[SerializeField]
+private RectTransform dimmerBottom;
+
+
+[SerializeField]
+private RectTransform dimmerLeft;
+
+
+[SerializeField]
+private RectTransform dimmerRight;
+
 
     [SerializeField]
     private RectTransform messagePanel;
@@ -773,12 +788,248 @@ public class TutorialManager :
             size +
             focusPadding;
 
+            UpdateDimmerHole(
+    center,
+    size + focusPadding
+);
+
 
         PositionMessagePanel(
             center.y
         );
     }
 
+
+
+    private void UpdateDimmerHole(
+    Vector2 holeCenter,
+    Vector2 holeSize
+)
+{
+    if (
+        tutorialRootRect == null ||
+        dimmerTop == null ||
+        dimmerBottom == null ||
+        dimmerLeft == null ||
+        dimmerRight == null
+    )
+    {
+        return;
+    }
+
+
+    float rootWidth =
+        tutorialRootRect.rect.width;
+
+
+    float rootHeight =
+        tutorialRootRect.rect.height;
+
+
+    float rootLeft =
+        -rootWidth * 0.5f;
+
+
+    float rootRight =
+        rootWidth * 0.5f;
+
+
+    float rootBottom =
+        -rootHeight * 0.5f;
+
+
+    float rootTop =
+        rootHeight * 0.5f;
+
+
+    float holeLeft =
+        holeCenter.x -
+        holeSize.x * 0.5f;
+
+
+    float holeRight =
+        holeCenter.x +
+        holeSize.x * 0.5f;
+
+
+    float holeBottom =
+        holeCenter.y -
+        holeSize.y * 0.5f;
+
+
+    float holeTop =
+        holeCenter.y +
+        holeSize.y * 0.5f;
+
+
+    // Не даём отверстию выходить
+    // за пределы экрана.
+    holeLeft =
+        Mathf.Clamp(
+            holeLeft,
+            rootLeft,
+            rootRight
+        );
+
+
+    holeRight =
+        Mathf.Clamp(
+            holeRight,
+            rootLeft,
+            rootRight
+        );
+
+
+    holeBottom =
+        Mathf.Clamp(
+            holeBottom,
+            rootBottom,
+            rootTop
+        );
+
+
+    holeTop =
+        Mathf.Clamp(
+            holeTop,
+            rootBottom,
+            rootTop
+        );
+
+
+    // =================================================
+    // TOP
+    // =================================================
+
+    SetDimmerRect(
+        dimmerTop,
+
+        rootLeft,
+        holeTop,
+
+        rootRight,
+        rootTop
+    );
+
+
+    // =================================================
+    // BOTTOM
+    // =================================================
+
+    SetDimmerRect(
+        dimmerBottom,
+
+        rootLeft,
+        rootBottom,
+
+        rootRight,
+        holeBottom
+    );
+
+
+    // =================================================
+    // LEFT
+    // =================================================
+
+    SetDimmerRect(
+        dimmerLeft,
+
+        rootLeft,
+        holeBottom,
+
+        holeLeft,
+        holeTop
+    );
+
+
+    // =================================================
+    // RIGHT
+    // =================================================
+
+    SetDimmerRect(
+        dimmerRight,
+
+        holeRight,
+        holeBottom,
+
+        rootRight,
+        holeTop
+    );
+}
+
+
+private void SetDimmerRect(
+    RectTransform rect,
+    float left,
+    float bottom,
+    float right,
+    float top
+)
+{
+    if (rect == null)
+    {
+        return;
+    }
+
+
+    float width =
+        Mathf.Max(
+            0f,
+            right - left
+        );
+
+
+    float height =
+        Mathf.Max(
+            0f,
+            top - bottom
+        );
+
+
+    rect.anchorMin =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    rect.anchorMax =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    rect.pivot =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    rect.sizeDelta =
+        new Vector2(
+            width,
+            height
+        );
+
+
+    rect.anchoredPosition =
+        new Vector2(
+            (
+                left +
+                right
+            )
+            *
+            0.5f,
+
+            (
+                bottom +
+                top
+            )
+            *
+            0.5f
+        );
+}
 
     // =====================================================
     // MESSAGE POSITION
