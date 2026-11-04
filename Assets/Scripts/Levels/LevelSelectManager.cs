@@ -869,6 +869,10 @@ public class LevelSelectManager :
             .ResetForTesting();
 
 
+        TutorialProgress
+    .ResetForTesting();
+
+
         LevelSelectionState
             .ClearSelection();
 

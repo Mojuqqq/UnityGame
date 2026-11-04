@@ -496,6 +496,9 @@ public class PieceDragHandler :
 
         pieceView.RotateClockwise();
 
+        TutorialEvents
+    .ReportPieceRotated();
+
 
         // После поворота габариты фигуры могли измениться.
         // Поэтому пересобираем раскладку всей панели.
@@ -881,6 +884,9 @@ public class PieceDragHandler :
 
         isPlaced =
             true;
+
+        TutorialEvents
+    .ReportPiecePlaced();
 
 
         if (!countedForPlacementAchievement)
@@ -1645,6 +1651,8 @@ public class PieceDragHandler :
             return;
         }
 
+        TutorialEvents
+    .ReportPieceRotated();
 
         pieceView.RotateClockwise();
 
