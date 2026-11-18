@@ -47,6 +47,29 @@ public class TutorialManager :
     private RectTransform hintButtons;
 
 
+
+    // =====================================================
+// INTERACTION
+// =====================================================
+
+[Header("Gameplay Interaction")]
+
+[SerializeField]
+private CanvasGroup headerGroup;
+
+
+[SerializeField]
+private CanvasGroup boardGroup;
+
+
+[SerializeField]
+private CanvasGroup hintButtonsGroup;
+
+
+[SerializeField]
+private CanvasGroup piecePanelGroup;
+
+
     // =====================================================
     // UI
     // =====================================================
@@ -343,6 +366,14 @@ private RectTransform dimmerRight;
 
    private void BeginDragTutorial()
 {
+
+    SetTutorialInteraction(
+    false,  // Header
+    true,   // Board
+    false,  // Hint buttons
+    true    // Pieces
+);
+
     currentStep =
         TutorialStep.DragPiece;
 
@@ -382,7 +413,15 @@ private RectTransform dimmerRight;
    private void BeginHintsTutorial(
     int subStep
 )
-{
+{   
+
+    SetTutorialInteraction(
+    false,
+    false,
+    false,
+    false
+);
+
     if (pointerAnimator != null)
     {
         pointerAnimator.HidePointer();
@@ -430,6 +469,14 @@ private RectTransform dimmerRight;
 
    private void BeginRotationTutorial()
 {
+
+    SetTutorialInteraction(
+    false,  // Header
+    false,  // Board
+    false,  // Hints
+    true    // PiecePanel
+);
+
     currentStep =
         TutorialStep.RotatePiece;
 
@@ -463,6 +510,14 @@ private RectTransform dimmerRight;
 
     private void BeginBlockedCellTutorial()
 {
+
+    SetTutorialInteraction(
+    false,
+    false,
+    false,
+    false
+);
+
     if (pointerAnimator != null)
     {
         pointerAnimator.HidePointer();
@@ -494,6 +549,14 @@ private RectTransform dimmerRight;
 
     private void BeginHintButtonsTutorial()
 {
+
+    SetTutorialInteraction(
+    false,
+    false,
+    false,
+    false
+);
+
     if (pointerAnimator != null)
     {
         pointerAnimator.HidePointer();
@@ -698,7 +761,7 @@ private RectTransform dimmerRight;
     // HIDE
     // =====================================================
 
-    private void HideTutorial()
+   private void HideTutorial()
 {
     tutorialActive =
         false;
@@ -708,6 +771,9 @@ private RectTransform dimmerRight;
     {
         pointerAnimator.HidePointer();
     }
+
+
+    RestoreGameplayInteraction();
 
 
     if (tutorialRoot != null)
@@ -1319,6 +1385,76 @@ private RectTransform
         cell.GetComponent<
             RectTransform
         >();
+}
+
+
+
+// =====================================================
+// INTERACTION CONTROL
+// =====================================================
+
+private void SetTutorialInteraction(
+    bool allowHeader,
+    bool allowBoard,
+    bool allowHintButtons,
+    bool allowPieces
+)
+{
+    SetGroupInteraction(
+        headerGroup,
+        allowHeader
+    );
+
+
+    SetGroupInteraction(
+        boardGroup,
+        allowBoard
+    );
+
+
+    SetGroupInteraction(
+        hintButtonsGroup,
+        allowHintButtons
+    );
+
+
+    SetGroupInteraction(
+        piecePanelGroup,
+        allowPieces
+    );
+}
+
+
+private void SetGroupInteraction(
+    CanvasGroup group,
+    bool allowed
+)
+{
+    if (group == null)
+    {
+        return;
+    }
+
+
+    // Alpha не трогаем:
+    // заблокированный UI остаётся видимым.
+    group.interactable =
+        allowed;
+
+
+    group.blocksRaycasts =
+        allowed;
+}
+
+
+private void RestoreGameplayInteraction()
+{
+    SetTutorialInteraction(
+        true,   // Header
+        true,   // Board
+        true,   // Hint buttons
+        true    // Pieces
+    );
 }
 
     // =====================================================

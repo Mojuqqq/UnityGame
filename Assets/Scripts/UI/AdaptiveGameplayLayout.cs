@@ -87,6 +87,21 @@ public class AdaptiveGameplayLayout :
     private bool initialized;
 
 
+    private bool isApplyingLayout;
+
+
+    // Запоминаем только внешнюю геометрию,
+    // которая действительно должна вызвать
+    // повторный layout.
+    private Vector2 lastSafeAreaSize;
+
+    private float lastPiecePanelTop;
+
+    private float lastHeaderBottom;
+
+    private bool hasLayoutSnapshot;
+
+
     // =====================================================
     // UNITY
     // =====================================================
@@ -98,8 +113,39 @@ public class AdaptiveGameplayLayout :
     }
 
 
+    private void LateUpdate()
+    {
+        if (
+            !initialized ||
+            isApplyingLayout
+        )
+        {
+            return;
+        }
+
+
+        if (
+            !ReferencesAreValid()
+        )
+        {
+            return;
+        }
+
+
+        // Перестраиваем интерфейс только тогда,
+        // когда реально изменилась внешняя
+        // геометрия экрана / панелей.
+        if (
+            HasExternalGeometryChanged()
+        )
+        {
+            RebuildLayout();
+        }
+    }
+
+
     // =====================================================
-    // APPLY
+    // PUBLIC APPLY
     // =====================================================
 
     public void ApplyLayout()
@@ -112,11 +158,7 @@ public class AdaptiveGameplayLayout :
 
 
         if (
-            safeArea == null ||
-            headerPanel == null ||
-            piecePanel == null ||
-            boardArea == null ||
-            hintButtonsArea == null
+            !ReferencesAreValid()
         )
         {
             Debug.LogError(
@@ -132,19 +174,62 @@ public class AdaptiveGameplayLayout :
             true;
 
 
-        Canvas.ForceUpdateCanvases();
+        RebuildLayout();
+    }
 
 
-        ConfigureGameplayArea();
+    // =====================================================
+    // VALIDATION
+    // =====================================================
+
+    private bool ReferencesAreValid()
+    {
+        return
+            safeArea != null &&
+            headerPanel != null &&
+            piecePanel != null &&
+            boardArea != null &&
+            hintButtonsArea != null;
+    }
 
 
-        Canvas.ForceUpdateCanvases();
+    // =====================================================
+    // REBUILD
+    // =====================================================
+
+    private void RebuildLayout()
+    {
+        if (isApplyingLayout)
+        {
+            return;
+        }
 
 
-        ConfigureChildren();
+        isApplyingLayout =
+            true;
 
 
-        Canvas.ForceUpdateCanvases();
+        try
+        {
+            Canvas.ForceUpdateCanvases();
+
+
+            ConfigureGameplayArea();
+
+
+            ConfigureChildren();
+
+
+            Canvas.ForceUpdateCanvases();
+
+
+            SaveLayoutSnapshot();
+        }
+        finally
+        {
+            isApplyingLayout =
+                false;
+        }
     }
 
 
@@ -162,46 +247,16 @@ public class AdaptiveGameplayLayout :
         // PIECE PANEL TOP
         // =================================================
 
-        Vector3[] pieceCorners =
-            new Vector3[4];
-
-
-        piecePanel.GetWorldCorners(
-            pieceCorners
-        );
-
-
-        Vector3 pieceTopLeft =
-            safeArea.InverseTransformPoint(
-                pieceCorners[1]
-            );
-
-
         float pieceTop =
-            pieceTopLeft.y;
+            GetPiecePanelTop();
 
 
         // =================================================
         // HEADER BOTTOM
         // =================================================
 
-        Vector3[] headerCorners =
-            new Vector3[4];
-
-
-        headerPanel.GetWorldCorners(
-            headerCorners
-        );
-
-
-        Vector3 headerBottomLeft =
-            safeArea.InverseTransformPoint(
-                headerCorners[0]
-            );
-
-
         float headerBottom =
-            headerBottomLeft.y;
+            GetHeaderBottom();
 
 
         // =================================================
@@ -218,7 +273,10 @@ public class AdaptiveGameplayLayout :
             gapBelowHeader;
 
 
-        // Защита от некорректного layout.
+        // =================================================
+        // SAFETY
+        // =================================================
+
         if (
             gameplayTop <=
             gameplayBottom
@@ -245,7 +303,7 @@ public class AdaptiveGameplayLayout :
 
 
         // =================================================
-        // STRETCH INSIDE SAFE AREA
+        // GAMEPLAY RECT
         // =================================================
 
         gameplayRect.anchorMin =
@@ -289,9 +347,9 @@ public class AdaptiveGameplayLayout :
     private void ConfigureChildren()
     {
         // =================================================
-        // HINT BUTTONS
+        // HINT BUTTONS AREA
         //
-        // Всегда находятся внизу GameplayArea.
+        // Всегда внизу GameplayArea.
         // =================================================
 
         hintButtonsArea.anchorMin =
@@ -333,8 +391,7 @@ public class AdaptiveGameplayLayout :
         // =================================================
         // BOARD AREA
         //
-        // Заполняет всё пространство,
-        // которое осталось НАД HintButtonsArea.
+        // Всё оставшееся место над кнопками.
         // =================================================
 
         boardArea.anchorMin =
@@ -355,7 +412,6 @@ public class AdaptiveGameplayLayout :
         boardArea.offsetMin =
             new Vector2(
                 0f,
-
                 hintButtonsHeight +
                 boardToHintButtonsGap
             );
@@ -371,20 +427,150 @@ public class AdaptiveGameplayLayout :
 
 
     // =====================================================
-    // RESPONSIVE
+    // EXTERNAL GEOMETRY
     // =====================================================
 
-    private void OnRectTransformDimensionsChange()
+    private float GetPiecePanelTop()
     {
-        if (
-            !Application.isPlaying ||
-            !initialized
-        )
+        Vector3[] corners =
+            new Vector3[4];
+
+
+        piecePanel.GetWorldCorners(
+            corners
+        );
+
+
+        Vector3 local =
+            safeArea.InverseTransformPoint(
+                corners[1]
+            );
+
+
+        return local.y;
+    }
+
+
+    private float GetHeaderBottom()
+    {
+        Vector3[] corners =
+            new Vector3[4];
+
+
+        headerPanel.GetWorldCorners(
+            corners
+        );
+
+
+        Vector3 local =
+            safeArea.InverseTransformPoint(
+                corners[0]
+            );
+
+
+        return local.y;
+    }
+
+
+    // =====================================================
+    // SNAPSHOT
+    // =====================================================
+
+    private void SaveLayoutSnapshot()
+    {
+        lastSafeAreaSize =
+            safeArea.rect.size;
+
+
+        lastPiecePanelTop =
+            GetPiecePanelTop();
+
+
+        lastHeaderBottom =
+            GetHeaderBottom();
+
+
+        hasLayoutSnapshot =
+            true;
+    }
+
+
+    private bool HasExternalGeometryChanged()
+    {
+        if (!hasLayoutSnapshot)
         {
-            return;
+            return true;
         }
 
 
-        ApplyLayout();
+        Vector2 currentSafeSize =
+            safeArea.rect.size;
+
+
+        float currentPieceTop =
+            GetPiecePanelTop();
+
+
+        float currentHeaderBottom =
+            GetHeaderBottom();
+
+
+        const float tolerance =
+            0.5f;
+
+
+        if (
+            Mathf.Abs(
+                currentSafeSize.x -
+                lastSafeAreaSize.x
+            )
+            >
+            tolerance
+        )
+        {
+            return true;
+        }
+
+
+        if (
+            Mathf.Abs(
+                currentSafeSize.y -
+                lastSafeAreaSize.y
+            )
+            >
+            tolerance
+        )
+        {
+            return true;
+        }
+
+
+        if (
+            Mathf.Abs(
+                currentPieceTop -
+                lastPiecePanelTop
+            )
+            >
+            tolerance
+        )
+        {
+            return true;
+        }
+
+
+        if (
+            Mathf.Abs(
+                currentHeaderBottom -
+                lastHeaderBottom
+            )
+            >
+            tolerance
+        )
+        {
+            return true;
+        }
+
+
+        return false;
     }
 }

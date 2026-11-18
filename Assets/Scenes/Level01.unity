@@ -429,6 +429,7 @@ GameObject:
   - component: {fileID: 216110419}
   - component: {fileID: 216110418}
   - component: {fileID: 216110420}
+  - component: {fileID: 216110421}
   m_Layer: 5
   m_Name: PiecePanel
   m_TagString: Untagged
@@ -516,6 +517,18 @@ MonoBehaviour:
   bottomMargin: 40
   horizontalPadding: 28
   verticalPadding: 24
+--- !u!225 &216110421
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 216110416}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &233213295
 GameObject:
   m_ObjectHideFlags: 0
@@ -526,6 +539,7 @@ GameObject:
   m_Component:
   - component: {fileID: 233213296}
   - component: {fileID: 233213297}
+  - component: {fileID: 233213298}
   m_Layer: 5
   m_Name: HintButtonsArea
   m_TagString: Untagged
@@ -549,10 +563,10 @@ RectTransform:
   - {fileID: 813657793}
   m_Father: {fileID: 1294841340}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 120}
+  m_SizeDelta: {x: 350, y: 120}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &233213297
 MonoBehaviour:
@@ -580,6 +594,18 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!225 &233213298
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 233213295}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &267539512
 GameObject:
   m_ObjectHideFlags: 0
@@ -2404,6 +2430,10 @@ MonoBehaviour:
   rowHintsContainer: {fileID: 511991382}
   gridContainer: {fileID: 1715468749}
   hintButtons: {fileID: 233213296}
+  headerGroup: {fileID: 2093189195}
+  boardGroup: {fileID: 1914694060}
+  hintButtonsGroup: {fileID: 233213298}
+  piecePanelGroup: {fileID: 216110421}
   tutorialRoot: {fileID: 866907917}
   tutorialRootRect: {fileID: 866907918}
   focusFrame: {fileID: 83088229}
@@ -2945,8 +2975,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 50}
-  m_SizeDelta: {x: -48, y: -360}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: -48, y: -460}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1294841341
 MonoBehaviour:
@@ -4377,6 +4407,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1914694058}
   - component: {fileID: 1914694059}
+  - component: {fileID: 1914694060}
   m_Layer: 5
   m_Name: BoardArea
   m_TagString: Untagged
@@ -4432,6 +4463,18 @@ MonoBehaviour:
   horizontalPadding: 15
   verticalPadding: 15
   compositionOffset: {x: 0, y: 0}
+--- !u!225 &1914694060
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1914694057}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1944400205
 GameObject:
   m_ObjectHideFlags: 0
@@ -4826,6 +4869,7 @@ GameObject:
   - component: {fileID: 2093189192}
   - component: {fileID: 2093189194}
   - component: {fileID: 2093189193}
+  - component: {fileID: 2093189195}
   m_Layer: 5
   m_Name: HeaderPanel
   m_TagString: Untagged
@@ -4851,7 +4895,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -24}
+  m_AnchoredPosition: {x: 0, y: -124}
   m_SizeDelta: {x: -48, y: 90}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &2093189193
@@ -4892,6 +4936,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2093189191}
   m_CullTransparentMesh: 1
+--- !u!225 &2093189195
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2093189191}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &2122673461
 GameObject:
   m_ObjectHideFlags: 0
