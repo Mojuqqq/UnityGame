@@ -8,6 +8,14 @@ public static class TutorialEvents
     // =====================================================
 
     public static event Action
+        PieceDragStarted;
+
+
+    public static event Action
+        PieceDragCancelled;
+
+
+    public static event Action
         PiecePlaced;
 
 
@@ -18,6 +26,18 @@ public static class TutorialEvents
     // =====================================================
     // REPORT
     // =====================================================
+
+    public static void ReportPieceDragStarted()
+    {
+        PieceDragStarted?.Invoke();
+    }
+
+
+    public static void ReportPieceDragCancelled()
+    {
+        PieceDragCancelled?.Invoke();
+    }
+
 
     public static void ReportPiecePlaced()
     {

@@ -541,6 +541,9 @@ public class PieceDragHandler :
         draggedSincePointerDown =
             true;
 
+        TutorialEvents
+    .ReportPieceDragStarted();
+
 
         CaptureHomePosition();
 
@@ -1015,6 +1018,9 @@ public class PieceDragHandler :
         {
             pieceSpawner.RefreshLayout();
         }
+
+        TutorialEvents
+    .ReportPieceDragCancelled();
     }
 
 

@@ -2447,8 +2447,13 @@ MonoBehaviour:
   bodyText: {fileID: 1658162604}
   continueButton: {fileID: 1598511938}
   continueButtonText: {fileID: 1025332483}
-  focusPadding: {x: 45, y: 45}
-  messageEdgeOffset: 130
+  dragFocusPadding: {x: 70, y: 70}
+  hintsFocusPadding: {x: 30, y: 24}
+  rotationFocusPadding: {x: 70, y: 70}
+  blockedFocusPadding: {x: 18, y: 18}
+  hintButtonsFocusPadding: {x: 40, y: 30}
+  messageTargetGap: 40
+  messageEdgePadding: 45
 --- !u!4 &1046295721
 Transform:
   m_ObjectHideFlags: 0
@@ -4838,8 +4843,10 @@ MonoBehaviour:
   hintManager: {fileID: 1768200760}
   levelManager: {fileID: 1944400206}
   levelCompleteOverlay: {fileID: 2135218266}
+  completeTitle: {fileID: 2058531858}
   rewardText: {fileID: 780465371}
   continueButton: {fileID: 267539514}
+  continueButtonText: {fileID: 2033431146}
   tripleRewardButton: {fileID: 1128912387}
   tripleRewardButtonText: {fileID: 1256378810}
   simulateRewardedAd: 1

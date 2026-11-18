@@ -131,19 +131,60 @@ private RectTransform dimmerRight;
     // VISUAL SETTINGS
     // =====================================================
 
-    [Header("Visual Settings")]
+    [Header("Focus Padding")]
 
-    [SerializeField]
-    private Vector2 focusPadding =
-        new Vector2(
-            30f,
-            30f
-        );
+[SerializeField]
+private Vector2 dragFocusPadding =
+    new Vector2(
+        70f,
+        70f
+    );
 
 
-    [SerializeField]
-    private float messageEdgeOffset =
-        130f;
+[SerializeField]
+private Vector2 hintsFocusPadding =
+    new Vector2(
+        30f,
+        24f
+    );
+
+
+[SerializeField]
+private Vector2 rotationFocusPadding =
+    new Vector2(
+        70f,
+        70f
+    );
+
+
+[SerializeField]
+private Vector2 blockedFocusPadding =
+    new Vector2(
+        18f,
+        18f
+    );
+
+
+[SerializeField]
+private Vector2 hintButtonsFocusPadding =
+    new Vector2(
+        40f,
+        30f
+    );
+
+
+[Header("Message Position")]
+
+[SerializeField]
+[Min(0f)]
+private float messageTargetGap =
+    40f;
+
+
+[SerializeField]
+[Min(0f)]
+private float messageEdgePadding =
+    45f;
 
 
     // =====================================================
@@ -168,25 +209,41 @@ private RectTransform dimmerRight;
     // =====================================================
 
     private void OnEnable()
-    {
-        TutorialEvents.PiecePlaced +=
-            HandlePiecePlaced;
+{
+    TutorialEvents.PieceDragStarted +=
+        HandlePieceDragStarted;
 
 
-        TutorialEvents.PieceRotated +=
-            HandlePieceRotated;
-    }
+    TutorialEvents.PieceDragCancelled +=
+        HandlePieceDragCancelled;
+
+
+    TutorialEvents.PiecePlaced +=
+        HandlePiecePlaced;
+
+
+    TutorialEvents.PieceRotated +=
+        HandlePieceRotated;
+}
 
 
     private void OnDisable()
-    {
-        TutorialEvents.PiecePlaced -=
-            HandlePiecePlaced;
+{
+    TutorialEvents.PieceDragStarted -=
+        HandlePieceDragStarted;
 
 
-        TutorialEvents.PieceRotated -=
-            HandlePieceRotated;
-    }
+    TutorialEvents.PieceDragCancelled -=
+        HandlePieceDragCancelled;
+
+
+    TutorialEvents.PiecePlaced -=
+        HandlePiecePlaced;
+
+
+    TutorialEvents.PieceRotated -=
+        HandlePieceRotated;
+}
 
 
     private IEnumerator Start()
@@ -642,6 +699,67 @@ private RectTransform dimmerRight;
     // GAMEPLAY EVENTS
     // =====================================================
 
+    private void HandlePieceDragStarted()
+{
+    if (
+        !tutorialActive ||
+        currentStep !=
+            TutorialStep.DragPiece
+    )
+    {
+        return;
+    }
+
+
+    if (pointerAnimator != null)
+    {
+        pointerAnimator.HidePointer();
+    }
+}
+
+
+private void HandlePieceDragCancelled()
+{
+    if (
+        !tutorialActive ||
+        currentStep !=
+            TutorialStep.DragPiece
+    )
+    {
+        return;
+    }
+
+
+    if (pointerAnimator == null)
+    {
+        return;
+    }
+
+
+    RectTransform piece =
+        GetFirstPiece();
+
+
+    RectTransform destination =
+        GetFirstSolutionTargetCell();
+
+
+    if (
+        piece == null ||
+        destination == null
+    )
+    {
+        return;
+    }
+
+
+    pointerAnimator.ShowDrag(
+        piece,
+        destination
+    );
+}
+
+
     private void HandlePiecePlaced()
     {
         if (
@@ -788,6 +906,48 @@ private RectTransform dimmerRight;
     // FOCUS
     // =====================================================
 
+    private Vector2 GetCurrentFocusPadding()
+{
+    switch (currentStep)
+    {
+        case TutorialStep.DragPiece:
+
+            return
+                dragFocusPadding;
+
+
+        case TutorialStep.ReadHints:
+
+            return
+                hintsFocusPadding;
+
+
+        case TutorialStep.RotatePiece:
+
+            return
+                rotationFocusPadding;
+
+
+        case TutorialStep.BlockedCell:
+
+            return
+                blockedFocusPadding;
+
+
+        case TutorialStep.HintButtons:
+
+            return
+                hintButtonsFocusPadding;
+    }
+
+
+    return
+        new Vector2(
+            30f,
+            30f
+        );
+}
+
     private void FocusTarget(
         RectTransform target
     )
@@ -891,23 +1051,32 @@ private RectTransform dimmerRight;
                 0.5f
             );
 
-    focusFrame.anchoredPosition =
+    Vector2 padding =
+    GetCurrentFocusPadding();
+
+
+Vector2 holeSize =
+    size +
+    padding;
+
+
+focusFrame.anchoredPosition =
     center;
 
 
 focusFrame.sizeDelta =
-    size +
-    focusPadding;
+    holeSize;
 
 
 UpdateDimmerHole(
     center,
-    size + focusPadding
+    holeSize
 );
 
 
 PositionMessagePanel(
-    center.y
+    center,
+    holeSize
 );
 
     }
@@ -935,24 +1104,24 @@ PositionMessagePanel(
         tutorialRootRect.rect.width;
 
 
-    float rootHeight =
-        tutorialRootRect.rect.height;
+    Rect rootRect =
+    tutorialRootRect.rect;
 
 
-    float rootLeft =
-        -rootWidth * 0.5f;
+float rootLeft =
+    rootRect.xMin;
 
 
-    float rootRight =
-        rootWidth * 0.5f;
+float rootRight =
+    rootRect.xMax;
 
 
-    float rootBottom =
-        -rootHeight * 0.5f;
+float rootBottom =
+    rootRect.yMin;
 
 
-    float rootTop =
-        rootHeight * 0.5f;
+float rootTop =
+    rootRect.yMax;
 
 
     float holeLeft =
@@ -1149,80 +1318,230 @@ private void SetDimmerRect(
     // =====================================================
 
     private void PositionMessagePanel(
-        float targetY
+    Vector2 targetCenter,
+    Vector2 targetSize
+)
+{
+    if (
+        messagePanel == null ||
+        tutorialRootRect == null
     )
     {
-        if (messagePanel == null)
-        {
-            return;
-        }
-
-
-        // Если цель находится в нижней
-        // половине экрана,
-        // сообщение ставим наверх.
-        if (targetY < 0f)
-        {
-            messagePanel.anchorMin =
-                new Vector2(
-                    0.5f,
-                    1f
-                );
-
-
-            messagePanel.anchorMax =
-                new Vector2(
-                    0.5f,
-                    1f
-                );
-
-
-            messagePanel.pivot =
-                new Vector2(
-                    0.5f,
-                    1f
-                );
-
-
-            messagePanel.anchoredPosition =
-                new Vector2(
-                    0f,
-                    -messageEdgeOffset
-                );
-
-            return;
-        }
-
-
-        // Если цель сверху,
-        // сообщение ставим вниз.
-        messagePanel.anchorMin =
-            new Vector2(
-                0.5f,
-                0f
-            );
-
-
-        messagePanel.anchorMax =
-            new Vector2(
-                0.5f,
-                0f
-            );
-
-
-        messagePanel.pivot =
-            new Vector2(
-                0.5f,
-                0f
-            );
-
-
-        messagePanel.anchoredPosition =
-            new Vector2(
-                0f,
-                messageEdgeOffset
-            );
+        return;
     }
+
+
+    Canvas.ForceUpdateCanvases();
+
+
+    Rect rootRect =
+        tutorialRootRect.rect;
+
+
+    float panelHeight =
+        Mathf.Max(
+            1f,
+            messagePanel.rect.height
+        );
+
+
+    float panelWidth =
+        Mathf.Max(
+            1f,
+            messagePanel.rect.width
+        );
+
+
+    float targetTop =
+        targetCenter.y +
+        targetSize.y * 0.5f;
+
+
+    float targetBottom =
+        targetCenter.y -
+        targetSize.y * 0.5f;
+
+
+    // =================================================
+    // AVAILABLE SPACE
+    // =================================================
+
+    float spaceAbove =
+        rootRect.yMax
+        -
+        messageEdgePadding
+        -
+        targetTop
+        -
+        messageTargetGap;
+
+
+    float spaceBelow =
+        targetBottom
+        -
+        messageTargetGap
+        -
+        (
+            rootRect.yMin +
+            messageEdgePadding
+        );
+
+
+    bool fitsAbove =
+        spaceAbove >=
+        panelHeight;
+
+
+    bool fitsBelow =
+        spaceBelow >=
+        panelHeight;
+
+
+    bool placeAbove;
+
+
+    // Если помещается только сверху.
+    if (
+        fitsAbove &&
+        !fitsBelow
+    )
+    {
+        placeAbove =
+            true;
+    }
+
+    // Если помещается только снизу.
+    else if (
+        fitsBelow &&
+        !fitsAbove
+    )
+    {
+        placeAbove =
+            false;
+    }
+
+    // Если помещается с обеих сторон
+    // или не помещается полностью нигде —
+    // выбираем сторону, где больше места.
+    else
+    {
+        placeAbove =
+            spaceAbove >=
+            spaceBelow;
+    }
+
+
+    // =================================================
+    // TARGET POSITION
+    // =================================================
+
+    float wantedY;
+
+
+    if (placeAbove)
+    {
+        wantedY =
+            targetTop
+            +
+            messageTargetGap
+            +
+            panelHeight * 0.5f;
+    }
+    else
+    {
+        wantedY =
+            targetBottom
+            -
+            messageTargetGap
+            -
+            panelHeight * 0.5f;
+    }
+
+
+    // =================================================
+    // KEEP INSIDE SCREEN
+    // =================================================
+
+    float minY =
+        rootRect.yMin
+        +
+        messageEdgePadding
+        +
+        panelHeight * 0.5f;
+
+
+    float maxY =
+        rootRect.yMax
+        -
+        messageEdgePadding
+        -
+        panelHeight * 0.5f;
+
+
+    wantedY =
+        Mathf.Clamp(
+            wantedY,
+            minY,
+            maxY
+        );
+
+
+    // По X сообщение пока всегда центрируем.
+    float minX =
+        rootRect.xMin
+        +
+        messageEdgePadding
+        +
+        panelWidth * 0.5f;
+
+
+    float maxX =
+        rootRect.xMax
+        -
+        messageEdgePadding
+        -
+        panelWidth * 0.5f;
+
+
+    float wantedX =
+        Mathf.Clamp(
+            0f,
+            minX,
+            maxX
+        );
+
+
+    // =================================================
+    // APPLY
+    // =================================================
+
+    messagePanel.anchorMin =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    messagePanel.anchorMax =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    messagePanel.pivot =
+        new Vector2(
+            0.5f,
+            0.5f
+        );
+
+
+    messagePanel.anchoredPosition =
+        new Vector2(
+            wantedX,
+            wantedY
+        );
+}
 
 
     // =====================================================

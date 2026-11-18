@@ -35,11 +35,19 @@ public class WinConditionManager :
 
 
     [SerializeField]
+    private TMP_Text completeTitle;
+
+
+    [SerializeField]
     private TMP_Text rewardText;
 
 
     [SerializeField]
     private Button continueButton;
+
+
+    [SerializeField]
+    private TMP_Text continueButtonText;
 
 
     [SerializeField]
@@ -73,8 +81,7 @@ public class WinConditionManager :
     private bool levelCompleted;
 
 
-    private int
-        currentDisplayedReward;
+    private int currentDisplayedReward;
 
 
     // =====================================================
@@ -214,24 +221,45 @@ public class WinConditionManager :
         }
 
 
-        if (rewardText != null)
+        bool hasNextLevel =
+            levelManager.HasNextLevel();
+
+
+        // =================================================
+        // TITLE
+        // =================================================
+
+        if (completeTitle != null)
         {
-            int rewardToShow =
-                currentDisplayedReward;
-
-
-            if (rewardToShow <= 0)
-            {
-                rewardToShow =
-                    levelManager
-                        .CompletionRewardCoins;
-            }
-
-
-            rewardText.text =
-                $"+{rewardToShow} МОНЕТ";
+            completeTitle.text =
+                hasNextLevel
+                    ? "УРОВЕНЬ ПРОЙДЕН!"
+                    : "ВСЕ УРОВНИ ПРОЙДЕНЫ!";
         }
 
+
+        // =================================================
+        // REWARD
+        // =================================================
+
+        if (rewardText != null)
+        {
+            if (currentDisplayedReward > 0)
+            {
+                rewardText.text =
+                    $"+{currentDisplayedReward} МОНЕТ";
+            }
+            else
+            {
+                rewardText.text =
+                    "НАГРАДА УЖЕ ПОЛУЧЕНА";
+            }
+        }
+
+
+        // =================================================
+        // CONTINUE
+        // =================================================
 
         if (continueButton != null)
         {
@@ -240,9 +268,22 @@ public class WinConditionManager :
         }
 
 
+        if (continueButtonText != null)
+        {
+            continueButtonText.text =
+                hasNextLevel
+                    ? "ПРОДОЛЖИТЬ"
+                    : "В МЕНЮ";
+        }
+
+
         RefreshTripleRewardButton();
     }
 
+
+    // =====================================================
+    // TRIPLE REWARD
+    // =====================================================
 
     private void RefreshTripleRewardButton()
     {
@@ -332,17 +373,12 @@ public class WinConditionManager :
         }
 
 
-        // Позже здесь будет вызов
-        // настоящего рекламного SDK.
         Debug.LogWarning(
             "Rewarded Ad SDK is not connected yet."
         );
     }
 
 
-    // Эту функцию в будущем
-    // должен вызвать рекламный SDK
-    // ПОСЛЕ успешного просмотра рекламы.
     public void GrantTripleRewardAfterAd()
     {
         if (levelManager == null)
