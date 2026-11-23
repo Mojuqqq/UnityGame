@@ -496,6 +496,13 @@ public class PieceDragHandler :
 
         pieceView.RotateClockwise();
 
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.PieceRotate
+    );
+}
+
         TutorialEvents
     .ReportPieceRotated();
 
@@ -543,6 +550,13 @@ public class PieceDragHandler :
 
         TutorialEvents
     .ReportPieceDragStarted();
+
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.PiecePickup
+    );
+}
 
 
         CaptureHomePosition();
@@ -759,6 +773,12 @@ public class PieceDragHandler :
             return;
         }
 
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.InvalidDrop
+    );
+}
 
         // -----------------------------------------------
         // 3. Если фигура была на Grid,
@@ -887,6 +907,16 @@ public class PieceDragHandler :
 
         isPlaced =
             true;
+
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.PiecePlace
+    );
+}
+
+
+    HapticManager.Vibrate();
 
         TutorialEvents
     .ReportPiecePlaced();
@@ -1659,6 +1689,13 @@ public class PieceDragHandler :
 
 
     pieceView.RotateClockwise();
+
+    if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.PieceRotate
+    );
+}
 
 
     TutorialEvents

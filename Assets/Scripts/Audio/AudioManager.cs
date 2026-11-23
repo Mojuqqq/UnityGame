@@ -29,6 +29,12 @@ public class AudioManager :
     private AudioSource sfxSource;
 
 
+    [Header("Library")]
+
+[SerializeField]
+private GameAudioLibrary audioLibrary;
+
+
     [Header("Volume")]
 
     [SerializeField]
@@ -96,27 +102,24 @@ public class AudioManager :
     private void ApplySettings()
     {
         if (musicSource != null)
-        {
-            musicSource.volume =
-                musicVolume;
+{
+    musicSource.volume =
+        musicVolume;
 
 
-            musicSource.mute =
-                !GameSettings
-                    .MusicEnabled;
-        }
+    musicSource.mute =
+        !GameSettings.MusicEnabled;
 
 
-        if (sfxSource != null)
-        {
-            sfxSource.volume =
-                sfxVolume;
-
-
-            sfxSource.mute =
-                !GameSettings
-                    .SoundEnabled;
-        }
+    if (
+        GameSettings.MusicEnabled &&
+        musicSource.clip != null &&
+        !musicSource.isPlaying
+    )
+    {
+        musicSource.Play();
+    }
+}
     }
 
 
@@ -133,6 +136,41 @@ public class AudioManager :
             1f
         );
     }
+
+
+    public void PlaySfx(
+    GameSfx type
+)
+{
+    PlaySfx(
+        type,
+        1f
+    );
+}
+
+
+public void PlaySfx(
+    GameSfx type,
+    float volumeScale
+)
+{
+    if (audioLibrary == null)
+    {
+        return;
+    }
+
+
+    AudioClip clip =
+        audioLibrary.GetClip(
+            type
+        );
+
+
+    PlaySfx(
+        clip,
+        volumeScale
+    );
+}
 
 
     public void PlaySfx(

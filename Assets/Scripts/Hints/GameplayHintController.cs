@@ -127,6 +127,13 @@ private TMP_Text emptyCellsCountText;
 
         PlayerStats.RecordHintUsed();
 
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.Hint
+    );
+}
+
 
         int randomIndex =
             Random.Range(
@@ -343,6 +350,12 @@ private TMP_Text emptyCellsCountText;
 
         PlayerStats.RecordHintUsed();
 
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.Hint
+    );
+}
 
         int revealCount =
             Mathf.Min(

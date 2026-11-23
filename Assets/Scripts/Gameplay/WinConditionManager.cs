@@ -190,6 +190,16 @@ public class WinConditionManager :
             levelManager
                 .CompleteCurrentLevel();
 
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.LevelComplete
+    );
+}
+
+
+HapticManager.Vibrate();
+
 
         RefreshCompleteUI();
 
@@ -396,6 +406,13 @@ public class WinConditionManager :
         {
             return;
         }
+
+        if (AudioManager.Instance != null)
+{
+    AudioManager.Instance.PlaySfx(
+        GameSfx.Reward
+    );
+}
 
 
         currentDisplayedReward =
