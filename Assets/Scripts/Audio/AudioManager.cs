@@ -100,28 +100,35 @@ private GameAudioLibrary audioLibrary;
     // =====================================================
 
     private void ApplySettings()
-    {
-        if (musicSource != null)
 {
-    musicSource.volume =
-        musicVolume;
-
-
-    musicSource.mute =
-        !GameSettings.MusicEnabled;
-
-
-    if (
-        GameSettings.MusicEnabled &&
-        musicSource.clip != null &&
-        !musicSource.isPlaying
-    )
+    if (musicSource != null)
     {
-        musicSource.Play();
+        musicSource.volume =
+            musicVolume;
+
+        musicSource.mute =
+            !GameSettings.MusicEnabled;
+
+        if (
+            GameSettings.MusicEnabled &&
+            musicSource.clip != null &&
+            !musicSource.isPlaying
+        )
+        {
+            musicSource.Play();
+        }
+    }
+
+
+    if (sfxSource != null)
+    {
+        sfxSource.volume =
+            sfxVolume;
+
+        sfxSource.mute =
+            !GameSettings.SoundEnabled;
     }
 }
-    }
-
 
     // =====================================================
     // SFX
