@@ -39,20 +39,41 @@ public class SettingsPopupController :
 
     private bool updatingUI;
 
+    private PopupAnimator
+    popupAnimator;
+
 
     // =====================================================
     // UNITY
     // =====================================================
 
     private void Awake()
+{
+    if (popupRoot == null)
     {
-        if (popupRoot != null)
-        {
-            popupRoot.SetActive(
-                false
-            );
-        }
+        return;
     }
+
+
+    popupAnimator =
+        popupRoot.GetComponent<
+            PopupAnimator
+        >();
+
+
+    if (popupAnimator != null)
+    {
+        popupAnimator
+            .HideImmediate();
+
+        return;
+    }
+
+
+    popupRoot.SetActive(
+        false
+    );
+}
 
 
     private void OnEnable()
@@ -74,28 +95,50 @@ public class SettingsPopupController :
     // =====================================================
 
     public void Open()
+{
+    RefreshUI();
+
+
+    if (popupRoot == null)
     {
-        RefreshUI();
-
-
-        if (popupRoot != null)
-        {
-            popupRoot.SetActive(
-                true
-            );
-        }
+        return;
     }
+
+
+    if (popupAnimator != null)
+    {
+        popupAnimator.Open();
+
+        return;
+    }
+
+
+    popupRoot.SetActive(
+        true
+    );
+}
 
 
     public void Close()
+{
+    if (popupRoot == null)
     {
-        if (popupRoot != null)
-        {
-            popupRoot.SetActive(
-                false
-            );
-        }
+        return;
     }
+
+
+    if (popupAnimator != null)
+    {
+        popupAnimator.Close();
+
+        return;
+    }
+
+
+    popupRoot.SetActive(
+        false
+    );
+}
 
 
     // =====================================================

@@ -3384,6 +3384,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 577377170}
+  - component: {fileID: 577377172}
+  - component: {fileID: 577377171}
   m_Layer: 5
   m_Name: SettingsPopup
   m_TagString: Untagged
@@ -3412,6 +3414,34 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &577377171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 577377169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77bb7ab934c3dbc4cad5aa1ff982b5f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PopupAnimator
+  panel: {fileID: 914944039}
+  hiddenScale: 0.92
+  openDuration: 0.18
+  closeDuration: 0.12
+--- !u!225 &577377172
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 577377169}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &611189999
 GameObject:
   m_ObjectHideFlags: 0
@@ -6111,8 +6141,8 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1532425057}
-  - {fileID: 1634709066}
   - {fileID: 577377170}
+  - {fileID: 1634709066}
   - {fileID: 999243809}
   - {fileID: 1427781943}
   m_Father: {fileID: 159670844}
@@ -10996,6 +11026,7 @@ GameObject:
   - component: {fileID: 2001759984}
   - component: {fileID: 2001759983}
   - component: {fileID: 2001759982}
+  - component: {fileID: 2001759985}
   m_Layer: 5
   m_Name: Backdrop
   m_TagString: Untagged
@@ -11066,9 +11097,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 959706226}
-        m_TargetAssemblyTypeName: LevelSelectManager, Assembly-CSharp
-        m_MethodName: ClosePopups
+      - m_Target: {fileID: 1599030927}
+        m_TargetAssemblyTypeName: SettingsPopupController, Assembly-CSharp
+        m_MethodName: Close
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -11116,6 +11147,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2001759980}
   m_CullTransparentMesh: 1
+--- !u!114 &2001759985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2001759980}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5f1b0277ea5429428c04d160b6b9146, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPressFeedbackIgnore
 --- !u!1 &2018601591
 GameObject:
   m_ObjectHideFlags: 0

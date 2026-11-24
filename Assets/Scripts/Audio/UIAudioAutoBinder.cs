@@ -51,54 +51,59 @@ public class UIAudioAutoBinder :
 
 
     public static void BindCurrentScene()
-{
-    Button[] buttons =
-        FindObjectsByType<Button>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
-
-
-    foreach (
-        Button button
-        in buttons
-    )
     {
-        if (button == null)
-        {
-            continue;
-        }
+        Button[] buttons =
+            FindObjectsByType<Button>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
 
 
-        // =============================================
-        // CLICK SOUND
-        // =============================================
-
-        if (
-            button.GetComponent<
-                UIButtonClickSfx
-            >() == null
+        foreach (
+            Button button
+            in buttons
         )
         {
-            button.gameObject.AddComponent<
-                UIButtonClickSfx
-            >();
-        }
+            if (button == null)
+            {
+                continue;
+            }
 
 
-        // =============================================
-        // PRESS ANIMATION
-        // =============================================
+            // =============================================
+            // CLICK SOUND
+            // =============================================
 
-        if (
-            button.GetComponent<
-                UIButtonPressFeedback
-            >() == null
-        )
-        {
-            button.gameObject.AddComponent<
-                UIButtonPressFeedback
-            >();
+            if (
+                button.GetComponent<
+                    UIButtonClickSfx
+                >() == null
+            )
+            {
+                button.gameObject.AddComponent<
+                    UIButtonClickSfx
+                >();
+            }
+
+
+            // =============================================
+            // PRESS ANIMATION
+            // =============================================
+
+            if (
+    button.GetComponent<
+        UIButtonPressFeedback
+    >() == null
+    &&
+    button.GetComponent<
+        UIButtonPressFeedbackIgnore
+    >() == null
+)
+            {
+                button.gameObject.AddComponent<
+                    UIButtonPressFeedback
+                >();
+            }
         }
     }
 }
