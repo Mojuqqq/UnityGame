@@ -88,7 +88,7 @@ private AdaptiveGameplayLayout
 
     [SerializeField]
     private string homeSceneName =
-        "LevelSelect";
+        "Menu";
 
 
     // =====================================================

@@ -31,7 +31,7 @@ public class LoadingScreenManager : MonoBehaviour
 
     [SerializeField]
     private string homeSceneName =
-        "LevelSelect";
+        "Menu";
 
 
     // =====================================================

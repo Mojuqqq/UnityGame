@@ -4581,7 +4581,7 @@ MonoBehaviour:
   gameplayHintController: {fileID: 1198946904}
   levelTitle: {fileID: 824564980}
   completionRewardCoins: 25
-  homeSceneName: LevelSelect
+  homeSceneName: Menu
 --- !u!4 &1944400207
 Transform:
   m_ObjectHideFlags: 0

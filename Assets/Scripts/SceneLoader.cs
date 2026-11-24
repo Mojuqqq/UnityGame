@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
 public class SceneLoader :
     MonoBehaviour
 {
@@ -15,13 +16,13 @@ public class SceneLoader :
 
 
         SceneManager.LoadScene(
-            "LevelSelect"
+            "Menu"
         );
     }
 
 
-    // Оставляем старое имя,
-    // чтобы старые ссылки случайно не сломались.
+    // Оставляем старое имя метода,
+    // чтобы существующие UnityEvents не сломались.
     public void LoadLevelSelect()
     {
         LoadHomeMenu();
@@ -35,7 +36,7 @@ public class SceneLoader :
     public void LoadGameScene()
     {
         SceneManager.LoadScene(
-            "Level01"
+            "Level"
         );
     }
 
@@ -51,7 +52,7 @@ public class SceneLoader :
 
 
         SceneManager.LoadScene(
-            "MainMenu"
+            "Loading"
         );
     }
 
