@@ -51,37 +51,53 @@ public class UIAudioAutoBinder :
 
 
     public static void BindCurrentScene()
+{
+    Button[] buttons =
+        FindObjectsByType<Button>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+
+    foreach (
+        Button button
+        in buttons
+    )
     {
-        Button[] buttons =
-            FindObjectsByType<Button>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+        if (button == null)
+        {
+            continue;
+        }
 
 
-        foreach (
-            Button button
-            in buttons
+        // =============================================
+        // CLICK SOUND
+        // =============================================
+
+        if (
+            button.GetComponent<
+                UIButtonClickSfx
+            >() == null
         )
         {
-            if (button == null)
-            {
-                continue;
-            }
-
-
-            if (
-                button.GetComponent<
-                    UIButtonClickSfx
-                >() != null
-            )
-            {
-                continue;
-            }
-
-
             button.gameObject.AddComponent<
                 UIButtonClickSfx
+            >();
+        }
+
+
+        // =============================================
+        // PRESS ANIMATION
+        // =============================================
+
+        if (
+            button.GetComponent<
+                UIButtonPressFeedback
+            >() == null
+        )
+        {
+            button.gameObject.AddComponent<
+                UIButtonPressFeedback
             >();
         }
     }
