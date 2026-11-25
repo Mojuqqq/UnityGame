@@ -1,9 +1,8 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-
-public class SettingsPopupController :
-    MonoBehaviour
+public class SettingsPopupController : MonoBehaviour
 {
     // =====================================================
     // POPUP
@@ -16,31 +15,39 @@ public class SettingsPopupController :
 
 
     // =====================================================
-    // TOGGLES
+    // CONTROLS
     // =====================================================
 
-    [Header("Toggles")]
+    [Header("Controls")]
 
     [SerializeField]
-    private Toggle soundToggle;
-
+    private Slider soundSlider;
 
     [SerializeField]
-    private Toggle musicToggle;
-
+    private Slider musicSlider;
 
     [SerializeField]
     private Toggle hapticsToggle;
 
 
     // =====================================================
+    // VOLUME LABELS
+    // =====================================================
+
+    [Header("Volume Labels (Optional)")]
+
+    [SerializeField]
+    private TMP_Text soundValueText;
+
+    [SerializeField]
+    private TMP_Text musicValueText;
+
+
+    // =====================================================
     // STATE
     // =====================================================
 
-    private bool updatingUI;
-
-    private PopupAnimator
-    popupAnimator;
+    private PopupAnimator popupAnimator;
 
 
     // =====================================================
@@ -48,45 +55,67 @@ public class SettingsPopupController :
     // =====================================================
 
     private void Awake()
-{
-    if (popupRoot == null)
     {
-        return;
+        if (popupRoot == null)
+            return;
+
+        popupAnimator =
+            popupRoot.GetComponent<PopupAnimator>();
+
+        if (popupAnimator != null)
+            popupAnimator.HideImmediate();
+        else
+            popupRoot.SetActive(false);
     }
-
-
-    popupAnimator =
-        popupRoot.GetComponent<
-            PopupAnimator
-        >();
-
-
-    if (popupAnimator != null)
-    {
-        popupAnimator
-            .HideImmediate();
-
-        return;
-    }
-
-
-    popupRoot.SetActive(
-        false
-    );
-}
-
 
     private void OnEnable()
     {
-        GameSettings.SettingsChanged +=
-            RefreshUI;
-    }
+        GameSettings.SettingsChanged += RefreshUI;
 
+        if (soundSlider != null)
+            soundSlider.onValueChanged.AddListener(
+                SetSoundVolume
+            );
+
+        if (musicSlider != null)
+            musicSlider.onValueChanged.AddListener(
+                SetMusicVolume
+            );
+
+        if (hapticsToggle != null)
+            hapticsToggle.onValueChanged.AddListener(
+                SetHapticsEnabled
+            );
+
+        RefreshUI();
+    }
 
     private void OnDisable()
     {
-        GameSettings.SettingsChanged -=
-            RefreshUI;
+        GameSettings.SettingsChanged -= RefreshUI;
+
+        if (soundSlider != null)
+            soundSlider.onValueChanged.RemoveListener(
+                SetSoundVolume
+            );
+
+        if (musicSlider != null)
+            musicSlider.onValueChanged.RemoveListener(
+                SetMusicVolume
+            );
+
+        if (hapticsToggle != null)
+            hapticsToggle.onValueChanged.RemoveListener(
+                SetHapticsEnabled
+            );
+
+        GameSettings.Save();
+    }
+
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused)
+            GameSettings.Save();
     }
 
 
@@ -95,101 +124,49 @@ public class SettingsPopupController :
     // =====================================================
 
     public void Open()
-{
-    RefreshUI();
-
-
-    if (popupRoot == null)
     {
-        return;
+        RefreshUI();
+
+        if (popupRoot == null)
+            return;
+
+        if (popupAnimator != null)
+            popupAnimator.Open();
+        else
+            popupRoot.SetActive(true);
     }
-
-
-    if (popupAnimator != null)
-    {
-        popupAnimator.Open();
-
-        return;
-    }
-
-
-    popupRoot.SetActive(
-        true
-    );
-}
-
 
     public void Close()
-{
-    if (popupRoot == null)
     {
-        return;
+        GameSettings.Save();
+
+        if (popupRoot == null)
+            return;
+
+        if (popupAnimator != null)
+            popupAnimator.Close();
+        else
+            popupRoot.SetActive(false);
     }
-
-
-    if (popupAnimator != null)
-    {
-        popupAnimator.Close();
-
-        return;
-    }
-
-
-    popupRoot.SetActive(
-        false
-    );
-}
 
 
     // =====================================================
-    // TOGGLE CALLBACKS
+    // CALLBACKS
     // =====================================================
 
-    public void SetSoundEnabled(
-        bool enabled
-    )
+    public void SetSoundVolume(float value)
     {
-        if (updatingUI)
-        {
-            return;
-        }
-
-
-        GameSettings.SetSoundEnabled(
-            enabled
-        );
+        GameSettings.SetSoundVolume(value);
     }
 
-
-    public void SetMusicEnabled(
-        bool enabled
-    )
+    public void SetMusicVolume(float value)
     {
-        if (updatingUI)
-        {
-            return;
-        }
-
-
-        GameSettings.SetMusicEnabled(
-            enabled
-        );
+        GameSettings.SetMusicVolume(value);
     }
 
-
-    public void SetHapticsEnabled(
-        bool enabled
-    )
+    public void SetHapticsEnabled(bool enabled)
     {
-        if (updatingUI)
-        {
-            return;
-        }
-
-
-        GameSettings.SetHapticsEnabled(
-            enabled
-        );
+        GameSettings.SetHapticsEnabled(enabled);
     }
 
 
@@ -199,25 +176,19 @@ public class SettingsPopupController :
 
     private void RefreshUI()
     {
-        updatingUI =
-            true;
-
-
-        if (soundToggle != null)
+        if (soundSlider != null)
         {
-            soundToggle.SetIsOnWithoutNotify(
-                GameSettings.SoundEnabled
+            soundSlider.SetValueWithoutNotify(
+                GameSettings.SoundVolume
             );
         }
 
-
-        if (musicToggle != null)
+        if (musicSlider != null)
         {
-            musicToggle.SetIsOnWithoutNotify(
-                GameSettings.MusicEnabled
+            musicSlider.SetValueWithoutNotify(
+                GameSettings.MusicVolume
             );
         }
-
 
         if (hapticsToggle != null)
         {
@@ -226,8 +197,16 @@ public class SettingsPopupController :
             );
         }
 
+        if (soundValueText != null)
+        {
+            soundValueText.text =
+                $"{Mathf.RoundToInt(GameSettings.SoundVolume * 100)}%";
+        }
 
-        updatingUI =
-            false;
+        if (musicValueText != null)
+        {
+            musicValueText.text =
+                $"{Mathf.RoundToInt(GameSettings.MusicVolume * 100)}%";
+        }
     }
 }

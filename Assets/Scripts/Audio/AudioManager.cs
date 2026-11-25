@@ -104,7 +104,7 @@ private GameAudioLibrary audioLibrary;
     if (musicSource != null)
     {
         musicSource.volume =
-            musicVolume;
+            musicVolume * GameSettings.MusicVolume;
 
         musicSource.mute =
             !GameSettings.MusicEnabled;
@@ -119,11 +119,10 @@ private GameAudioLibrary audioLibrary;
         }
     }
 
-
     if (sfxSource != null)
     {
         sfxSource.volume =
-            sfxVolume;
+            sfxVolume * GameSettings.SoundVolume;
 
         sfxSource.mute =
             !GameSettings.SoundEnabled;
