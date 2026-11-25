@@ -393,23 +393,16 @@ public class LevelSelectManager :
     // =====================================================
 
     public void OpenAchievements()
-    {
-        HideAllPopups();
+{
+    HideAllPopups();
 
+    BuildTaskList(
+        TaskCategory.Achievement,
+        achievementsContent
+    );
 
-        BuildTaskList(
-            TaskCategory.Achievement,
-            achievementsContent
-        );
-
-
-        if (achievementsPopup != null)
-        {
-            achievementsPopup.SetActive(
-                true
-            );
-        }
-    }
+    OpenPopup(achievementsPopup);
+}
 
 
     // =====================================================
@@ -417,26 +410,18 @@ public class LevelSelectManager :
     // =====================================================
 
     public void OpenDailyTasks()
-    {
-        PlayerStats.EnsureDailyReset();
+{
+    PlayerStats.EnsureDailyReset();
 
+    HideAllPopups();
 
-        HideAllPopups();
+    BuildTaskList(
+        TaskCategory.Daily,
+        dailyTasksContent
+    );
 
-
-        BuildTaskList(
-            TaskCategory.Daily,
-            dailyTasksContent
-        );
-
-
-        if (dailyTasksPopup != null)
-        {
-            dailyTasksPopup.SetActive(
-                true
-            );
-        }
-    }
+    OpenPopup(dailyTasksPopup);
+}
 
 
     // =====================================================
@@ -800,29 +785,58 @@ public class LevelSelectManager :
     // =====================================================
 
     public void ClosePopups()
-    {
-        HideAllPopups();
-    }
+{
+    ClosePopup(achievementsPopup);
+    ClosePopup(dailyTasksPopup);
+}
 
+private void HideAllPopups()
+{
+    HidePopupImmediate(achievementsPopup);
+    HidePopupImmediate(dailyTasksPopup);
+}
 
-    private void HideAllPopups()
-    {
-        if (achievementsPopup != null)
-        {
-            achievementsPopup.SetActive(
-                false
-            );
-        }
+private void OpenPopup(GameObject popup)
+{
+    if (popup == null)
+        return;
 
+    PopupAnimator animator =
+        popup.GetComponent<PopupAnimator>();
 
-        if (dailyTasksPopup != null)
-        {
-            dailyTasksPopup.SetActive(
-                false
-            );
-        }
-    }
+    if (animator != null)
+        animator.Open();
+    else
+        popup.SetActive(true);
+}
 
+private void ClosePopup(GameObject popup)
+{
+    if (popup == null)
+        return;
+
+    PopupAnimator animator =
+        popup.GetComponent<PopupAnimator>();
+
+    if (animator != null)
+        animator.Close();
+    else
+        popup.SetActive(false);
+}
+
+private void HidePopupImmediate(GameObject popup)
+{
+    if (popup == null)
+        return;
+
+    PopupAnimator animator =
+        popup.GetComponent<PopupAnimator>();
+
+    if (animator != null)
+        animator.HideImmediate();
+    else
+        popup.SetActive(false);
+}
 
     // =====================================================
     // TESTING

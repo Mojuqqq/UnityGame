@@ -155,7 +155,7 @@ public class HintShopController : MonoBehaviour
     {
         ConfigureSlider();
 
-        CloseShop();
+        HideShopImmediate();
 
         RefreshAllUI();
     }
@@ -235,24 +235,46 @@ public class HintShopController : MonoBehaviour
 
 
         if (shopPopup != null)
-        {
-            shopPopup.SetActive(
-                true
-            );
-        }
+{
+    PopupAnimator animator =
+        shopPopup.GetComponent<PopupAnimator>();
+
+    if (animator != null)
+        animator.Open();
+    else
+        shopPopup.SetActive(true);
+}
     }
 
 
     public void CloseShop()
-    {
-        if (shopPopup != null)
-        {
-            shopPopup.SetActive(
-                false
-            );
-        }
-    }
+{
+    if (shopPopup == null)
+        return;
 
+    PopupAnimator animator =
+        shopPopup.GetComponent<PopupAnimator>();
+
+    if (animator != null)
+        animator.Close();
+    else
+        shopPopup.SetActive(false);
+}
+
+
+private void HideShopImmediate()
+{
+    if (shopPopup == null)
+        return;
+
+    PopupAnimator animator =
+        shopPopup.GetComponent<PopupAnimator>();
+
+    if (animator != null)
+        animator.HideImmediate();
+    else
+        shopPopup.SetActive(false);
+}
 
     // =====================================================
     // QUANTITY

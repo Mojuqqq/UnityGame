@@ -128,7 +128,7 @@ public class MoneyShopController :
 
     private void Start()
     {
-        CloseShop();
+        HideShopImmediate();
 
         RefreshCounters();
     }
@@ -139,58 +139,69 @@ public class MoneyShopController :
     // =====================================================
 
     public void OpenShop()
-    {
-        if (!ValidateReferences())
-        {
-            return;
-        }
+{
+    if (!ValidateReferences())
+        return;
 
+    PopupAnimator animator =
+        shopPopup.GetComponent<PopupAnimator>();
 
-        // Сначала включаем popup,
-        // чтобы Unity Layout работал
-        // уже на активных объектах.
-        shopPopup.SetActive(
-            true
-        );
+    if (animator != null)
+        animator.Open();
+    else
+        shopPopup.SetActive(true);
 
+    BuildProducts();
 
-        BuildProducts();
+    RefreshCounters();
 
-        RefreshCounters();
+    RefreshRemoveAdsButton();
 
-        RefreshRemoveAdsButton();
+    Canvas.ForceUpdateCanvases();
 
+    LayoutRebuilder.ForceRebuildLayoutImmediate(
+        productsContent
+    );
 
-        Canvas.ForceUpdateCanvases();
-
-
-        LayoutRebuilder
-            .ForceRebuildLayoutImmediate(
-                productsContent
-            );
-
-
-        Debug.Log(
-            $"MoneyShop: built " +
-            $"{productsContent.childCount} " +
-            $"product cards."
-        );
-    }
-
+    Debug.Log(
+        $"MoneyShop: built " +
+        $"{productsContent.childCount} " +
+        $"product cards."
+    );
+}
 
     // =====================================================
     // CLOSE
     // =====================================================
 
     public void CloseShop()
-    {
-        if (shopPopup != null)
-        {
-            shopPopup.SetActive(
-                false
-            );
-        }
-    }
+{
+    if (shopPopup == null)
+        return;
+
+    PopupAnimator animator =
+        shopPopup.GetComponent<PopupAnimator>();
+
+    if (animator != null)
+        animator.Close();
+    else
+        shopPopup.SetActive(false);
+}
+
+
+private void HideShopImmediate()
+{
+    if (shopPopup == null)
+        return;
+
+    PopupAnimator animator =
+        shopPopup.GetComponent<PopupAnimator>();
+
+    if (animator != null)
+        animator.HideImmediate();
+    else
+        shopPopup.SetActive(false);
+}
 
 
     // =====================================================
