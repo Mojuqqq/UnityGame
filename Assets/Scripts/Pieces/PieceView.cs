@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,6 +20,25 @@ public class PieceView : MonoBehaviour
     [SerializeField]
     private float spacing = 6f;
 
+    [Header("Rotation Animation")]
+
+[SerializeField]
+[Min(0.01f)]
+private float rotationDuration = 0.16f;
+
+[SerializeField]
+private AnimationCurve rotationCurve =
+    AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+private Coroutine rotationRoutine;
+
+private float visualRotationAngle;
+
+private int rotationPivotCellIndex = -1;
+
+private Vector2 rotationPivotPoint;
+
+public bool IsRotating => rotationRoutine != null;
 
     private RectTransform rectTransform;
 
@@ -83,6 +103,9 @@ public class PieceView : MonoBehaviour
 
     public void ResetRotation()
     {
+        if (IsRotating)
+    FinishRotationAnimation();
+
         rotationSteps =
             0;
 
@@ -94,6 +117,9 @@ public class PieceView : MonoBehaviour
 
     public void RotateClockwise()
     {
+        if (IsRotating)
+    FinishRotationAnimation();
+
         if (
             definition == null ||
             definition.Cells == null ||
@@ -117,10 +143,113 @@ public class PieceView : MonoBehaviour
     }
 
 
+    public bool RotateClockwiseAnimated(
+    int pivotCellIndex = -1,
+    Vector2 pivotPoint = default
+)
+{
+    if (
+        IsRotating ||
+        definition == null ||
+        definition.Cells == null ||
+        definition.Cells.Length == 0
+    )
+    {
+        return false;
+    }
+
+    rotationSteps = (rotationSteps + 1) % 4;
+
+    RecalculateCurrentCells();
+
+    rotationPivotCellIndex = pivotCellIndex;
+    rotationPivotPoint = pivotPoint;
+
+    // Логика уже соответствует новой ориентации,
+    // визуально начинаем с предыдущей.
+    visualRotationAngle = 90f;
+
+    if (spawnedCells.Count == currentCells.Length)
+        ApplyLayout();
+    else
+        BuildPiece();
+
+    rotationRoutine = StartCoroutine(
+        AnimateRotation()
+    );
+
+    return true;
+}
+
+
+private IEnumerator AnimateRotation()
+{
+    float elapsed = 0f;
+
+    float duration = Mathf.Max(
+        0.01f,
+        rotationDuration
+    );
+
+    while (elapsed < duration)
+    {
+        yield return null;
+
+        elapsed += Time.unscaledDeltaTime;
+
+        float t = Mathf.Clamp01(
+            elapsed / duration
+        );
+
+        float easedT = rotationCurve.Evaluate(t);
+
+        visualRotationAngle = Mathf.Lerp(
+            90f,
+            0f,
+            easedT
+        );
+
+        ApplyLayout();
+    }
+
+    visualRotationAngle = 0f;
+    rotationPivotCellIndex = -1;
+    rotationRoutine = null;
+
+    ApplyLayout();
+}
+
+
+private void FinishRotationAnimation()
+{
+    if (rotationRoutine != null)
+    {
+        StopCoroutine(rotationRoutine);
+        rotationRoutine = null;
+    }
+
+    visualRotationAngle = 0f;
+    rotationPivotCellIndex = -1;
+
+    ApplyLayout();
+}
+
+
+private void OnDisable()
+{
+    if (IsRotating)
+        FinishRotationAnimation();
+}
+
+
     public void SetRotationSteps(
         int newRotationSteps
     )
     {
+
+        if (IsRotating)
+    FinishRotationAnimation();
+
         rotationSteps =
             ((newRotationSteps % 4) + 4) % 4;
 
@@ -386,6 +515,37 @@ public class PieceView : MonoBehaviour
                 pieceHeight
             );
 
+            // По умолчанию вращаем вокруг центра фигуры.
+Vector2 rotationPivot = new Vector2(
+    pieceWidth * 0.5f,
+    -pieceHeight * 0.5f
+);
+
+// Во время перетаскивания вращаем вокруг
+// точки захвата фигуры.
+if (
+    rotationPivotCellIndex >= 0 &&
+    rotationPivotCellIndex < currentCells.Length
+)
+{
+    Vector2Int pivotCell =
+        currentCells[rotationPivotCellIndex];
+
+    rotationPivot = new Vector2(
+        pivotCell.x * step +
+        rotationPivotPoint.x * cellSize,
+
+        -pivotCell.y * step -
+        rotationPivotPoint.y * cellSize
+    );
+}
+
+Quaternion visualRotation = Quaternion.Euler(
+    0f,
+    0f,
+    visualRotationAngle
+);
+
 
         for (
             int i = 0;
@@ -433,11 +593,25 @@ public class PieceView : MonoBehaviour
                 );
 
 
-            cellRect.anchoredPosition =
-                new Vector2(
-                    cell.x * step,
-                    -cell.y * step
-                );
+            Vector2 targetPosition = new Vector2(
+    cell.x * step,
+    -cell.y * step
+);
+
+Vector2 offset =
+    targetPosition - rotationPivot;
+
+Vector3 rotatedOffset =
+    visualRotation * new Vector3(
+        offset.x,
+        offset.y,
+        0f
+    );
+
+cellRect.anchoredPosition =
+    rotationPivot + (Vector2)rotatedOffset;
+
+cellRect.localRotation = visualRotation;
 
 
             image.color =
@@ -504,4 +678,20 @@ public class PieceView : MonoBehaviour
 
         ApplyLayout();
     }
+
+    public Vector2 GetPanelVisualSize()
+{
+    Vector2 size = rectTransform.rect.size;
+
+    float radians =
+        visualRotationAngle * Mathf.Deg2Rad;
+
+    float cos = Mathf.Abs(Mathf.Cos(radians));
+    float sin = Mathf.Abs(Mathf.Sin(radians));
+
+    return new Vector2(
+        size.x * cos + size.y * sin,
+        size.x * sin + size.y * cos
+    );
+}
 }

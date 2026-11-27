@@ -65,6 +65,31 @@ MonoBehaviour:
   cellPrefab: {fileID: 2071830920056050910, guid: 781b65f2ee53a424faeab37750e9366d, type: 3}
   cellSize: 50
   spacing: 6
+  rotationDuration: 0.16
+  rotationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!225 &2629516122059972380
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -93,6 +118,34 @@ MonoBehaviour:
   dragLayer: {fileID: 0}
   piecePanel: {fileID: 0}
   dragAlpha: 0.68
+  pickupFadeDuration: 0.08
+  snapDuration: 0.15
+  snapCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  gridDropDuration: 0.18
+  gridDropLift: 8
 --- !u!114 &3776686144868968576
 MonoBehaviour:
   m_ObjectHideFlags: 0

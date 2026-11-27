@@ -86,6 +86,97 @@ private float internalCellSpacing = 4f;
         public float height;
     }
 
+    private List<PieceRow> cachedRows =
+    new List<PieceRow>();
+
+private readonly Dictionary<PieceView, Vector2>
+    panelSlotSizes = new Dictionary<PieceView, Vector2>();
+
+private bool panelWasRotating;
+
+public bool IsPanelReflowing =>
+    panelWasRotating || HasPanelRotation();
+
+
+
+private bool HasPanelRotation()
+{
+    foreach (PieceView piece in spawnedPieces)
+    {
+        if (
+            piece != null &&
+            piece.transform.parent == piecesContainer &&
+            piece.IsRotating
+        )
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+public bool CanStartPanelRotation()
+{
+    if (IsPanelReflowing)
+        return false;
+
+    foreach (PieceView piece in spawnedPieces)
+    {
+        if (piece == null)
+            continue;
+
+        PieceDragHandler handler =
+            piece.GetComponent<PieceDragHandler>();
+
+        if (
+            handler != null &&
+            handler.IsBusyForPanelRotation
+        )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+private void LateUpdate()
+{
+    bool rotating = HasPanelRotation();
+
+    if (rotating || panelWasRotating)
+    {
+        LayoutRows(cachedRows);
+
+        if (!rotating)
+            RefreshPanelHomes();
+    }
+
+    panelWasRotating = rotating;
+}
+
+
+private Vector2 CalculateReservedPieceSize(
+    PieceView piece,
+    float cellSize,
+    float internalSpacing
+)
+{
+    Vector2 size = CalculatePieceSize(
+        piece,
+        cellSize,
+        internalSpacing
+    );
+
+    float diagonal = size.magnitude;
+
+    return new Vector2(
+        diagonal,
+        diagonal
+    );
+}
 
     // =====================================================
     // BUILD
@@ -320,48 +411,42 @@ selectedInternalSpacing =
         // BUILD + LAYOUT
         // =================================================
 
-        List<PieceRow> rows =
-            BuildRows(
-                availableWidth,
-                selectedCellSize,
-                selectedInternalSpacing
-            );
+       panelSlotSizes.Clear();
+
+cachedRows = BuildRows(
+    availableWidth,
+    selectedCellSize,
+    selectedInternalSpacing
+);
+
+LayoutRows(cachedRows);
+
+RefreshPanelHomes(); 
+    }
 
 
-        LayoutRows(
-            rows
-        );
-
-
-        // После перераскладки обновляем
-        // домашнюю позицию каждой фигуры.
-        foreach (
-            PieceRow row
-            in rows
-        )
+    private void RefreshPanelHomes()
+{
+    foreach (PieceRow row in cachedRows)
+    {
+        foreach (PieceView piece in row.pieces)
         {
-            foreach (
-                PieceView piece
-                in row.pieces
+            if (
+                piece == null ||
+                piece.transform.parent != piecesContainer
             )
             {
-                if (piece == null)
-                {
-                    continue;
-                }
-
-
-                PieceDragHandler dragHandler =
-                    piece.GetComponent<PieceDragHandler>();
-
-
-                if (dragHandler != null)
-                {
-                    dragHandler.RefreshPanelHome();
-                }
+                continue;
             }
+
+            PieceDragHandler handler =
+                piece.GetComponent<PieceDragHandler>();
+
+            if (handler != null)
+                handler.RefreshPanelHome();
         }
     }
+}
 
 
     // =====================================================
@@ -369,61 +454,58 @@ selectedInternalSpacing =
     // =====================================================
 
     private float FindBestCellSize(
-        float availableWidth,
-        float availableHeight,
-        float maxCellSize
-    )
+    float availableWidth,
+    float availableHeight,
+    float maxCellSize
+)
+{
+    int minimum = Mathf.Max(
+        1,
+        Mathf.CeilToInt(minPanelCellSize)
+    );
+
+    int candidate = Mathf.Max(
+        minimum,
+        Mathf.FloorToInt(maxCellSize)
+    );
+
+    float spacing = Mathf.Max(
+        1f,
+        Mathf.Round(internalCellSpacing)
+    );
+
+    while (candidate >= minimum)
     {
-        float candidate =
-            maxCellSize;
-
-
-        while (
-            candidate >=
-            minPanelCellSize
-        )
-        {
-            float internalSpacing =
-    internalCellSpacing;
-
-
-            List<PieceRow> rows =
-                BuildRows(
-                    availableWidth,
-                    candidate,
-                    internalSpacing
-                );
-
-
-            float totalHeight =
-                GetRowsTotalHeight(
-                    rows
-                );
-
-
-            if (
-                totalHeight <=
-                availableHeight
-            )
-            {
-                return candidate;
-            }
-
-
-            candidate -=
-                1f;
-        }
-
-
-        Debug.LogWarning(
-            "PieceSpawner: " +
-            "pieces do not fully fit into PiecePanel. " +
-            "Using minimum cell size."
+        List<PieceRow> rows = BuildRows(
+            availableWidth,
+            candidate,
+            spacing
         );
 
+        bool fits =
+            GetRowsTotalHeight(rows) <= availableHeight;
 
-        return minPanelCellSize;
+        foreach (PieceRow row in rows)
+        {
+            if (row.width > availableWidth)
+            {
+                fits = false;
+                break;
+            }
+        }
+
+        if (fits)
+            return candidate;
+
+        candidate--;
     }
+
+    Debug.LogWarning(
+        "PieceSpawner: Not enough space for safe rotation."
+    );
+
+    return minimum;
+}
 
 
     // =====================================================
@@ -462,11 +544,11 @@ selectedInternalSpacing =
 
 
             Vector2 pieceSize =
-                CalculatePieceSize(
-                    piece,
-                    cellSize,
-                    internalSpacing
-                );
+    CalculateReservedPieceSize(
+        piece,
+        cellSize,
+        internalSpacing
+    );
 
 
             float requiredWidth =
@@ -648,101 +730,100 @@ selectedInternalSpacing =
     // FINAL POSITIONING
     // =====================================================
 
-    private void LayoutRows(
-        List<PieceRow> rows
-    )
+    private void LayoutRows(List<PieceRow> rows)
+{
+    if (rows == null || rows.Count == 0)
+        return;
+
+    // Обновляем размеры каждого ряда
+    // с учётом промежуточного угла вращения.
+    foreach (PieceRow row in rows)
     {
-        if (
-            rows == null ||
-            rows.Count == 0
-        )
+        row.width = 0f;
+        row.height = 0f;
+
+        for (int i = 0; i < row.pieces.Count; i++)
         {
-            return;
-        }
+            PieceView piece = row.pieces[i];
 
+            Vector2 size = GetPanelSlotSize(piece);
 
-        float totalHeight =
-            GetRowsTotalHeight(
-                rows
+            if (i > 0)
+                row.width += horizontalPieceSpacing;
+
+            row.width += size.x;
+
+            row.height = Mathf.Max(
+                row.height,
+                size.y
             );
+        }
+    }
 
+    float totalHeight = GetRowsTotalHeight(rows);
 
-        float currentY =
-            totalHeight *
-            0.5f;
+    float currentY = totalHeight * 0.5f;
 
+    foreach (PieceRow row in rows)
+    {
+        float currentX = -row.width * 0.5f;
 
-        foreach (
-            PieceRow row
-            in rows
-        )
+        float rowCenterY =
+            currentY - row.height * 0.5f;
+
+        foreach (PieceView piece in row.pieces)
         {
-            float currentX =
-                -row.width *
-                0.5f;
+            Vector2 size = GetPanelSlotSize(piece);
 
-
-            float rowCenterY =
-                currentY -
-                row.height *
-                0.5f;
-
-
-            foreach (
-                PieceView piece
-                in row.pieces
+            if (
+                piece != null &&
+                piece.transform.parent == piecesContainer
             )
             {
                 RectTransform rect =
                     piece.GetComponent<RectTransform>();
 
+                rect.anchorMin = new Vector2(0.5f, 0.5f);
+                rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
 
-                rect.anchorMin =
-                    new Vector2(
-                        0.5f,
-                        0.5f
-                    );
-
-
-                rect.anchorMax =
-                    new Vector2(
-                        0.5f,
-                        0.5f
-                    );
-
-
-                rect.pivot =
-                    new Vector2(
-                        0.5f,
-                        0.5f
-                    );
-
-
-                float x =
-                    currentX +
-                    rect.rect.width *
-                    0.5f;
-
-
-                rect.anchoredPosition =
-                    new Vector2(
-                        x,
-                        rowCenterY
-                    );
-
-
-                currentX +=
-                    rect.rect.width +
-                    horizontalPieceSpacing;
+                rect.anchoredPosition = new Vector2(
+                    currentX + size.x * 0.5f,
+                    rowCenterY
+                );
             }
 
-
-            currentY -=
-                row.height +
-                verticalPieceSpacing;
+            currentX +=
+                size.x + horizontalPieceSpacing;
         }
+
+        currentY -=
+            row.height + verticalPieceSpacing;
+    }
+}
+
+
+private Vector2 GetPanelSlotSize(PieceView piece)
+{
+    if (piece == null)
+        return Vector2.zero;
+
+    if (piece.transform.parent == piecesContainer)
+    {
+        Vector2 size = piece.GetPanelVisualSize();
+
+        panelSlotSizes[piece] = size;
+
+        return size;
     }
 
+    // Сохраняем место фигуры, перемещённой на Grid,
+    // до следующей полной перераскладки панели.
+    if (panelSlotSizes.TryGetValue(piece, out Vector2 saved))
+        return saved;
+
+    return Vector2.zero;
+}
 
     // =====================================================
     // CLEAR
@@ -750,6 +831,12 @@ selectedInternalSpacing =
 
     public void ClearPieces()
     {
+        cachedRows.Clear();
+
+panelSlotSizes.Clear();
+
+panelWasRotating = false;
+
         spawnedPieces.Clear();
 
 

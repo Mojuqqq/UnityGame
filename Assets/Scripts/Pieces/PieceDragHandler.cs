@@ -53,6 +53,14 @@ public class PieceDragHandler :
             1f
         );
 
+    [SerializeField]
+[Min(0.01f)]
+private float gridDropDuration = 0.18f;
+
+[SerializeField]
+[Min(0f)]
+private float gridDropLift = 8f;
+
 
     private PieceView pieceView;
     private RectTransform rectTransform;
@@ -85,6 +93,9 @@ public class PieceDragHandler :
     private Vector3 homeTopLeftWorld;
 
     private bool homeCaptured;
+
+    public bool IsBusyForPanelRotation =>
+    isDragging || isSettling;
 
 
     // Достижение:
@@ -420,6 +431,20 @@ public class PieceDragHandler :
         PointerEventData eventData
     )
     {
+
+        if (
+    pieceSpawner != null &&
+    pieceSpawner.IsPanelReflowing
+)
+{
+    draggedSincePointerDown = true;
+
+    return;
+}
+
+        if (pieceView != null && pieceView.IsRotating)
+    return;
+
         if (isSettling)
         {
             return;
@@ -461,59 +486,50 @@ public class PieceDragHandler :
 
 
     public void OnPointerClick(
-        PointerEventData eventData
+    PointerEventData eventData
+)
+{
+    if (
+        draggedSincePointerDown ||
+        isDragging ||
+        isSettling ||
+        isPlaced ||
+        pieceView == null ||
+        pieceView.IsRotating
     )
     {
-        if (
-            draggedSincePointerDown ||
-            isDragging ||
-            isSettling ||
-            isPlaced
-        )
-        {
-            return;
-        }
+        return;
+    }
 
+    if (
+        piecePanel != null &&
+        !transform.IsChildOf(piecePanel)
+    )
+    {
+        return;
+    }
 
-        if (pieceView == null)
-        {
-            return;
-        }
-
-
-        // Поворачивать кликом разрешаем
-        // только фигуру, которая реально лежит в PiecePanel.
-        if (
-            piecePanel != null &&
-            !transform.IsChildOf(
-                piecePanel
-            )
-        )
-        {
-            return;
-        }
-
-
-        pieceView.RotateClockwise();
-
-        if (AudioManager.Instance != null)
+    if (
+    pieceSpawner != null &&
+    !pieceSpawner.CanStartPanelRotation()
+)
 {
-    AudioManager.Instance.PlaySfx(
-        GameSfx.PieceRotate
-    );
+    return;
 }
 
-        TutorialEvents
-    .ReportPieceRotated();
+    if (!pieceView.RotateClockwiseAnimated())
+        return;
 
-
-        // После поворота габариты фигуры могли измениться.
-        // Поэтому пересобираем раскладку всей панели.
-        if (pieceSpawner != null)
-        {
-            pieceSpawner.RefreshLayout();
-        }
+    if (AudioManager.Instance != null)
+    {
+        AudioManager.Instance.PlaySfx(
+            GameSfx.PieceRotate
+        );
     }
+
+    TutorialEvents.ReportPieceRotated();
+
+}
 
 
     // =====================================================
@@ -524,6 +540,20 @@ public class PieceDragHandler :
         PointerEventData eventData
     )
     {
+
+        if (
+    pieceSpawner != null &&
+    pieceSpawner.IsPanelReflowing
+)
+{
+    draggedSincePointerDown = true;
+
+    return;
+}
+
+        if (pieceView != null && pieceView.IsRotating)
+    return;
+
         if (isSettling)
         {
             return;
@@ -720,6 +750,13 @@ public class PieceDragHandler :
             return;
         }
 
+        if (alphaFadeRoutine != null)
+{
+    StopCoroutine(alphaFadeRoutine);
+
+    alphaFadeRoutine = null;
+}
+
 
         isDragging =
             false;
@@ -736,79 +773,64 @@ public class PieceDragHandler :
         canvasGroup.blocksRaycasts =
             false;
 
+        bool overPiecePanel =
+    IsPointerOverPiecePanel(eventData);
 
-        // -----------------------------------------------
-        // 1. Успешный drop на Grid
-        // -----------------------------------------------
+StartCoroutine(
+    CompleteDropAfterRotation(overPiecePanel)
+);
 
-        if (hasValidPlacement)
-        {
-            StartCoroutine(
-                AnimateToGridAndPlace(
-                    currentOrigin
-                )
-            );
-
-            return;
-        }
-
-
-        gridManager.ClearPlacementPreview();
-
-
-        // -----------------------------------------------
-        // 2. Бросили обратно в PiecePanel
-        // -----------------------------------------------
-
-        if (
-            IsPointerOverPiecePanel(
-                eventData
-            )
-        )
-        {
-            StartCoroutine(
-                AnimateBackHome()
-            );
-
-            return;
-        }
-
-        if (AudioManager.Instance != null)
-{
-    AudioManager.Instance.PlaySfx(
-        GameSfx.InvalidDrop
-    );
 }
 
-        // -----------------------------------------------
-        // 3. Если фигура была на Grid,
-        //    а drop невалидный — возвращаем её назад.
-        // -----------------------------------------------
 
-        if (wasPlacedAtDragStart)
-        {
-            pieceView.SetRotationSteps(
-                previousRotationSteps
-            );
+private IEnumerator CompleteDropAfterRotation(
+    bool overPiecePanel
+)
+{
+    while (pieceView.IsRotating)
+        yield return null;
 
+    // Успешная установка на Grid.
+    if (hasValidPlacement)
+    {
+        yield return AnimateToGridAndPlace(
+            currentOrigin
+        );
 
-            StartCoroutine(
-                AnimateBackToPreviousGrid()
-            );
+        yield break;
+    }
 
-            return;
-        }
+    gridManager.ClearPlacementPreview();
 
+    // Возвращение в PiecePanel.
+    if (overPiecePanel)
+    {
+        yield return AnimateBackHome();
+        yield break;
+    }
 
-        // -----------------------------------------------
-        // 4. Фигура была из PiecePanel
-        //    и её бросили мимо.
-        // -----------------------------------------------
-
-        StartCoroutine(
-            AnimateBackHome()
+    if (AudioManager.Instance != null)
+    {
+        AudioManager.Instance.PlaySfx(
+            GameSfx.InvalidDrop
         );
     }
+
+    // Возвращение на предыдущую позицию Grid.
+    if (wasPlacedAtDragStart)
+    {
+        pieceView.SetRotationSteps(
+            previousRotationSteps
+        );
+
+        yield return AnimateBackToPreviousGrid();
+
+        yield break;
+    }
+
+    // Возвращение в исходную панель.
+    yield return AnimateBackHome();
+}
 
 
     // =====================================================
@@ -856,7 +878,8 @@ public class PieceDragHandler :
                 targetTopLeft,
                 gridManager.CellSize,
                 gridManager.Spacing,
-                homeAlpha
+                homeAlpha,
+                true
             );
 
 
@@ -1059,115 +1082,99 @@ public class PieceDragHandler :
     // =====================================================
 
     private IEnumerator AnimateVisual(
-        Vector3 targetTopLeftWorld,
-        float targetCellSize,
-        float targetSpacing,
-        float targetAlpha
-    )
+    Vector3 targetTopLeftWorld,
+    float targetCellSize,
+    float targetSpacing,
+    float targetAlpha,
+    bool isGridDrop = false
+)
+{
+    Vector3 startPosition =
+        GetCurrentTopLeftWorld();
+
+    float startCellSize = pieceView.CellSize;
+
+    float startSpacing = pieceView.Spacing;
+
+    float startAlpha = canvasGroup.alpha;
+
+    float duration = isGridDrop
+        ? gridDropDuration
+        : snapDuration;
+
+    duration = Mathf.Max(0.01f, duration);
+
+    Vector3 liftOffset =
+        rectTransform.TransformVector(
+            Vector3.up * gridDropLift
+        );
+
+    float elapsed = 0f;
+
+    while (elapsed < duration)
     {
-        Vector3 startTopLeftWorld =
-            GetCurrentTopLeftWorld();
+        elapsed += Time.unscaledDeltaTime;
 
+        float rawT = Mathf.Clamp01(
+            elapsed / duration
+        );
 
-        float startCellSize =
-            pieceView.CellSize;
+        float t = Mathf.Clamp01(
+            snapCurve.Evaluate(rawT)
+        );
 
+        float currentCellSize = Mathf.Lerp(
+            startCellSize,
+            targetCellSize,
+            t
+        );
 
-        float startSpacing =
-            pieceView.Spacing;
-
-
-        float startAlpha =
-            canvasGroup.alpha;
-
-
-        float elapsed =
-            0f;
-
-
-        while (
-            elapsed <
-            snapDuration
-        )
-        {
-            elapsed +=
-                Time.unscaledDeltaTime;
-
-
-            float rawT =
-                Mathf.Clamp01(
-                    elapsed /
-                    snapDuration
-                );
-
-
-            float t =
-                snapCurve.Evaluate(
-                    rawT
-                );
-
-
-            float currentCellSize =
-                Mathf.Lerp(
-                    startCellSize,
-                    targetCellSize,
-                    t
-                );
-
-
-            float currentSpacing =
-                Mathf.Lerp(
-                    startSpacing,
-                    targetSpacing,
-                    t
-                );
-
-
-            pieceView.SetLayout(
-                currentCellSize,
-                currentSpacing
-            );
-
-
-            Vector3 wantedTopLeft =
-                Vector3.Lerp(
-                    startTopLeftWorld,
-                    targetTopLeftWorld,
-                    t
-                );
-
-
-            SetTopLeftWorld(
-                wantedTopLeft
-            );
-
-
-            canvasGroup.alpha =
-                Mathf.Lerp(
-                    startAlpha,
-                    targetAlpha,
-                    t
-                );
-
-
-            yield return null;
-        }
-
+        float currentSpacing = Mathf.Lerp(
+            startSpacing,
+            targetSpacing,
+            t
+        );
 
         pieceView.SetLayout(
-            targetCellSize,
-            targetSpacing
+            currentCellSize,
+            currentSpacing
         );
 
-
-        SetTopLeftWorld(
-            targetTopLeftWorld
+        Vector3 position = Vector3.Lerp(
+            startPosition,
+            targetTopLeftWorld,
+            t
         );
 
+        // Небольшое движение по дуге
+        // перед окончательным опусканием.
+        if (isGridDrop)
+        {
+            float lift = Mathf.Sin(rawT * Mathf.PI);
 
-        canvasGroup.alpha =
-            targetAlpha;
+            position += liftOffset * lift;
+        }
+
+        SetTopLeftWorld(position);
+
+        canvasGroup.alpha = Mathf.Lerp(
+            startAlpha,
+            targetAlpha,
+            t
+        );
+
+        yield return null;
     }
+
+    pieceView.SetLayout(
+        targetCellSize,
+        targetSpacing
+    );
+
+    SetTopLeftWorld(targetTopLeftWorld);
+
+    canvasGroup.alpha = targetAlpha;
+}
 
 
     // =====================================================
@@ -1682,41 +1689,54 @@ public class PieceDragHandler :
 
     private void RotatePiece()
 {
-    if (pieceView == null)
+    if (
+        pieceView == null ||
+        pieceView.IsRotating ||
+        isSettling
+    )
     {
         return;
     }
 
+    // Пересчитываем положение точки внутри
+    // захваченной клетки при повороте на 90°.
+    Vector2 rotatedGrabPoint = new Vector2(
+        1f - grabPointInsideCell.y,
+        grabPointInsideCell.x
+    );
 
-    pieceView.RotateClockwise();
+    bool rotated =
+        pieceView.RotateClockwiseAnimated(
+            grabbedCellIndex,
+            rotatedGrabPoint
+        );
+
+    if (!rotated)
+        return;
+
+    grabPointInsideCell = rotatedGrabPoint;
 
     if (AudioManager.Instance != null)
-{
-    AudioManager.Instance.PlaySfx(
-        GameSfx.PieceRotate
-    );
-}
+    {
+        AudioManager.Instance.PlaySfx(
+            GameSfx.PieceRotate
+        );
+    }
 
-
-    TutorialEvents
-        .ReportPieceRotated();
-
+    TutorialEvents.ReportPieceRotated();
 
     UpdateDragVisualSize(
         lastPointerPosition,
         lastEventCamera
     );
 
-
     MoveGrabbedCellToPointer(
         lastPointerPosition,
         lastEventCamera
     );
 
-
     UpdatePlacementPreview();
 }
-
 
     // =====================================================
     // PREVIEW
