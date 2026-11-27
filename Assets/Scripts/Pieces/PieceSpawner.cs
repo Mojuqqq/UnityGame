@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Collections;
 
 
 public class PieceSpawner : MonoBehaviour
@@ -89,13 +90,86 @@ private float internalCellSpacing = 4f;
     private List<PieceRow> cachedRows =
     new List<PieceRow>();
 
-private readonly Dictionary<PieceView, Vector2>
-    panelSlotSizes = new Dictionary<PieceView, Vector2>();
+[Header("Panel Reflow")]
 
-private bool panelWasRotating;
+[SerializeField]
+[Min(0.01f)]
+private float panelReflowDuration = 0.18f;
+
+private class PanelSlot
+{
+    public Vector2 Current;
+    public Vector2 From;
+    public Vector2 Target;
+    public float Elapsed;
+
+    public bool Update(
+        Vector2 target,
+        float duration,
+        bool immediate
+    )
+    {
+        if (immediate)
+        {
+            Current = target;
+            From = target;
+            Target = target;
+            Elapsed = duration;
+
+            return false;
+        }
+
+        if (Target != target)
+        {
+            From = Current;
+            Target = target;
+            Elapsed = 0f;
+        }
+
+        Elapsed += Time.unscaledDeltaTime;
+
+        float t = Mathf.Clamp01(
+            Elapsed / Mathf.Max(0.01f, duration)
+        );
+
+        Current = Vector2.Lerp(
+            From,
+            Target,
+            Mathf.SmoothStep(0f, 1f, t)
+        );
+
+        return t < 1f;
+    }
+}
+
+private readonly Dictionary<PieceView, PanelSlot>
+    panelSlots = new Dictionary<PieceView, PanelSlot>();
+
+private readonly Dictionary<PieceView, Vector2>
+    slotCenters = new Dictionary<PieceView, Vector2>();
+
+private PieceView returningPiece;
+
+private float panelCellSize;
+private float panelSpacing;
+
+private bool slotsMoving;
+
+public bool GameplayLocked { get; private set; }
 
 public bool IsPanelReflowing =>
-    panelWasRotating || HasPanelRotation();
+    panelWasRotating ||
+    HasPanelRotation() ||
+    slotsMoving ||
+    returningPiece != null;
+
+public void LockGameplay()
+{
+    GameplayLocked = true;
+}
+
+
+private bool panelWasRotating;
 
 
 
@@ -119,6 +193,10 @@ private bool HasPanelRotation()
 
 public bool CanStartPanelRotation()
 {
+
+    if (GameplayLocked)
+    return false;
+
     if (IsPanelReflowing)
         return false;
 
@@ -144,17 +222,51 @@ public bool CanStartPanelRotation()
 
 private void LateUpdate()
 {
+    if (cachedRows.Count == 0)
+        return;
+
     bool rotating = HasPanelRotation();
 
-    if (rotating || panelWasRotating)
-    {
-        LayoutRows(cachedRows);
+    bool wasReflowing =
+        panelWasRotating || slotsMoving;
 
-        if (!rotating)
-            RefreshPanelHomes();
+    slotsMoving = false;
+
+    foreach (var entry in panelSlots)
+    {
+        PieceView piece = entry.Key;
+        PanelSlot slot = entry.Value;
+
+        if (piece == null)
+            continue;
+
+        bool immediate =
+            piece.transform.parent == piecesContainer &&
+            (piece.IsRotating || panelWasRotating);
+
+        if (slot.Update(
+            GetTargetSlotSize(piece),
+            panelReflowDuration,
+            immediate
+        ))
+        {
+            slotsMoving = true;
+        }
     }
 
+    LayoutRows(cachedRows);
+
     panelWasRotating = rotating;
+
+    if (
+        wasReflowing &&
+        !rotating &&
+        !slotsMoving &&
+        returningPiece == null
+    )
+    {
+        RefreshPanelHomes();
+    }
 }
 
 
@@ -411,18 +523,68 @@ selectedInternalSpacing =
         // BUILD + LAYOUT
         // =================================================
 
-       panelSlotSizes.Clear();
+       panelCellSize = selectedCellSize;
+panelSpacing = selectedInternalSpacing;
 
 cachedRows = BuildRows(
     availableWidth,
-    selectedCellSize,
-    selectedInternalSpacing
+    panelCellSize,
+    panelSpacing
 );
+
+panelSlots.Clear();
+slotCenters.Clear();
+
+foreach (PieceRow row in cachedRows)
+{
+    foreach (PieceView piece in row.pieces)
+    {
+        Vector2 size = GetTargetSlotSize(piece);
+
+        panelSlots[piece] = new PanelSlot
+        {
+            Current = size,
+            From = size,
+            Target = size,
+            Elapsed = panelReflowDuration
+        };
+    }
+}
 
 LayoutRows(cachedRows);
 
-RefreshPanelHomes(); 
+RefreshPanelHomes();
     }
+
+private Vector2 GetTargetSlotSize(PieceView piece)
+{
+    if (piece == null)
+        return Vector2.zero;
+
+    Vector2 size;
+
+    if (piece.transform.parent == piecesContainer)
+    {
+        size = piece.GetPanelVisualSize();
+    }
+    else if (piece == returningPiece)
+    {
+        size = CalculatePieceSize(
+            piece,
+            panelCellSize,
+            panelSpacing
+        );
+    }
+    else
+    {
+        return Vector2.zero;
+    }
+
+    return size + new Vector2(
+        horizontalPieceSpacing,
+        verticalPieceSpacing
+    );
+}
 
 
     private void RefreshPanelHomes()
@@ -533,14 +695,8 @@ RefreshPanelHomes();
         {
             // Фигуры, которые находятся на Grid/DragLayer,
             // в раскладке PiecePanel не участвуют.
-            if (
-                piece == null ||
-                piece.transform.parent !=
-                piecesContainer
-            )
-            {
-                continue;
-            }
+            if (piece == null)
+    continue;
 
 
             Vector2 pieceSize =
@@ -735,32 +891,36 @@ RefreshPanelHomes();
     if (rows == null || rows.Count == 0)
         return;
 
-    // Обновляем размеры каждого ряда
-    // с учётом промежуточного угла вращения.
+    float totalHeight = 0f;
+
     foreach (PieceRow row in rows)
     {
         row.width = 0f;
         row.height = 0f;
 
-        for (int i = 0; i < row.pieces.Count; i++)
+        foreach (PieceView piece in row.pieces)
         {
-            PieceView piece = row.pieces[i];
+            if (
+                piece == null ||
+                !panelSlots.TryGetValue(
+                    piece,
+                    out PanelSlot slot
+                )
+            )
+            {
+                continue;
+            }
 
-            Vector2 size = GetPanelSlotSize(piece);
-
-            if (i > 0)
-                row.width += horizontalPieceSpacing;
-
-            row.width += size.x;
+            row.width += slot.Current.x;
 
             row.height = Mathf.Max(
                 row.height,
-                size.y
+                slot.Current.y
             );
         }
-    }
 
-    float totalHeight = GetRowsTotalHeight(rows);
+        totalHeight += row.height;
+    }
 
     float currentY = totalHeight * 0.5f;
 
@@ -773,57 +933,51 @@ RefreshPanelHomes();
 
         foreach (PieceView piece in row.pieces)
         {
-            Vector2 size = GetPanelSlotSize(piece);
+            if (
+                piece == null ||
+                !panelSlots.TryGetValue(
+                    piece,
+                    out PanelSlot slot
+                )
+            )
+            {
+                continue;
+            }
+
+            Vector2 position = new Vector2(
+                currentX + slot.Current.x * 0.5f,
+                rowCenterY
+            );
+
+            slotCenters[piece] = position;
 
             if (
-                piece != null &&
-                piece.transform.parent == piecesContainer
+                piece.transform.parent ==
+                piecesContainer
             )
             {
                 RectTransform rect =
                     piece.GetComponent<RectTransform>();
 
-                rect.anchorMin = new Vector2(0.5f, 0.5f);
-                rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchorMin =
+                    new Vector2(0.5f, 0.5f);
 
-                rect.anchoredPosition = new Vector2(
-                    currentX + size.x * 0.5f,
-                    rowCenterY
-                );
+                rect.anchorMax =
+                    new Vector2(0.5f, 0.5f);
+
+                rect.pivot =
+                    new Vector2(0.5f, 0.5f);
+
+                rect.anchoredPosition = position;
             }
 
-            currentX +=
-                size.x + horizontalPieceSpacing;
+            currentX += slot.Current.x;
         }
 
-        currentY -=
-            row.height + verticalPieceSpacing;
+        currentY -= row.height;
     }
 }
 
-
-private Vector2 GetPanelSlotSize(PieceView piece)
-{
-    if (piece == null)
-        return Vector2.zero;
-
-    if (piece.transform.parent == piecesContainer)
-    {
-        Vector2 size = piece.GetPanelVisualSize();
-
-        panelSlotSizes[piece] = size;
-
-        return size;
-    }
-
-    // Сохраняем место фигуры, перемещённой на Grid,
-    // до следующей полной перераскладки панели.
-    if (panelSlotSizes.TryGetValue(piece, out Vector2 saved))
-        return saved;
-
-    return Vector2.zero;
-}
 
     // =====================================================
     // CLEAR
@@ -833,7 +987,12 @@ private Vector2 GetPanelSlotSize(PieceView piece)
     {
         cachedRows.Clear();
 
-panelSlotSizes.Clear();
+panelSlots.Clear();
+slotCenters.Clear();
+
+returningPiece = null;
+slotsMoving = false;
+GameplayLocked = false;
 
 panelWasRotating = false;
 
@@ -869,4 +1028,183 @@ panelWasRotating = false;
             );
         }
     }
+
+    public IEnumerator PrepareReturnSlot(PieceView piece)
+{
+    if (
+        piece == null ||
+        !panelSlots.TryGetValue(
+            piece,
+            out PanelSlot slot
+        )
+    )
+    {
+        yield break;
+    }
+
+    returningPiece = piece;
+
+    // Даём LateUpdate начать расширение слота.
+    yield return null;
+
+    while (
+        (slot.Current -
+         GetTargetSlotSize(piece)).sqrMagnitude
+        > 0.0001f ||
+        slotsMoving
+    )
+    {
+        yield return null;
+    }
+
+    LayoutRows(cachedRows);
+}
+
+
+public bool TryGetReturnTarget(
+    PieceView piece,
+    out Vector2 anchoredPosition,
+    out Vector3 topLeftWorld,
+    out float cellSize,
+    out float spacing
+)
+{
+    anchoredPosition = Vector2.zero;
+    topLeftWorld = Vector3.zero;
+
+    cellSize = panelCellSize;
+    spacing = panelSpacing;
+
+    if (
+        piecesContainer == null ||
+        returningPiece != piece ||
+        !slotCenters.TryGetValue(
+            piece,
+            out anchoredPosition
+        )
+    )
+    {
+        return false;
+    }
+
+    Vector2 size = CalculatePieceSize(
+        piece,
+        cellSize,
+        spacing
+    );
+
+    Vector2 topLeftLocal =
+        piecesContainer.rect.center +
+        anchoredPosition +
+        new Vector2(
+            -size.x * 0.5f,
+            size.y * 0.5f
+        );
+
+    topLeftWorld =
+        piecesContainer.TransformPoint(
+            topLeftLocal
+        );
+
+    return true;
+}
+
+
+public void EndPanelReturn(PieceView piece)
+{
+    if (returningPiece == piece)
+        returningPiece = null;
+
+    RefreshPanelHomes();
+}
+
+public IEnumerator PrepareReturnSlot(PieceView piece)
+{
+    if (
+        piece == null ||
+        !panelSlots.TryGetValue(
+            piece,
+            out PanelSlot slot
+        )
+    )
+    {
+        yield break;
+    }
+
+    returningPiece = piece;
+
+    // Даём LateUpdate начать расширение слота.
+    yield return null;
+
+    while (
+        (slot.Current -
+         GetTargetSlotSize(piece)).sqrMagnitude
+        > 0.0001f ||
+        slotsMoving
+    )
+    {
+        yield return null;
+    }
+
+    LayoutRows(cachedRows);
+}
+
+
+public bool TryGetReturnTarget(
+    PieceView piece,
+    out Vector2 anchoredPosition,
+    out Vector3 topLeftWorld,
+    out float cellSize,
+    out float spacing
+)
+{
+    anchoredPosition = Vector2.zero;
+    topLeftWorld = Vector3.zero;
+
+    cellSize = panelCellSize;
+    spacing = panelSpacing;
+
+    if (
+        piecesContainer == null ||
+        returningPiece != piece ||
+        !slotCenters.TryGetValue(
+            piece,
+            out anchoredPosition
+        )
+    )
+    {
+        return false;
+    }
+
+    Vector2 size = CalculatePieceSize(
+        piece,
+        cellSize,
+        spacing
+    );
+
+    Vector2 topLeftLocal =
+        piecesContainer.rect.center +
+        anchoredPosition +
+        new Vector2(
+            -size.x * 0.5f,
+            size.y * 0.5f
+        );
+
+    topLeftWorld =
+        piecesContainer.TransformPoint(
+            topLeftLocal
+        );
+
+    return true;
+}
+
+
+public void EndPanelReturn(PieceView piece)
+{
+    if (returningPiece == piece)
+        returningPiece = null;
+
+    RefreshPanelHomes();
+}
+
 }

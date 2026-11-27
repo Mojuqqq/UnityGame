@@ -27,6 +27,10 @@ public class PieceView : MonoBehaviour
 private float rotationDuration = 0.16f;
 
 [SerializeField]
+[Min(0.01f)]
+private float panelRotationDuration = 0.25f;
+
+[SerializeField]
 private AnimationCurve rotationCurve =
     AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
@@ -174,22 +178,23 @@ public bool IsRotating => rotationRoutine != null;
     else
         BuildPiece();
 
-    rotationRoutine = StartCoroutine(
-        AnimateRotation()
-    );
+    float duration = pivotCellIndex < 0
+    ? panelRotationDuration
+    : rotationDuration;
+
+rotationRoutine = StartCoroutine(
+    AnimateRotation(duration)
+);
 
     return true;
 }
 
 
-private IEnumerator AnimateRotation()
+private IEnumerator AnimateRotation(float duration)
 {
     float elapsed = 0f;
 
-    float duration = Mathf.Max(
-        0.01f,
-        rotationDuration
-    );
+    duration = Mathf.Max(0.01f, duration);
 
     while (elapsed < duration)
     {

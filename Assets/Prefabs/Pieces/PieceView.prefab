@@ -66,6 +66,7 @@ MonoBehaviour:
   cellSize: 50
   spacing: 6
   rotationDuration: 0.16
+  panelRotationDuration: 0.35
   rotationCurve:
     serializedVersion: 2
     m_Curve:

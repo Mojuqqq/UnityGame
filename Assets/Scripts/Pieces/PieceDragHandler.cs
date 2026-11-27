@@ -432,9 +432,9 @@ private float gridDropLift = 8f;
     )
     {
 
-        if (
+       if (
     pieceSpawner != null &&
-    pieceSpawner.IsPanelReflowing
+    !pieceSpawner.CanStartPanelRotation()
 )
 {
     draggedSincePointerDown = true;
@@ -543,7 +543,7 @@ private float gridDropLift = 8f;
 
         if (
     pieceSpawner != null &&
-    pieceSpawner.IsPanelReflowing
+    !pieceSpawner.CanStartPanelRotation()
 )
 {
     draggedSincePointerDown = true;
@@ -1039,43 +1039,59 @@ private IEnumerator CompleteDropAfterRotation(
     // =====================================================
 
     private IEnumerator AnimateBackHome()
+{
+    gridManager.ClearPlacementPreview();
+
+    if (pieceSpawner != null)
     {
-        gridManager.ClearPlacementPreview();
+        yield return pieceSpawner.PrepareReturnSlot(
+            pieceView
+        );
 
-
-        yield return
-            AnimateVisual(
-                homeTopLeftWorld,
-                homeCellSize,
-                homeSpacing,
-                homeAlpha
-            );
-
-
-        RestoreHomeTransform();
-
-
-        placedCoordinates.Clear();
-
-
-        isPlaced =
-            false;
-
-
-        FinishSettling();
-
-
-        // Фигура могла поменять ориентацию,
-        // поэтому после возвращения пересобираем панель.
-        if (pieceSpawner != null)
+        if (pieceSpawner.TryGetReturnTarget(
+            pieceView,
+            out Vector2 targetPosition,
+            out Vector3 targetTopLeft,
+            out float targetCellSize,
+            out float targetSpacing
+        ))
         {
-            pieceSpawner.RefreshLayout();
-        }
+            homeAnchoredPosition = targetPosition;
+            homeTopLeftWorld = targetTopLeft;
 
-        TutorialEvents
-    .ReportPieceDragCancelled();
+            homeCellSize = targetCellSize;
+            homeSpacing = targetSpacing;
+
+            homeAnchorMin = new Vector2(0.5f, 0.5f);
+            homeAnchorMax = new Vector2(0.5f, 0.5f);
+            homePivot = new Vector2(0.5f, 0.5f);
+        }
     }
 
+    yield return AnimateVisual(
+        homeTopLeftWorld,
+        homeCellSize,
+        homeSpacing,
+        homeAlpha
+    );
+
+    RestoreHomeTransform();
+
+    placedCoordinates.Clear();
+
+    isPlaced = false;
+
+    FinishSettling();
+
+    if (pieceSpawner != null)
+    {
+        pieceSpawner.EndPanelReturn(pieceView);
+    }
+
+    RefreshPanelHome();
+
+    TutorialEvents.ReportPieceDragCancelled();
+}
 
     // =====================================================
     // ANIMATION
@@ -1689,6 +1705,15 @@ private IEnumerator CompleteDropAfterRotation(
 
     private void RotatePiece()
 {
+
+    if (
+    pieceSpawner != null &&
+    pieceSpawner.GameplayLocked
+)
+{
+    return;
+}
+
     if (
         pieceView == null ||
         pieceView.IsRotating ||

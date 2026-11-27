@@ -486,25 +486,11 @@ hintManager.Initialize(
     // =====================================================
 
     public void ContinueAfterCompletion()
-    {
-        if (HasNextLevel())
-        {
-            LoadNextLevel();
+{
+    LevelSelectionState.ClearSelection();
 
-            return;
-        }
-
-
-        LevelSelectionState
-            .ClearSelection();
-
-
-        SceneManager.LoadScene(
-            homeSceneName
-        );
-    }
-
-
+    SceneManager.LoadScene(homeSceneName);
+}
     // =====================================================
     // NEXT LEVEL
     // =====================================================

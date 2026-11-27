@@ -1,10 +1,10 @@
+using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-
-public class WinConditionManager :
-    MonoBehaviour
+public class WinConditionManager : MonoBehaviour
 {
     // =====================================================
     // GAMEPLAY
@@ -15,13 +15,20 @@ public class WinConditionManager :
     [SerializeField]
     private GridManager gridManager;
 
-
     [SerializeField]
     private HintManager hintManager;
 
-
     [SerializeField]
     private LevelManager levelManager;
+
+    [SerializeField]
+    private PieceSpawner pieceSpawner;
+
+
+    [Header("Gameplay Input")]
+
+    [SerializeField]
+    private CanvasGroup[] gameplayInputGroups;
 
 
     // =====================================================
@@ -33,60 +40,114 @@ public class WinConditionManager :
     [SerializeField]
     private GameObject levelCompleteOverlay;
 
-
     [SerializeField]
     private TMP_Text completeTitle;
-
 
     [SerializeField]
     private TMP_Text rewardText;
 
-
     [SerializeField]
     private Button continueButton;
-
 
     [SerializeField]
     private TMP_Text continueButtonText;
 
-
     [SerializeField]
     private Button tripleRewardButton;
-
 
     [SerializeField]
     private TMP_Text tripleRewardButtonText;
 
 
     // =====================================================
-    // REWARDED AD
+    // VICTORY ANIMATION
+    // =====================================================
+
+    [Header("Victory Animation")]
+
+    [SerializeField]
+    private Image victoryFlash;
+
+    [SerializeField]
+    [Min(0f)]
+    private float victoryDelay = 0.20f;
+
+    [SerializeField]
+    [Min(0.01f)]
+    private float flashDuration = 0.25f;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float flashMaxAlpha = 0.20f;
+
+    [SerializeField]
+    [Min(0.01f)]
+    private float rewardCountDuration = 0.65f;
+
+
+    // =====================================================
+    // ADS
     // =====================================================
 
     [Header("Rewarded Ad")]
 
-    [Tooltip(
-        "Пока настоящий рекламный SDK " +
-        "не подключён, кнопка сразу " +
-        "считает рекламу просмотренной."
-    )]
     [SerializeField]
-    private bool simulateRewardedAd =
-        true;
+    private bool simulateRewardedAd = true;
+
+    // Future AdsManager integration.
+    // Callback arguments: adShown, rewardEarned.
+    public event Action<Action<bool, bool>>
+        RewardedAdRequested;
+
+    // Callback must be invoked after ad close
+    // or if the ad is unavailable.
+    public event Action<Action>
+        InterstitialAdRequested;
 
 
     // =====================================================
     // STATE
     // =====================================================
 
-    private bool levelCompleted;
+    private PopupAnimator popupAnimator;
 
+    private bool levelCompleted;
+    private bool rewardAnimating;
+    private bool rewardPending;
+    private bool rewardedShown;
+    private bool leaving;
+    private bool menuLoaded;
+    private bool victoryReady;
 
     private int currentDisplayedReward;
 
+    private bool CanSimulateRewarded =>
+        simulateRewardedAd &&
+        (Application.isEditor || Debug.isDebugBuild);
+
 
     // =====================================================
-    // EVENTS
+    // UNITY
     // =====================================================
+
+    private void Awake()
+    {
+        if (levelCompleteOverlay != null)
+        {
+            popupAnimator =
+                levelCompleteOverlay
+                    .GetComponent<PopupAnimator>();
+
+            if (popupAnimator != null)
+                popupAnimator.HideImmediate();
+            else
+                levelCompleteOverlay.SetActive(false);
+        }
+
+        if (victoryFlash != null)
+            victoryFlash.gameObject.SetActive(false);
+    }
+
 
     private void OnEnable()
     {
@@ -109,230 +170,247 @@ public class WinConditionManager :
 
 
     // =====================================================
-    // START
-    // =====================================================
-
-    private void Start()
-    {
-        levelCompleted =
-            false;
-
-
-        currentDisplayedReward =
-            0;
-
-
-        if (levelCompleteOverlay != null)
-        {
-            levelCompleteOverlay
-                .SetActive(
-                    false
-                );
-        }
-    }
-
-
-    // =====================================================
     // WIN CHECK
     // =====================================================
 
     private void CheckWinCondition()
     {
-        if (levelCompleted)
+        if (
+            levelCompleted ||
+            hintManager == null ||
+            levelManager == null ||
+            levelManager.CurrentLevel == null
+        )
         {
             return;
         }
-
-
-        if (hintManager == null)
-        {
-            Debug.LogError(
-                "WinConditionManager: " +
-                "HintManager is not assigned."
-            );
-
-            return;
-        }
-
 
         if (!hintManager.IsSolved())
-        {
             return;
+
+        levelCompleted = true;
+
+        LockGameplayInput();
+
+        StartCoroutine(VictorySequence());
+    }
+
+
+    private void LockGameplayInput()
+    {
+        if (pieceSpawner != null)
+            pieceSpawner.LockGameplay();
+
+        if (gameplayInputGroups == null)
+            return;
+
+        foreach (CanvasGroup group in gameplayInputGroups)
+        {
+            if (group == null)
+                continue;
+
+            group.interactable = false;
+            group.blocksRaycasts = false;
         }
-
-
-        CompleteLevel();
     }
 
 
     // =====================================================
-    // COMPLETE
+    // VICTORY SEQUENCE
     // =====================================================
 
-    private void CompleteLevel()
+    private IEnumerator VictorySequence()
     {
-        levelCompleted =
-            true;
-
-
-        if (levelManager == null)
-        {
-            Debug.LogError(
-                "WinConditionManager: " +
-                "LevelManager is not assigned."
-            );
-
-            return;
-        }
-
+        // GridChanged вызывается внутри PlacePiece().
+        // Даём PieceDragHandler завершить фиксацию.
+        yield return null;
 
         currentDisplayedReward =
-            levelManager
-                .CompleteCurrentLevel();
+            levelManager.CompleteCurrentLevel();
+
+        if (victoryDelay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(
+                victoryDelay
+            );
+        }
 
         if (AudioManager.Instance != null)
-{
-    AudioManager.Instance.PlaySfx(
-        GameSfx.LevelComplete
-    );
-}
+        {
+            AudioManager.Instance.PlaySfx(
+                GameSfx.LevelComplete
+            );
+        }
 
+        HapticManager.Vibrate();
 
-HapticManager.Vibrate();
+        yield return PlayVictoryFlash();
 
-
-        RefreshCompleteUI();
-
+        PrepareCompleteUI();
 
         if (levelCompleteOverlay != null)
         {
-            levelCompleteOverlay
-                .SetActive(
-                    true
-                );
+            levelCompleteOverlay.transform
+                .SetAsLastSibling();
+
+            if (popupAnimator != null)
+                popupAnimator.Open();
+            else
+                levelCompleteOverlay.SetActive(true);
         }
 
-
-        Debug.Log(
-            "Level completed!"
+        yield return AnimateReward(
+            0,
+            currentDisplayedReward
         );
+
+        victoryReady = true;
+
+        RefreshButtons();
     }
 
 
     // =====================================================
-    // UI
+    // VICTORY FLASH
     // =====================================================
 
-    private void RefreshCompleteUI()
+    private IEnumerator PlayVictoryFlash()
     {
-        if (levelManager == null)
+        if (victoryFlash == null)
+            yield break;
+
+        Color color = victoryFlash.color;
+
+        color.a = 0f;
+
+        victoryFlash.color = color;
+
+        victoryFlash.raycastTarget = false;
+
+        victoryFlash.gameObject.SetActive(true);
+
+        float elapsed = 0f;
+
+        float duration = Mathf.Max(
+            0.01f,
+            flashDuration
+        );
+
+        while (elapsed < duration)
         {
-            return;
+            elapsed += Time.unscaledDeltaTime;
+
+            float t = Mathf.Clamp01(
+                elapsed / duration
+            );
+
+            color.a =
+                Mathf.Sin(t * Mathf.PI) *
+                flashMaxAlpha;
+
+            victoryFlash.color = color;
+
+            yield return null;
         }
 
+        color.a = 0f;
 
-        bool hasNextLevel =
-            levelManager.HasNextLevel();
+        victoryFlash.color = color;
+
+        victoryFlash.gameObject.SetActive(false);
+    }
 
 
-        // =================================================
-        // TITLE
-        // =================================================
+    // =====================================================
+    // COMPLETE UI
+    // =====================================================
 
+    private void PrepareCompleteUI()
+    {
         if (completeTitle != null)
         {
             completeTitle.text =
-                hasNextLevel
+                levelManager.HasNextLevel()
                     ? "УРОВЕНЬ ПРОЙДЕН!"
                     : "ВСЕ УРОВНИ ПРОЙДЕНЫ!";
         }
 
-
-        // =================================================
-        // REWARD
-        // =================================================
-
-        if (rewardText != null)
-        {
-            if (currentDisplayedReward > 0)
-            {
-                rewardText.text =
-                    $"+{currentDisplayedReward} МОНЕТ";
-            }
-            else
-            {
-                rewardText.text =
-                    "НАГРАДА УЖЕ ПОЛУЧЕНА";
-            }
-        }
-
-
-        // =================================================
-        // CONTINUE
-        // =================================================
-
-        if (continueButton != null)
-        {
-            continueButton.interactable =
-                true;
-        }
-
-
         if (continueButtonText != null)
         {
-            continueButtonText.text =
-                hasNextLevel
-                    ? "ПРОДОЛЖИТЬ"
-                    : "В МЕНЮ";
+            continueButtonText.text = "В МЕНЮ";
         }
 
+        SetRewardText(0, currentDisplayedReward == 0);
 
-        RefreshTripleRewardButton();
+        RefreshButtons();
     }
 
 
-    // =====================================================
-    // TRIPLE REWARD
-    // =====================================================
-
-    private void RefreshTripleRewardButton()
+    private void SetRewardText(
+        int amount,
+        bool alreadyClaimed = false
+    )
     {
-        if (
-            levelManager == null ||
-            tripleRewardButton == null
-        )
-        {
+        if (rewardText == null)
             return;
-        }
 
+        rewardText.text = alreadyClaimed
+            ? "НАГРАДА УЖЕ ПОЛУЧЕНА"
+            : $"+{amount} ЗВЁЗД";
+    }
+
+
+    private void RefreshButtons()
+    {
+        bool ready =
+            victoryReady &&
+            !rewardAnimating &&
+            !rewardPending &&
+            !leaving;
 
         bool canClaim =
-            levelManager
-                .CanClaimTripleReward();
+            levelManager != null &&
+            levelManager.CanClaimTripleReward();
 
+        bool adConnected =
+            CanSimulateRewarded ||
+            RewardedAdRequested != null;
 
-        tripleRewardButton.interactable =
-            canClaim;
+        if (continueButton != null)
+        {
+            continueButton.interactable = ready;
+        }
 
+        if (tripleRewardButton != null)
+        {
+            tripleRewardButton.interactable =
+                ready &&
+                canClaim &&
+                adConnected;
+        }
 
         if (tripleRewardButtonText == null)
-        {
             return;
-        }
 
-
-        if (canClaim)
+        if (rewardPending)
         {
             tripleRewardButtonText.text =
-                "x3 ЗА РЕКЛАМУ";
+                "ЗАГРУЗКА...";
         }
         else if (
+            currentDisplayedReward > 0 &&
             currentDisplayedReward >=
-            levelManager.TripleRewardTotalCoins
+                levelManager.TripleRewardTotalCoins &&
+            !canClaim
         )
         {
             tripleRewardButtonText.text =
                 "ПОЛУЧЕНО";
+        }
+        else if (canClaim && adConnected)
+        {
+            tripleRewardButtonText.text =
+                "×3 ЗА РЕКЛАМУ";
         }
         else
         {
@@ -343,90 +421,230 @@ HapticManager.Vibrate();
 
 
     // =====================================================
-    // CONTINUE BUTTON
+    // REWARD ANIMATION
     // =====================================================
 
-    public void Continue()
+    private IEnumerator AnimateReward(
+        int from,
+        int to
+    )
     {
-        if (levelManager == null)
+        rewardAnimating = true;
+
+        RefreshButtons();
+
+        if (to <= 0)
         {
-            return;
+            SetRewardText(0, true);
+        }
+        else
+        {
+            float elapsed = 0f;
+
+            float duration = Mathf.Max(
+                0.01f,
+                rewardCountDuration
+            );
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+
+                float t = Mathf.Clamp01(
+                    elapsed / duration
+                );
+
+                float eased =
+                    1f - Mathf.Pow(1f - t, 3f);
+
+                int amount = Mathf.RoundToInt(
+                    Mathf.Lerp(from, to, eased)
+                );
+
+                SetRewardText(amount);
+
+                yield return null;
+            }
+
+            SetRewardText(to);
         }
 
+        rewardAnimating = false;
 
-        levelManager
-            .ContinueAfterCompletion();
+        RefreshButtons();
     }
 
 
     // =====================================================
-    // REWARDED AD BUTTON
+    // REWARDED AD
     // =====================================================
 
     public void WatchAdForTripleReward()
     {
         if (
+            !victoryReady ||
+            rewardAnimating ||
+            rewardPending ||
+            leaving ||
             levelManager == null ||
-            !levelManager
-                .CanClaimTripleReward()
+            !levelManager.CanClaimTripleReward()
         )
         {
             return;
         }
 
+        rewardPending = true;
 
-        if (simulateRewardedAd)
+        RefreshButtons();
+
+        if (RewardedAdRequested != null)
         {
-            GrantTripleRewardAfterAd();
+            try
+            {
+                RewardedAdRequested.Invoke(
+                    OnRewardedAdFinished
+                );
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+
+                OnRewardedAdFinished(false, false);
+            }
 
             return;
         }
 
+        if (CanSimulateRewarded)
+        {
+            OnRewardedAdFinished(true, true);
 
-        Debug.LogWarning(
-            "Rewarded Ad SDK is not connected yet."
+            return;
+        }
+
+        OnRewardedAdFinished(false, false);
+    }
+
+
+    private void OnRewardedAdFinished(
+        bool adShown,
+        bool rewardEarned
+    )
+    {
+        if (this == null || !rewardPending)
+            return;
+
+        rewardPending = false;
+
+        rewardedShown |= adShown;
+
+        if (!adShown || !rewardEarned)
+        {
+            RefreshButtons();
+            return;
+        }
+
+        if (!levelManager.TryGrantTripleRewardBonus())
+        {
+            RefreshButtons();
+            return;
+        }
+
+        int previousReward = currentDisplayedReward;
+
+        currentDisplayedReward =
+            levelManager.TripleRewardTotalCoins;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySfx(
+                GameSfx.Reward
+            );
+        }
+
+        StartCoroutine(
+            AnimateReward(
+                previousReward,
+                currentDisplayedReward
+            )
         );
     }
 
 
     public void GrantTripleRewardAfterAd()
     {
-        if (levelManager == null)
+        OnRewardedAdFinished(true, true);
+    }
+
+
+    // =====================================================
+    // CONTINUE / INTERSTITIAL
+    // =====================================================
+
+    public void Continue()
+    {
+        if (
+            !victoryReady ||
+            rewardPending ||
+            rewardAnimating ||
+            leaving ||
+            levelManager == null
+        )
         {
             return;
         }
 
+        leaving = true;
 
-        bool granted =
-            levelManager
-                .TryGrantTripleRewardBonus();
+        RefreshButtons();
+
+        StartCoroutine(ExitSequence());
+    }
 
 
-        if (!granted)
+    private IEnumerator ExitSequence()
+    {
+        if (popupAnimator != null)
         {
+            popupAnimator.Close();
+
+            while (levelCompleteOverlay.activeSelf)
+                yield return null;
+        }
+
+        bool canShowInterstitial =
+            !rewardedShown &&
+            !PlayerEntitlements.AreAdsRemoved() &&
+            InterstitialAdRequested != null;
+
+        if (!canShowInterstitial)
+        {
+            FinishExit();
+            yield break;
+        }
+
+        try
+        {
+            InterstitialAdRequested.Invoke(
+                FinishExit
+            );
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+
+            FinishExit();
+        }
+    }
+
+
+    private void FinishExit()
+    {
+        if (this == null || menuLoaded)
             return;
-        }
 
-        if (AudioManager.Instance != null)
-{
-    AudioManager.Instance.PlaySfx(
-        GameSfx.Reward
-    );
-}
+        menuLoaded = true;
 
-
-        currentDisplayedReward =
-            levelManager
-                .TripleRewardTotalCoins;
-
-
-        if (rewardText != null)
-        {
-            rewardText.text =
-                $"+{currentDisplayedReward} МОНЕТ";
-        }
-
-
-        RefreshTripleRewardButton();
+        levelManager.ContinueAfterCompletion();
     }
 }
