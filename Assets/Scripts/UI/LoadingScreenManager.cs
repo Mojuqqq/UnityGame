@@ -1,442 +1,168 @@
+using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-
 public class LoadingScreenManager : MonoBehaviour
 {
-    // =====================================================
-    // UI
-    // =====================================================
-
     [Header("UI")]
-
-    [SerializeField]
-    private Image loadingFill;
-
-    [SerializeField]
-    private TMP_Text loadingText;
-
-    [SerializeField]
-    private TMP_Text versionText;
-
-
-    // =====================================================
-    // SCENE
-    // =====================================================
+    [SerializeField] private Image loadingFill;
+    [SerializeField] private TMP_Text loadingText;
+    [SerializeField] private TMP_Text versionText;
 
     [Header("Scene")]
-
-    [SerializeField]
-    private string homeSceneName =
-        "Menu";
-
-
-    // =====================================================
-    // TIMING
-    // =====================================================
+    [SerializeField] private string homeSceneName = "Menu";
 
     [Header("Timing")]
-
-    [Tooltip(
-        "Минимальное время показа загрузочного экрана. " +
-        "Полоса будет заполняться не быстрее этого времени."
-    )]
-    [SerializeField]
-    [Min(0.1f)]
-    private float minimumDisplayTime =
-        5f;
-
-
-    [Tooltip(
-        "Сколько времени показывать 100% " +
-        "перед переходом на следующую сцену."
-    )]
-    [SerializeField]
-    [Min(0f)]
-    private float completionHoldTime =
-        0.15f;
-
-
-    // =====================================================
-    // TEST
-    // =====================================================
+    [Tooltip("Minimum display time of the loading screen.")]
+    [SerializeField, Min(0.1f)] private float minimumDisplayTime = 5f;
+    [Tooltip("Time to display 100% before the transition.")]
+    [SerializeField, Min(0f)] private float completionHoldTime = 0.15f;
 
     [Header("Test")]
-
-    [Tooltip(
-        "Тестировать только полосу загрузки " +
-        "без перехода на другую сцену."
-    )]
-    [SerializeField]
-    private bool testMode =
-        false;
-
-
-    [Tooltip(
-        "Повторять тест полосы после 100%."
-    )]
-    [SerializeField]
-    private bool loopTest =
-        true;
-
-
-    [Tooltip(
-        "Пауза между тестовыми циклами."
-    )]
-    [SerializeField]
-    [Min(0f)]
-    private float testPause =
-        1f;
-
-
-    // =====================================================
-    // UNITY
-    // =====================================================
+    [SerializeField] private bool testMode = false;
+    [SerializeField] private bool loopTest = true;
+    [SerializeField, Min(0f)] private float testPause = 1f;
 
     private void Awake()
     {
         ConfigureFill();
-
-        SetProgress(
-            0f
-        );
+        SetProgress(0f);
     }
-
 
     private void Start()
     {
-        LevelSelectionState
-            .ClearSelection();
-
+        LevelSelectionState.ClearSelection();
 
         if (versionText != null)
-        {
-            versionText.text =
-                $"v{Application.version}";
-        }
-
+            versionText.text = $"v{Application.version}";
 
         if (testMode)
-        {
-            StartCoroutine(
-                RunTest()
-            );
-        }
+            StartCoroutine(RunTest());
         else
-        {
-            StartCoroutine(
-                LoadHomeScene()
-            );
-        }
+            StartCoroutine(LoadHomeScene());
     }
-
-
-    // =====================================================
-    // FILL SETUP
-    // =====================================================
 
     private void ConfigureFill()
     {
         if (loadingFill == null)
         {
-            Debug.LogError(
-                "LoadingScreenManager: " +
-                "Loading Fill is not assigned."
-            );
-
+            Debug.LogError("LoadingScreenManager: Loading Fill is not assigned.");
             return;
         }
 
-
-        loadingFill.type =
-            Image.Type.Filled;
-
-
-        loadingFill.fillMethod =
-            Image.FillMethod.Horizontal;
-
-
-        // Horizontal:
-        // 0 = Left
-        // 1 = Right
-        loadingFill.fillOrigin =
-            0;
-
-
-        loadingFill.fillAmount =
-            0f;
-
-
-        loadingFill.preserveAspect =
-            false;
+        loadingFill.type = Image.Type.Filled;
+        loadingFill.fillMethod = Image.FillMethod.Horizontal;
+        loadingFill.fillOrigin = 0;
+        loadingFill.fillAmount = 0f;
+        loadingFill.preserveAspect = false;
     }
 
-
-    // =====================================================
-    // SET PROGRESS
-    // =====================================================
-
-    private void SetProgress(
-        float value
-    )
+    private void SetProgress(float value)
     {
-        value =
-            Mathf.Clamp01(
-                value
-            );
-
-
-        // ---------------------------------------------
-        // BAR
-        // ---------------------------------------------
+        value = Mathf.Clamp01(value);
 
         if (loadingFill != null)
-        {
-            loadingFill.fillAmount =
-                value;
-        }
-
-
-        // ---------------------------------------------
-        // TEXT
-        // ---------------------------------------------
+            loadingFill.fillAmount = value;
 
         if (loadingText != null)
-        {
-            int percent =
-                Mathf.RoundToInt(
-                    value *
-                    100f
-                );
-
-
-            loadingText.text =
-                $"ЗАГРУЗКА... {percent}%";
-        }
+            loadingText.text = $"ЗАГРУЗКА... {Mathf.RoundToInt(value * 100f)}%";
     }
-
-
-    // =====================================================
-    // REAL LOADING
-    // =====================================================
 
     private IEnumerator LoadHomeScene()
     {
-        SetProgress(
-            0f
-        );
+        SetProgress(0f);
 
+        // If Loading was opened through SceneTransition, let its fade-in finish.
+        while (SceneTransition.IsTransitioning)
+            yield return null;
 
-        float startTime =
-            Time.unscaledTime;
-
-
-        AsyncOperation operation =
-            SceneManager.LoadSceneAsync(
-                homeSceneName
-            );
-
-
-        if (operation == null)
+        if (string.IsNullOrWhiteSpace(homeSceneName) ||
+            !Application.CanStreamedLevelBeLoaded(homeSceneName))
         {
-            Debug.LogError(
-                "LoadingScreenManager: " +
-                $"Could not load scene '{homeSceneName}'."
-            );
-
+            Debug.LogError($"LoadingScreenManager: scene '{homeSceneName}' is not in the build.");
+            if (loadingText != null)
+                loadingText.text = "ОШИБКА ЗАГРУЗКИ";
             yield break;
         }
 
+        float startTime = Time.unscaledTime;
+        float displayTime = Mathf.Max(0.1f, minimumDisplayTime);
+        AsyncOperation operation = null;
 
-        // Сцену можно загрузить,
-        // но пока запрещаем Unity её активировать.
-        operation.allowSceneActivation =
-            false;
+        try
+        {
+            operation = SceneManager.LoadSceneAsync(homeSceneName, LoadSceneMode.Single);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+        }
 
+        if (operation == null)
+        {
+            Debug.LogError($"LoadingScreenManager: could not load '{homeSceneName}'.");
+            if (loadingText != null)
+                loadingText.text = "ОШИБКА ЗАГРУЗКИ";
+            yield break;
+        }
+
+        operation.allowSceneActivation = false;
 
         while (true)
         {
-            // -----------------------------------------
-            // TIMER
-            // -----------------------------------------
+            float timeProgress = Mathf.Clamp01((Time.unscaledTime - startTime) / displayTime);
+            bool sceneReady = operation.progress >= 0.9f;
+            SetProgress(sceneReady ? timeProgress : Mathf.Min(timeProgress, 0.99f));
 
-            float elapsed =
-                Time.unscaledTime -
-                startTime;
-
-
-            float timeProgress =
-                Mathf.Clamp01(
-                    elapsed /
-                    minimumDisplayTime
-                );
-
-
-            // -----------------------------------------
-            // UNITY SCENE STATE
-            // -----------------------------------------
-
-            bool sceneReady =
-                operation.progress >=
-                0.9f;
-
-
-            // -----------------------------------------
-            // VISUAL PROGRESS
-            // -----------------------------------------
-
-            float displayedProgress;
-
-
-            if (sceneReady)
-            {
-                // Сцена уже готова.
-                // Просто продолжаем красивую анимацию
-                // по таймеру.
-                displayedProgress =
-                    timeProgress;
-            }
-            else
-            {
-                // Если наши минимальные секунды
-                // уже закончились, но Unity ещё
-                // не загрузила сцену,
-                // держимся на 99%.
-                displayedProgress =
-                    Mathf.Min(
-                        timeProgress,
-                        0.99f
-                    );
-            }
-
-
-            SetProgress(
-                displayedProgress
-            );
-
-
-            // -----------------------------------------
-            // FINISH
-            // -----------------------------------------
-
-            bool timerFinished =
-                timeProgress >=
-                1f;
-
-
-            if (
-                sceneReady &&
-                timerFinished
-            )
-            {
+            if (sceneReady && timeProgress >= 1f)
                 break;
-            }
-
 
             yield return null;
         }
 
+        SetProgress(1f);
 
-        // =================================================
-        // 100%
-        // =================================================
-
-        SetProgress(
-            1f
-        );
-
-
-        Debug.Log(
-            "LoadingScreenManager: " +
-            $"loading screen displayed for " +
-            $"{Time.unscaledTime - startTime:F2} seconds."
-        );
-
-
-        // Дадим игроку увидеть заполненную полосу.
         if (completionHoldTime > 0f)
-        {
-            yield return
-                new WaitForSecondsRealtime(
-                    completionHoldTime
-                );
-        }
+            yield return new WaitForSecondsRealtime(completionHoldTime);
 
+        // Use the existing AsyncOperation; do not load Menu a second time.
+        if (SceneTransition.TryActivatePreloaded(operation))
+            yield break;
 
-        // Теперь разрешаем переключить сцену.
-        operation.allowSceneActivation =
-            true;
-
-
+        // Never leave an async operation permanently blocked if the handoff fails.
+        Debug.LogWarning("LoadingScreenManager: transition handoff failed; activating the preloaded scene.");
+        operation.allowSceneActivation = true;
         while (!operation.isDone)
-        {
             yield return null;
-        }
     }
-
-
-    // =====================================================
-    // TEST
-    // =====================================================
 
     private IEnumerator RunTest()
     {
         do
         {
-            SetProgress(
-                0f
-            );
-
-
-            float startTime =
-                Time.unscaledTime;
-
+            SetProgress(0f);
+            float startTime = Time.unscaledTime;
+            float displayTime = Mathf.Max(0.1f, minimumDisplayTime);
 
             while (true)
             {
-                float elapsed =
-                    Time.unscaledTime -
-                    startTime;
-
-
-                float progress =
-                    Mathf.Clamp01(
-                        elapsed /
-                        minimumDisplayTime
-                    );
-
-
-                SetProgress(
-                    progress
-                );
-
+                float progress = Mathf.Clamp01((Time.unscaledTime - startTime) / displayTime);
+                SetProgress(progress);
 
                 if (progress >= 1f)
-                {
                     break;
-                }
-
 
                 yield return null;
             }
 
-
             if (!loopTest)
-            {
                 yield break;
-            }
-
 
             if (testPause > 0f)
-            {
-                yield return
-                    new WaitForSecondsRealtime(
-                        testPause
-                    );
-            }
+                yield return new WaitForSecondsRealtime(testPause);
         }
         while (true);
     }

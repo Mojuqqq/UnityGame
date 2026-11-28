@@ -487,9 +487,10 @@ hintManager.Initialize(
 
     public void ContinueAfterCompletion()
 {
-    LevelSelectionState.ClearSelection();
-
-    SceneManager.LoadScene(homeSceneName);
+    if (SceneTransition.TryLoad(homeSceneName))
+    {
+        LevelSelectionState.ClearSelection();
+    }
 }
     // =====================================================
     // NEXT LEVEL
@@ -503,37 +504,27 @@ hintManager.Initialize(
 
 
     public void LoadNextLevel()
-    {
-        LevelData nextLevel =
-            GetNextLevel();
+{
+    if (SceneTransition.IsTransitioning)
+        return;
 
+    LevelData nextLevel = GetNextLevel();
 
-        if (nextLevel == null)
-        {
-            return;
-        }
+    if (nextLevel == null)
+        return;
 
+    string sceneName =
+        SceneManager.GetActiveScene().name;
 
-        ProgressManager.UnlockLevel(
-            nextLevel.LevelNumber
-        );
+    if (!SceneTransition.TryLoad(sceneName))
+        return;
 
+    ProgressManager.UnlockLevel(
+        nextLevel.LevelNumber
+    );
 
-        LevelSelectionState.SelectLevel(
-            nextLevel
-        );
-
-
-        Scene currentScene =
-            SceneManager
-                .GetActiveScene();
-
-
-        SceneManager.LoadScene(
-            currentScene.name
-        );
-    }
-
+    LevelSelectionState.SelectLevel(nextLevel);
+}
 
     private LevelData GetNextLevel()
     {

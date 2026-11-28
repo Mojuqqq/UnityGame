@@ -377,14 +377,12 @@ public class LevelSelectManager :
         }
 
 
-        LevelSelectionState.SelectLevel(
-            currentPlayableLevel
-        );
-
-
-        SceneManager.LoadScene(
-            gameSceneName
-        );
+        if (SceneTransition.TryLoad(gameSceneName))
+{
+    LevelSelectionState.SelectLevel(
+        currentPlayableLevel
+    );
+}
     }
 
 
